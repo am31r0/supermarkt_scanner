@@ -1,0 +1,79 @@
+/* Layout and components */
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: var(--surface);
+    border-radius: 0 0 var(--radius) var(--radius);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.navbar__brand {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.navbar__menu {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.nav-link {
+    font-weight: 500;
+}
+
+.hero {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 6rem 2rem;
+    background: linear-gradient(145deg, #1a1a1a, #232323);
+    border-radius: var(--radius);
+    margin: 2rem auto;
+    max-width: 1000px;
+}
+
+.hero__content h1 {
+    font-size: 2.5rem;
+}
+
+.hero__content p {
+    font-size: 1.1rem;
+    color: var(--muted);
+    margin-bottom: 2rem;
+}
+
+.features {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    max-width: 1200px;
+    margin: 3rem auto;
+    padding: 0 2rem;
+}
+
+.card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 2rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    transition: transform var(--transition);
+}
+
+.card:hover {
+    transform: translateY(-4px);
+}
+
+.footer {
+    text-align: center;
+    padding: 2rem;
+    margin-top: 4rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
