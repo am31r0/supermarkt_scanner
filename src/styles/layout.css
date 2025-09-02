@@ -8,7 +8,7 @@
     background: var(--surface);
     border-radius: 0 0 var(--radius) var(--radius);
     position: sticky;
-    top: 0;
+    bottom: 0;
     z-index: 100;
 }
 
