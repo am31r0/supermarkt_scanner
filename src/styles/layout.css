@@ -1,16 +1,21 @@
 /* Layout and components */
 
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 2rem;
-    background: var(--surface);
-    border-radius: 0 0 var(--radius) var(--radius);
-    position: sticky;
-    bottom: 0;
-    z-index: 100;
-}
+    .navbar {
+
+        display: flex;
+        justify-content: center;
+        flex-direction: row;
+        align-items: center;
+        padding: 0.8rem 1rem;
+        background: var(--surface);
+        border-radius: 0 0 var(--radius) var(--radius);
+        position: fixed;
+        width: min(100%,500px);
+        bottom:0;
+        z-index: 100;
+        padding-bottom: 80px;
+    }
+
 
 .navbar__brand {
     font-family: 'Satoshi', sans-serif;
@@ -20,11 +25,37 @@
 
 .navbar__menu {
     display: flex;
-    gap: 1.5rem;
+    align-content: center;
+    align-items: center;
+    justify-content: space-evenly;
+    width:100%;
 }
 
 .nav-link {
     font-weight: 500;
+    font-size: 8px;
+    line-height: 1.2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    align-content: center;
+}
+
+.nav-link.active svg{
+    background: var(--accent);
+}
+.nav-link.active:hover{
+    color:var(--ink);
+}
+
+.nav-link svg{
+    background:var(--buttonbg);
+    padding:10px 20px;
+    width:auto;
+    height:100%;
+    border-radius: 50px;
+    transition: all 0.3s ease;
 }
 
 .hero {
@@ -36,11 +67,11 @@
     background: linear-gradient(145deg, #1a1a1a, #232323);
     border-radius: var(--radius);
     margin: 2rem auto;
-    max-width: 1000px;
+    max-width: 88%;
 }
 
 .hero__content h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
 }
 
 .hero__content p {
