@@ -5,7 +5,6 @@
     margin: 0 auto;
 }
 
-
 .list-header {
     display: flex;
     align-items: center;
@@ -65,7 +64,6 @@
     display: inline-flex;
     align-items: center;
     gap: .35rem;
-
 }
 
 .qty-controls .icon-btn {
@@ -76,10 +74,6 @@
     border-radius: var(--btnradius);
     background: var(--accent);
     border: 0;
-}
-
-.icon-btn.delete {
-    display: none;
 }
 
 .qty-num {
@@ -97,7 +91,6 @@
 .item-name {
     font-size: 0.95rem;
 }
-
 
 .item-actions .icon-btn:hover {
     color: var(--ink);
@@ -242,44 +235,47 @@
     font-size: 0.8rem;
 }
 
-/* Modal */
+/* ===== Modal ===== */
 .category-modal {
     position: fixed;
     inset: 0;
-    z-index: 100;
+    z-index: 1000;
+    /* boven alles */
 }
 
-.category-modal[hidden] {
-    display: none;
-}
-
+/* backdrop dekt altijd hele viewport */
 .category-modal .modal-backdrop {
-    position: absolute;
+    position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(2px);
 }
 
+/* content: ALTIJD 10% van de viewport-top, gecentreerd */
 .category-modal .modal-content {
-    position: absolute;
-    inset: auto 0 0 0;
-    margin: auto;
-    max-width: 560px;
-    width: calc(100% - 24px);
+    position: fixed;
+    top: calc(10vh + env(safe-area-inset-top));
+    /* iOS safe-area */
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(480px, calc(100% - 24px));
+    max-width: 480px;
+    max-height: 80vh;
+    /* zodat ’ie nooit buiten beeld valt */
+    overflow: auto;
     background: var(--surface);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px 16px 0 0;
+    border-radius: 16px;
     padding: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    z-index: 1;
+    /* boven de backdrop */
 }
 
-@media (min-width: 720px) {
-    .category-modal .modal-content {
-        top: 10%;
-        bottom: auto;
-        border-radius: 16px;
-    }
-}
+/* geen media query meer nodig om ‘m hoger te zetten */
+/* je mag wél layout tweaks per breakpoint doen als je wilt */
 
+/* Modal header & controls */
 .modal-header {
     display: flex;
     align-items: center;
@@ -327,6 +323,55 @@
     gap: 6px;
 }
 
+/* scrollbar styling (optioneel) */
+.modal-list::-webkit-scrollbar-track {
+    background-color: var(--surface);
+}
+
+.modal-list::-webkit-scrollbar {
+    width: 20px;
+    background-color: transparent;
+}
+
+.modal-list::-webkit-scrollbar-thumb {
+    border-left: 10px solid var(--surface);
+    background-color: var(--accent);
+}
+
+/* Nieuwe row-styles (matcht je JS render) */
+.modal-item-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--ink);
+}
+
+.modal-item-row:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.modal-item-row.in-list {
+    border-color: color-mix(in oklab, var(--accent) 70%, #fff 30%);
+    background: color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+.modal-item-name {
+    font-size: 0.95rem;
+}
+
+.modal-item-act.btn.small {
+    padding: 8px 12px;
+    white-space: nowrap;
+}
+
+/* oude .modal-item stijl laten staan voor fallback of weghalen als je wilt */
 .modal-item {
     width: 100%;
     text-align: left;
@@ -345,4 +390,43 @@
 .modal-empty {
     color: var(--muted);
     padding: 8px;
+}
+
+/* verborgen state */
+.category-modal[hidden] {
+    display: none;
+}
+
+/* Trash button styling consistent */
+.icon-btn.trash-btn {
+    display: inline-flex;
+    align-items: center;
+    width: 28px;
+    height: 28px;
+    margin-top: px;
+    border-radius: var(--btnradius);
+    background: none;
+    border: none;
+    color: red;
+    cursor: pointer;
+}
+
+.icon-btn.trash-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* Modal action row layout */
+.modal-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-item-row .qty-badge {
+    margin-left: .5rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: var(--accent);
+    font-size: 0.8rem;
 }
