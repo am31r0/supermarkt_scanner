@@ -9,7 +9,7 @@ const CAT_LABEL = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.label]));
 function loadList() {
   try {
     const arr = JSON.parse(localStorage.getItem(LS_KEY)) ?? [];
-    // migrate: zorg voor qty
+    // migrate: zorg voor qty (min 1) en done-flag
     return arr.map((i) => ({
       qty: 1,
       done: false,
@@ -25,6 +25,17 @@ function saveList(items) {
 }
 function uid() {
   return Math.random().toString(36).slice(2, 9);
+}
+
+// --- Utils / Escapers ---
+function escHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+function escAttr(str) {
+  return escHtml(str).replaceAll('"', "&quot;");
 }
 
 // --- Search ---
@@ -82,6 +93,13 @@ export function renderListPage(mount) {
   const modalList = modal.querySelector(".modal-list");
 
   // --- Helpers ---
+  function getEntryByName(name) {
+    const n = name.toLowerCase();
+    return state.find((i) => i.name.toLowerCase() === n) || null;
+  }
+  function isInList(name) {
+    return !!getEntryByName(name);
+  }
   function ensureItemCategory(item) {
     if (!item.cat) {
       const key = item.name.toLowerCase();
@@ -89,14 +107,12 @@ export function renderListPage(mount) {
     }
     return item.cat;
   }
-
   function incItemQtyByName(name, delta = 1) {
     const idx = state.findIndex(
       (i) => i.name.toLowerCase() === name.toLowerCase()
     );
     if (idx === -1) return false;
     state[idx].qty = Math.max(0, (state[idx].qty ?? 1) + delta);
-    // als qty op 0 komt: verwijderen
     if (state[idx].qty === 0) {
       state.splice(idx, 1);
     }
@@ -104,7 +120,18 @@ export function renderListPage(mount) {
     renderCommitted();
     return true;
   }
-
+  function removeItemByName(name) {
+    const idx = state.findIndex(
+      (i) => i.name.toLowerCase() === name.toLowerCase()
+    );
+    if (idx > -1) {
+      state.splice(idx, 1);
+      saveList(state);
+      renderCommitted();
+      return true;
+    }
+    return false;
+  }
   function addItem(name) {
     const clean = name.trim();
     if (!clean) return;
@@ -121,9 +148,11 @@ export function renderListPage(mount) {
   function renderCategoryCards() {
     catGrid.innerHTML = CATEGORIES.map(
       (c) => `
-      <button class="category-card" data-cat="${c.id}" aria-label="${c.label}">
+      <button class="category-card" data-cat="${c.id}" aria-label="${escAttr(
+        c.label
+      )}">
         <span class="emoji">${c.icon}</span>
-        <span class="label">${c.label}</span>
+        <span class="label">${escHtml(c.label)}</span>
       </button>`
     ).join("");
 
@@ -134,6 +163,7 @@ export function renderListPage(mount) {
 
   // --- Modal ---
   let currentModalCat = null;
+
   function openCategoryModal(catId) {
     currentModalCat = catId;
     modalTitle.textContent = CAT_LABEL[catId] || "Categorie";
@@ -148,34 +178,114 @@ export function renderListPage(mount) {
     document.body.style.overflow = "";
     currentModalCat = null;
   }
+
   function renderModalList(filterText) {
     const f = (filterText || "").trim().toLowerCase();
     const list = PRODUCTS.filter(
       (p) =>
         p.cat === currentModalCat && (!f || p.name.toLowerCase().includes(f))
     );
+
     if (!list.length) {
       modalList.innerHTML = `<div class="modal-empty">Geen producten gevonden.</div>`;
       return;
     }
+
     modalList.innerHTML = list
       .sort((a, b) => a.name.localeCompare(b.name, "nl"))
-      .map(
-        (p) => `<button class="modal-item" data-name="${p.name}">
-          <span class="modal-item-name">${p.name}</span>
-          <span class="modal-item-act"></span>
-        </button>`
-      )
+      .map((p) => {
+        const entry = getEntryByName(p.name);
+        const inList = !!entry;
+        const qty = entry?.qty ?? 1;
+
+        // Actie kolom:
+        // - Niet in lijst: 1 knop "Toevoegen"
+        // - Wel in lijst: 2 knoppen: "+1" en "verwijderen (trash)"
+        const actions = !inList
+          ? `
+            <button
+              type="button"
+              class="btn small modal-item-add"
+              data-name="${escAttr(p.name)}"
+              aria-label="${escAttr(`Voeg ${p.name} toe`)}"
+            >Toevoegen</button>
+          `
+          : `
+            <div class="modal-actions">
+              <button
+                type="button"
+                class="btn small modal-item-plus"
+                data-name="${escAttr(p.name)}"
+                aria-label="${escAttr(`Voeg 1 toe aan ${p.name}`)}"
+              >Toevoegen</button>
+              <button
+                type="button"
+                class="icon-btn trash-btn modal-item-remove"
+                title="Verwijderen"
+                aria-label="${escAttr(`Verwijder ${p.name} uit lijst`)}"
+                data-name="${escAttr(p.name)}"
+              >
+                ${trashSvg()}
+              </button>
+            </div>
+          `;
+
+        return `
+          <div class="modal-item-row${inList ? " in-list" : ""}">
+            <span class="modal-item-name">
+              ${escHtml(p.name)}
+              ${
+                inList
+                  ? `<span class="qty-badge" aria-label="Aantal">×${qty}</span>`
+                  : ""
+              }
+            </span>
+            <div class="modal-item-act">
+              ${actions}
+            </div>
+          </div>
+        `;
+      })
       .join("");
 
-    // meerdere keren klikken op dezelfde knop = qty ophogen
-    modalList.querySelectorAll(".modal-item").forEach((btn) => {
+    // Listeners
+    // Add
+    modalList.querySelectorAll(".modal-item-add").forEach((btn) => {
       btn.addEventListener("click", () => {
         addItem(btn.dataset.name);
-        // modal open laten voor snel meerdere keuzes
+        renderModalList(modalSearch.value); // refresh modal
+        refocusModalButton(
+          btn.dataset.name,
+          ".modal-item-plus, .modal-item-add, .modal-item-remove"
+        );
+      });
+    });
+    // Plus
+    modalList.querySelectorAll(".modal-item-plus").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        incItemQtyByName(btn.dataset.name, 1);
+        renderModalList(modalSearch.value);
+        refocusModalButton(btn.dataset.name, ".modal-item-plus");
+      });
+    });
+    // Remove
+    modalList.querySelectorAll(".modal-item-remove").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        removeItemByName(btn.dataset.name);
+        renderModalList(modalSearch.value);
+        // na verwijderen bestaat er alleen nog "Toevoegen" → focus daarop
+        refocusModalButton(btn.dataset.name, ".modal-item-add");
       });
     });
   }
+
+  function refocusModalButton(name, selector) {
+    const el = modalList.querySelector(
+      `${selector}[data-name="${CSS.escape(name)}"]`
+    );
+    if (el) el.focus();
+  }
+
   modalClose.addEventListener("click", closeCategoryModal);
   modalBackdrop.addEventListener("click", closeCategoryModal);
   modal.addEventListener("keydown", (e) => {
@@ -189,7 +299,6 @@ export function renderListPage(mount) {
   function updateQty(item, delta) {
     item.qty = Math.max(0, (item.qty ?? 1) + delta);
     if (item.qty === 0) {
-      // verwijderen als 0
       const idx = state.findIndex((i) => i.id === item.id);
       if (idx > -1) state.splice(idx, 1);
     }
@@ -199,13 +308,11 @@ export function renderListPage(mount) {
 
   // --- Render lijst (gegroepeerd op categorie) ---
   function renderCommitted() {
-    // zorg dat elk item cat & qty heeft
     state.forEach((it) => {
       ensureItemCategory(it);
       if (!Number.isFinite(it.qty) || it.qty < 1) it.qty = 1;
     });
 
-    // groepeer
     const grouped = new Map(CATEGORY_ORDER.map((id) => [id, []]));
     for (const item of state) {
       if (!grouped.has(item.cat)) grouped.set(item.cat, []);
@@ -219,26 +326,24 @@ export function renderListPage(mount) {
       const items = grouped.get(catId) || [];
       if (!items.length) continue;
 
-      // categorie kop
       const head = document.createElement("li");
       head.className = "category-header";
       head.textContent = CAT_LABEL[catId] || "Overig";
       frag.appendChild(head);
 
-      // items alfabetisch
       items.sort((a, b) => a.name.localeCompare(b.name, "nl"));
       for (const item of items) {
         const li = document.createElement("li");
         li.className = "list-item";
-        if (item.done) li.classList.add("done"); // voor grijs/donkerder state
+        if (item.done) li.classList.add("done");
 
         li.innerHTML = `
           <label class="item-check">
             <input type="checkbox" ${
               item.done ? "checked" : ""
-            } aria-label="Afvinken ${item.name}" />
+            } aria-label="Afvinken ${escAttr(item.name)}" />
             <span class="item-name">
-              ${item.name}
+              ${escHtml(item.name)}
               <span class="qty-badge" aria-label="Aantal">×${item.qty}</span>
             </span>
           </label>
@@ -249,11 +354,12 @@ export function renderListPage(mount) {
               <span class="qty-num" aria-live="polite">${item.qty}</span>
               <button class="icon-btn plus" title="Meer" aria-label="Meer">+</button>
             </div>
-            <button class="icon-btn delete" title="Verwijderen" aria-label="Verwijderen">✕</button>
+            <button class="icon-btn trash-btn delete" title="Verwijderen" aria-label="Verwijderen">
+              ${trashSvg()}
+            </button>
           </div>
         `;
 
-        // checkbox (done)
         const checkbox = li.querySelector("input[type=checkbox]");
         checkbox.addEventListener("change", () => {
           item.done = checkbox.checked;
@@ -261,7 +367,6 @@ export function renderListPage(mount) {
           saveList(state);
         });
 
-        // qty +/−
         li.querySelector(".plus").addEventListener("click", () =>
           updateQty(item, +1)
         );
@@ -269,7 +374,6 @@ export function renderListPage(mount) {
           updateQty(item, -1)
         );
 
-        // delete
         li.querySelector(".delete").addEventListener("click", () => {
           const idx = state.findIndex((i) => i.id === item.id);
           if (idx > -1) {
@@ -291,7 +395,9 @@ export function renderListPage(mount) {
     const row = document.createElement("div");
     row.className = "input-row";
     row.innerHTML = `
-      <input type="text" class="item-input" placeholder="Typ hier..." value="${initial}" />
+      <input type="text" class="item-input" placeholder="Typ hier..." value="${escAttr(
+        initial
+      )}" />
       <button class="btn small commit" title="Toevoegen">Toevoegen</button>
       <div class="suggestions" role="listbox"></div>
     `;
@@ -311,15 +417,16 @@ export function renderListPage(mount) {
       sug.innerHTML = list
         .map(
           (p) => `
-            <button role="option" class="sug-item" data-name="${p.name}">
-              <span class="sug-name">${p.name}</span>
-              <span class="sug-cat">${CAT_LABEL[p.cat] || ""}</span>
+            <button role="option" class="sug-item" data-name="${escAttr(
+              p.name
+            )}">
+              <span class="sug-name">${escHtml(p.name)}</span>
+              <span class="sug-cat">${escHtml(CAT_LABEL[p.cat] || "")}</span>
             </button>`
         )
         .join("");
       sug.classList.add("open");
 
-      // klikken op dezelfde suggestie herhaaldelijk = qty ophogen
       sug.querySelectorAll(".sug-item").forEach((btn) => {
         btn.addEventListener("click", () => {
           addItem(btn.dataset.name);
@@ -333,7 +440,7 @@ export function renderListPage(mount) {
     function commit() {
       const name = input.value.trim();
       if (!name) return;
-      addItem(name); // als bestaat -> qty++
+      addItem(name);
       input.value = "";
       showSuggestions([]);
       input.focus();
@@ -369,4 +476,14 @@ export function renderListPage(mount) {
   renderCategoryCards();
   renderCommitted();
   createInputRow();
+}
+
+// Kleine inline SVG voor trash-icoon
+function trashSvg() {
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+  <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+  <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+</svg>
+  `;
 }
