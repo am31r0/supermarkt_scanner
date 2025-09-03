@@ -400,21 +400,18 @@
 /* Trash button styling consistent */
 .icon-btn.trash-btn {
     display: inline-flex;
+    align-content: center;
     align-items: center;
-    width: 28px;
+    width: auto;
     height: 28px;
-    margin-top: px;
     border-radius: var(--btnradius);
     background: none;
     border: none;
-    color: red;
+    color: rgb(255, 46, 46);
     cursor: pointer;
 }
 
-.icon-btn.trash-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.16);
-}
+.icon-btn.trash-btn:hover {}
 
 /* Modal action row layout */
 .modal-actions {
