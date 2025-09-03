@@ -1,4 +1,10 @@
 /* src/styles/list.css */
+.modal-item-add,
+.btn.small.modal-item-plus,
+.modal-item-name .qty-badge {
+    color: #fff !important;
+}
+
 .list-page {
     padding: 0 2% 0 2%;
     max-width: 500px;
@@ -14,11 +20,12 @@
     margin-bottom: 16px;
     border-radius: 0 0 var(--radius) var(--radius);
     background: var(--accent);
+    color: #fff;
 }
 
 .list-header h1 {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 1.25rem;
+    font-family: var(--font-family-accessibilty);
+    font-size: calc(1.25rem * var(--font-size-factor));
 }
 
 .list-container {
@@ -49,28 +56,38 @@
 .list-item.done {
     opacity: 0.55;
     filter: grayscale(0.2);
-    background: color-mix(in oklab, var(--card-bg, #1f1f1f) 80%, #000 20%);
+    background: color-mix(in oklab, var(--mini-surface) 80%, #000 20%);
+}
+
+.list-item.done .item-check {
+    text-decoration: line-through;
+}
+
+.list-item input {
+    font-size: calc(1rem * var(--font-size-factor));
 }
 
 .list-item .qty-badge {
-    font-size: 0.8rem;
+    font-size: calc(0.8rem * var(--font-size-factor));
     padding: 0.3rem 0.6rem 0.3rem 0.47rem;
     border-radius: 999px;
     background: var(--accent);
     margin-left: .5rem;
+    color: #fff;
 }
 
 .qty-controls {
     display: inline-flex;
     align-items: center;
     gap: .35rem;
+
 }
 
 .qty-controls .icon-btn {
     width: 28px;
     height: 28px;
-    font-size: 1rem;
-    color: var(--ink);
+    font-size: calc(1rem * var(--font-size-factor));
+    color: #fff;
     border-radius: var(--btnradius);
     background: var(--accent);
     border: 0;
@@ -86,14 +103,15 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
+
 }
 
 .item-name {
-    font-size: 0.95rem;
+    font-size: calc(0.95rem * var(--font-size-factor));
 }
 
 .item-actions .icon-btn:hover {
-    color: var(--ink);
+    color: #fff;
 }
 
 .input-row {
@@ -108,7 +126,7 @@
     width: 100%;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    background: #141414;
+    background: var(--mini-surface);
     color: var(--ink);
     padding: 12px 14px;
     outline: none;
@@ -122,9 +140,10 @@
     padding: 10px 14px;
     border-radius: var(--btnradius);
     background: var(--accent);
-    color: var(--ink);
+    color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.12);
     cursor: pointer;
+
 }
 
 .btn.small:hover {
@@ -170,7 +189,7 @@
 .help-text {
     margin-top: 8px;
     color: var(--muted);
-    font-size: 0.85rem;
+    font-size: calc(.85rem * var(--font-size-factor));
 }
 
 /* Categorie-tegels */
@@ -186,9 +205,10 @@
     text-align: start;
     align-items: center;
     gap: 8px;
+    font-family: var(--font-family-accessibilty);
     padding: 12px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--surface);
     border: 1px solid rgba(255, 255, 255, 0.08);
     color: var(--ink);
     cursor: pointer;
@@ -196,18 +216,18 @@
 }
 
 .category-card .emoji {
-    font-size: 1.25rem;
+    font-size: calc(1.25rem * var(--font-size-factor));
 }
 
 .category-card .label {
-    font-size: 0.95rem;
-    font-family: 'Satoshi';
+    font-size: calc(.95rem * var(--font-size-factor));
+    font-family: var(--font-family-accessibilty);
     font-weight: 700;
 }
 
 .category-card:hover {
     transform: translateY(-1px);
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--mini-surface);
     border-color: rgba(255, 255, 255, 0.14);
 }
 
@@ -220,7 +240,7 @@
     color: var(--muted);
     border-bottom: 1px solid var(--muted);
     list-style: none;
-    font-family: 'Satoshi';
+    font-family: var(--font-family-accessibilty);
 }
 
 /* Suggesties: toon categorie subtiel */
@@ -232,7 +252,7 @@
 
 .sug-item .sug-cat {
     opacity: 0.65;
-    font-size: 0.8rem;
+    font-size: calc(0.8rem * var(--font-size-factor));
 }
 
 /* ===== Modal ===== */
@@ -285,7 +305,17 @@
 }
 
 .modal-title {
-    font-size: 1.05rem;
+    font-size: calc(1.05rem * var(--font-size-factor));
+}
+
+.modal-title[role="button"] {
+    cursor: pointer;
+    user-select: none;
+}
+
+.modal-title[role="button"]:hover {
+    color: var(--ink);
+    opacity: .9;
 }
 
 .modal-close {
@@ -293,18 +323,18 @@
     border: 0;
     color: var(--muted);
     cursor: pointer;
-    font-size: 1.1rem;
+    font-size: calc(1.1rem * var(--font-size-factor));
 }
 
 .modal-close:hover {
-    color: var(--ink);
+    color: red;
 }
 
 .modal-search {
     width: 100%;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    background: #141414;
+    background: var(--mini-surface);
     color: var(--ink);
     padding: 10px 12px;
     margin-bottom: 10px;
@@ -363,7 +393,7 @@
 }
 
 .modal-item-name {
-    font-size: 0.95rem;
+    font-size: calc(0.95rem * var(--font-size-factor));
 }
 
 .modal-item-act.btn.small {
@@ -402,6 +432,7 @@
     display: inline-flex;
     align-content: center;
     align-items: center;
+    margin-left: 5px;
     width: auto;
     height: 28px;
     border-radius: var(--btnradius);
@@ -425,5 +456,5 @@
     padding: 0.2rem 0.5rem;
     border-radius: 999px;
     background: var(--accent);
-    font-size: 0.8rem;
+    font-size: calc(0.8rem * var(--font-size-factor));
 }

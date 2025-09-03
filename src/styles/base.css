@@ -9,13 +9,17 @@
     --radius: 16px;
     --btnradius: 50px;
     --transition: 0.25s ease;
+    --mini-surface: #222;
     --border-line-muted: #444444;
+    --font-size-factor: 1;
+    --font-family-accessibility: Inter;
 }
 
 html[data-theme="light"] {
-    --buttonbg: #f4f4f4;
-    --bg: #fafafa;
-    --surface: #ffffff;
+    --buttonbg: #f0f0f0;
+    --bg: #dededede;
+    --surface: #fff;
+    --mini-surface: #eee;
     --ink: #161616;
     --muted: #5a5a5a;
     --border-line-muted: #e5e5e5;
@@ -30,7 +34,7 @@ html[data-theme="light"] {
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-accessibility);
     background: var(--bg);
     color: var(--ink);
     line-height: 1.6;
@@ -76,10 +80,12 @@ a:hover {
     display: inline-block;
     padding: 0.75em 1.25em;
     border-radius: var(--btnradius);
-    background: var(--surface);
-    color: var(--ink);
+    background: var(--accent);
+    color: #fff;
     font-weight: 500;
     transition: background var(--transition);
+    border: none;
+    cursor: pointer;
 }
 
 .btn--primary {

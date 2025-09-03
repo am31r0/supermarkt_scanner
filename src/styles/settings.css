@@ -11,11 +11,12 @@
     border: 1px solid var(--border-line-muted);
     border-radius: var(--radius);
     padding: 1rem;
+    font-size: calc(1rem * var(--font-size-factor));
 }
 
 .settings h2 {
     margin: 0 0 .5rem;
-    font-size: 1.1rem;
+    font-size: calc(1.1rem * var(--font-size-factor));
 }
 
 .settings .row {
@@ -24,6 +25,22 @@
     gap: .75rem;
     align-items: center;
 }
+
+#system-mode {
+    background-color: var(--accent);
+    color: #fff;
+}
+
+.settings .btn {
+    background: color-mix(in oklab, var(--mini-surface), #77777755);
+    color: var(--ink)
+}
+
+.settings .btn[aria-checked="true"] {
+    background: var(--accent);
+    color: #fff;
+}
+
 
 /* Toggle */
 .switch {
