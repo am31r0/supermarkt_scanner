@@ -73,7 +73,7 @@ export function renderListPage(mount) {
       <div class="modal-backdrop"></div>
       <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-header">
-          <h2 id="modal-title" class="modal-title"></h2>
+          <h2 id="modal-title" class="modal-title" role="button" tabindex="0" title="Sluiten">Categorie</h2>
           <button class="icon-btn modal-close" aria-label="Sluiten">✕</button>
         </div>
         <input type="text" class="modal-search" placeholder="Zoek in categorie..." />
@@ -198,9 +198,6 @@ export function renderListPage(mount) {
         const inList = !!entry;
         const qty = entry?.qty ?? 1;
 
-        // Actie kolom:
-        // - Niet in lijst: 1 knop "Toevoegen"
-        // - Wel in lijst: 2 knoppen: "+1" en "verwijderen (trash)"
         const actions = !inList
           ? `
             <button
@@ -249,18 +246,16 @@ export function renderListPage(mount) {
       .join("");
 
     // Listeners
-    // Add
     modalList.querySelectorAll(".modal-item-add").forEach((btn) => {
       btn.addEventListener("click", () => {
         addItem(btn.dataset.name);
-        renderModalList(modalSearch.value); // refresh modal
+        renderModalList(modalSearch.value);
         refocusModalButton(
           btn.dataset.name,
           ".modal-item-plus, .modal-item-add, .modal-item-remove"
         );
       });
     });
-    // Plus
     modalList.querySelectorAll(".modal-item-plus").forEach((btn) => {
       btn.addEventListener("click", () => {
         incItemQtyByName(btn.dataset.name, 1);
@@ -268,12 +263,10 @@ export function renderListPage(mount) {
         refocusModalButton(btn.dataset.name, ".modal-item-plus");
       });
     });
-    // Remove
     modalList.querySelectorAll(".modal-item-remove").forEach((btn) => {
       btn.addEventListener("click", () => {
         removeItemByName(btn.dataset.name);
         renderModalList(modalSearch.value);
-        // na verwijderen bestaat er alleen nog "Toevoegen" → focus daarop
         refocusModalButton(btn.dataset.name, ".modal-item-add");
       });
     });
@@ -286,11 +279,23 @@ export function renderListPage(mount) {
     if (el) el.focus();
   }
 
+  // Close hooks
   modalClose.addEventListener("click", closeCategoryModal);
   modalBackdrop.addEventListener("click", closeCategoryModal);
+
+  // ✨ NEW: klik/keyboard op de titel sluit ook
+  modalTitle.addEventListener("click", closeCategoryModal);
+  modalTitle.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      closeCategoryModal();
+    }
+  });
+
   modal.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeCategoryModal();
   });
+
   modalSearch.addEventListener("input", () =>
     renderModalList(modalSearch.value)
   );
@@ -481,9 +486,8 @@ export function renderListPage(mount) {
 // Kleine inline SVG voor trash-icoon
 function trashSvg() {
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
-  <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-  <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+  <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/>
 </svg>
   `;
 }
