@@ -1,19 +1,21 @@
 /* Layout and components */
 
-    .navbar {
+.navbar {
 
-        display: flex;
-        justify-content: center;
-        flex-direction: row;
-        align-items: center;
-        padding: 0.8rem 1rem;
-        background: var(--surface);
-        border-radius: 0 0 var(--radius) var(--radius);
-        position: fixed;
-        width: min(100%,500px);
-        bottom:0;
-        z-index: 100;
-    }
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    align-items: center;
+    padding: 0.8rem 1rem;
+    background: var(--surface);
+    border-radius: 0 0 var(--radius) var(--radius);
+    position: fixed;
+    width: min(100%, 500px);
+    bottom: 0;
+    z-index: 100;
+    border-top: 1px solid var(--border-line-muted);
+    box-shadow: 0 0 20px #00000072;
+}
 
 
 .navbar__brand {
@@ -27,7 +29,7 @@
     align-content: center;
     align-items: center;
     justify-content: space-evenly;
-    width:100%;
+    width: 100%;
 }
 
 .nav-link {
@@ -41,18 +43,19 @@
     align-content: center;
 }
 
-.nav-link.active svg{
+.nav-link.active svg {
     background: var(--accent);
 }
-.nav-link.active:hover{
-    color:var(--ink);
+
+.nav-link.active:hover {
+    color: var(--ink);
 }
 
-.nav-link svg{
-    background:var(--buttonbg);
-    padding:10px 20px;
-    width:auto;
-    height:100%;
+.nav-link svg {
+    background: var(--buttonbg);
+    padding: 10px 20px;
+    width: auto;
+    height: 100%;
     border-radius: 50px;
     transition: all 0.3s ease;
 }
@@ -106,4 +109,25 @@
     margin-top: 4rem;
     color: var(--muted);
     font-size: 0.9rem;
+}
+
+/* Transitions tussen routes */
+#app {
+    min-height: 60vh;
+    /* hou ruimte zodat 'flash' wordt voorkomen */
+    transition: opacity var(--transition), transform var(--transition);
+    will-change: opacity, transform;
+}
+
+/* Uitgaand (fade + subtiele slide) */
+#app.out {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #app {
+        transition: none !important;
+        transform: none !important;
+    }
 }

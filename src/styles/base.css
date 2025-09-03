@@ -5,11 +5,21 @@
     --surface: #1e1e1e;
     --ink: #ffffff;
     --muted: #b3b3b3;
-    --accent: #4CAF50;
+    --accent: #3f7540;
     --radius: 16px;
     --btnradius: 50px;
     --transition: 0.25s ease;
+    --border-line-muted: #444444;
+}
 
+html[data-theme="light"] {
+    --buttonbg: #f4f4f4;
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --ink: #161616;
+    --muted: #5a5a5a;
+    --border-line-muted: #e5e5e5;
+    /* accent blijft overschrijfbaar; komt uit settings */
 }
 
 * {
@@ -68,9 +78,9 @@ a:hover {
 
 .btn--primary {
     background: var(--accent);
-    color: #fff;
+    color: var(--ink);
 }
 
 .btn--primary:hover {
-    background: #45a049;
+    background: var(--accent);
 }
