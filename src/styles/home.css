@@ -9,11 +9,11 @@
 }
 
 .shop {
-    border: 1px solid #ddd;
-    border-radius: 12px;
+    border: 1px solid var(--border-line-muted);
+    border-radius: var(--radius);
     padding: 1rem;
     margin-bottom: 1rem;
-    background: #fafafa;
+    background: var(--surface);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -21,7 +21,7 @@
 
 .shop.cheapest {
     border-color: #3ba55d;
-    background: #eaf9f0;
+    background: var(--surface);
 }
 
 .shop h3 {
