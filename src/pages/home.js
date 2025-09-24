@@ -78,9 +78,8 @@ function calculatePPU(price, unitInfo) {
 
 /* ---------------- Matcher ---------------- */
 function findBestProduct(shopData, query) {
-  const q = (query ?? "").toLowerCase();
-  const qUnit = parseUnit(q);
-  const qWords = q.split(/\s+/).filter(Boolean);
+  const q = (query ?? "").toLowerCase().trim();
+  if (!q) return null;
 
   let best = null;
   let bestScore = -1;
@@ -89,18 +88,13 @@ function findBestProduct(shopData, query) {
     const name = (p?.name ?? "").toLowerCase();
     if (!name) continue;
 
-    const pUnit = parseUnit(name);
+    // woordoverlap
+    const qWords = q.split(/\s+/);
+    const matches = qWords.filter((w) => name.includes(w)).length;
+    let score = matches;
 
-    const pWords = name.split(/\s+/);
-    const overlap = qWords.filter((w) => pWords.includes(w)).length;
-    let score = qWords.length ? overlap / qWords.length : 0;
-
-    if (q && name.includes(q)) score += 0.5;
-
-    if (qUnit && pUnit && qUnit.unit === pUnit.unit) {
-      const diff = Math.abs(qUnit.value - pUnit.value);
-      score += Math.max(0, 1 - diff / qUnit.value);
-    }
+    // boost: volledige query substring
+    if (name.includes(q)) score += qWords.length;
 
     if (score > bestScore) {
       best = p;
