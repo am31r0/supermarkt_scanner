@@ -160,7 +160,7 @@ async function loadShopData() {
 
 /* ---------------- Renderer ---------------- */
 export async function renderHomePage(mount) {
-  ensureCSS("./pages/home.css");
+  ensureCSS("./styles/home.css");
 
   mount.innerHTML = `
     <main class="hero">
