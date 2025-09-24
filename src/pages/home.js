@@ -1,15 +1,18 @@
-import ahData from "../data/ah.json";
-import jumboData from "../data/jumbo.json";
+// src/pages/home.js
+
+function ensureCSS(href) {
+  if (!document.querySelector(`link[data-dynamic="${href}"]`)) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.setAttribute("data-dynamic", href);
+    document.head.appendChild(link);
+  }
+}
 
 const LS_KEY = "sms_list";
 
-const SHOPS = {
-  AH: ahData,
-  Jumbo: jumboData,
-  // later meer toevoegen
-};
-
-// ------------------ utils ------------------ //
+/* ---------------- Utils ---------------- */
 function loadList() {
   try {
     return JSON.parse(localStorage.getItem(LS_KEY)) ?? [];
@@ -18,62 +21,165 @@ function loadList() {
   }
 }
 
-function similarity(a, b) {
-  a = a.toLowerCase();
-  b = b.toLowerCase();
-  if (a === b) return 1;
-  if (a.includes(b) || b.includes(a)) return 0.9;
-
-  const aWords = a.split(/\s+/);
-  const bWords = b.split(/\s+/);
-  const matches = aWords.filter((w) => bWords.includes(w)).length;
-  return matches / Math.max(aWords.length, bWords.length);
+function coercePrice(p) {
+  if (p == null) return null;
+  if (typeof p === "number") return p;
+  if (typeof p === "string") {
+    let n = Number(p.replace(",", ".").replace(/[^\d.]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
 }
 
+function extractPrice(product) {
+  if (!product) return null;
+  if (product.promoPrice != null) return coercePrice(product.promoPrice);
+  return coercePrice(product.price);
+}
+
+/* ---------------- Units ---------------- */
+function parseUnit(text) {
+  if (!text) return null;
+  const regex = /(\d+(?:[.,]\d+)?)(\s?(g|kg|ml|l|stuks?|stuk|pack|doos))/i;
+  const match = text.toLowerCase().match(regex);
+  if (match) {
+    let value = parseFloat(match[1].replace(",", "."));
+    let unit = match[3];
+    // normaliseer units
+    if (unit === "kg") {
+      value = value * 1000;
+      unit = "g";
+    }
+    if (unit === "l") {
+      value = value * 1000;
+      unit = "ml";
+    }
+    if (unit.startsWith("stuk")) unit = "stuk";
+    if (unit === "stuks") unit = "stuk";
+    return { value, unit }; // bv { value:200, unit:"g" }
+  }
+  return null;
+}
+
+function calculatePPU(price, unitInfo) {
+  if (!price || !unitInfo) return null;
+  if (unitInfo.unit === "g") {
+    return (price / unitInfo.value) * 1000; // €/kg
+  }
+  if (unitInfo.unit === "ml") {
+    return (price / unitInfo.value) * 1000; // €/L
+  }
+  if (unitInfo.unit === "stuk") {
+    return price / unitInfo.value; // €/stuk
+  }
+  return null;
+}
+
+/* ---------------- Matcher ---------------- */
 function findBestProduct(shopData, query) {
+  const q = query.toLowerCase();
+  const qUnit = parseUnit(q);
+
   let best = null;
-  let bestScore = 0;
+  let bestScore = -1;
+
   for (const p of shopData) {
-    const score = similarity(query, p.name);
+    const name = p.name?.toLowerCase() ?? "";
+    if (!name) continue;
+
+    const pUnit = parseUnit(name);
+
+    // basis fuzzy score: woordoverlap
+    const qWords = q.split(/\s+/);
+    const pWords = name.split(/\s+/);
+    const matches = qWords.filter((w) => pWords.includes(w)).length;
+    let score = matches / qWords.length;
+
+    // boost bij substring
+    if (name.includes(q)) score += 0.5;
+
+    // eenheid vergelijking
+    if (qUnit && pUnit && qUnit.unit === pUnit.unit) {
+      const diff = Math.abs(qUnit.value - pUnit.value);
+      score += Math.max(0, 1 - diff / qUnit.value);
+    }
+
     if (score > bestScore) {
       best = p;
       bestScore = score;
     }
   }
+
   return best;
 }
 
-function calculateTotals(list) {
+/* ---------------- Totals ---------------- */
+function calculateTotals(list, shops) {
   const totals = {};
-  for (const [shopName, shopData] of Object.entries(SHOPS)) {
+  for (const [shopName, shopData] of Object.entries(shops)) {
     let total = 0;
     const details = [];
-    list.forEach((item) => {
+
+    for (const item of list) {
       const product = findBestProduct(shopData, item.name);
-      if (product) {
-        const unitPrice = product.price;
-        const itemTotal = unitPrice * item.qty;
-        total += itemTotal;
-        details.push({
-          ...item,
-          match: product.name,
-          price: unitPrice,
-          total: itemTotal,
-        });
-      } else {
-        details.push({ ...item, match: null, price: null, total: null });
-      }
-    });
+      const price = extractPrice(product);
+      const pUnit = parseUnit(product?.name ?? "");
+      const ppu = calculatePPU(price, pUnit);
+
+      const itemTotal = price != null ? price * item.qty : null;
+      if (itemTotal != null) total += itemTotal;
+
+      details.push({
+        name: item.name,
+        qty: item.qty,
+        match: product?.name ?? null,
+        price,
+        ppu,
+        total: itemTotal,
+      });
+    }
+
     totals[shopName] = { total, details };
   }
   return totals;
 }
 
-// ------------------ render ------------------ //
-export function renderHomePage(mount) {
-  // zet de basis HTML
+/* ---------------- Shop loader ---------------- */
+async function loadWithCache(key, url) {
+  const cached = localStorage.getItem("shop_" + key);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch {}
+  }
+
+  const res = await fetch(url);
+  if (res.ok) {
+    const data = await res.json();
+    localStorage.setItem("shop_" + key, JSON.stringify(data));
+    return data;
+  }
+
+  return [];
+}
+
+async function loadShopData() {
+  const ah = await loadWithCache(
+    "ah",
+    "https://raw.githubusercontent.com/am31r0/supermarkt_scanner/main/dev/Data/ah.json"
+  );
+  const jumbo = await loadWithCache(
+    "jumbo",
+    "https://raw.githubusercontent.com/am31r0/supermarkt_scanner/main/dev/Data/jumbo.json"
+  );
+  return { AH: ah, Jumbo: jumbo };
+}
+
+/* ---------------- Renderer ---------------- */
+export async function renderHomePage(mount) {
+  ensureCSS("./pages/home.css");
+
   mount.innerHTML = `
-    <!-- Hero Section -->
     <main class="hero">
       <section class="hero__content">
         <h1>Vind altijd de beste prijs</h1>
@@ -82,64 +188,86 @@ export function renderHomePage(mount) {
       </section>
     </main>
 
-    <!-- Feature Cards -->
     <section class="features">
-      <article class="card">
-        <h2>🔎 Slim zoeken</h2>
-        <p>Zoek producten en merken met actuele prijzen.</p>
-      </article>
-      <article class="card">
-        <h2>💰 Prijsvergelijking</h2>
-        <p>Bekijk per supermarkt of gecombineerde mandjes.</p>
-      </article>
-      <article class="card">
-        <h2>🔥 Aanbiedingen</h2>
-        <p>Ontdek actuele acties en kortingen in één oogopslag.</p>
-      </article>
+      <article class="card"><h2>🔎 Slim zoeken</h2><p>Zoek producten en merken met actuele prijzen.</p></article>
+      <article class="card"><h2>💰 Prijsvergelijking</h2><p>Bekijk per supermarkt of gecombineerde mandjes.</p></article>
+      <article class="card"><h2>🔥 Aanbiedingen</h2><p>Ontdek actuele acties en kortingen in één oogopslag.</p></article>
     </section>
 
-    <!-- Vergelijking -->
-    <section class="comparison" id="comparison"></section>
+    <section class="comparison" id="comparison"><div>Prijzen laden…</div></section>
 
-    <!-- Footer -->
     <footer class="footer">
       <p>&copy; 2025 Supermarkt Scanner — Alle rechten voorbehouden</p>
     </footer>
   `;
 
-  // bereken en render de vergelijking
-  const list = loadList();
   const comparisonEl = mount.querySelector("#comparison");
+  const list = loadList();
 
-  if (list.length === 0) {
+  if (!list.length) {
     comparisonEl.innerHTML = `<p>Je boodschappenlijst is leeg.</p>`;
     return;
   }
 
-  const totals = calculateTotals(list);
-  const cheapest = Object.entries(totals).reduce((a, b) =>
-    (a[1].total || Infinity) < (b[1].total || Infinity) ? a : b
-  );
+  try {
+    const shops = await loadShopData();
+    const totals = calculateTotals(list, shops);
 
-  let html = `
-    <h2>Goedkoopste winkel</h2>
-    <div class="shop cheapest">
-      <h3>${cheapest[0]}</h3>
-      <p class="price">€${cheapest[1].total.toFixed(2)}</p>
-    </div>
+    const cheapest = Object.entries(totals).reduce((a, b) =>
+      (a[1].total || Infinity) < (b[1].total || Infinity) ? a : b
+    );
 
-    <h2>Andere winkels</h2>
-    <div class="other-shops">
-  `;
-  for (const [shop, data] of Object.entries(totals)) {
-    if (shop === cheapest[0]) continue;
-    html += `
-      <div class="shop">
-        <h3>${shop}</h3>
-        <p class="price">${data.total ? "€" + data.total.toFixed(2) : "-"}</p>
-      </div>`;
+    let html = `
+      <h2>Goedkoopste winkel</h2>
+      <div class="shop cheapest">
+        <h3>${cheapest[0]}</h3>
+        <p class="price">€${cheapest[1].total.toFixed(2)}</p>
+      </div>
+
+      <h2>Andere winkels</h2>
+      <div class="other-shops">
+    `;
+
+    for (const [shop, data] of Object.entries(totals)) {
+      if (shop === cheapest[0]) continue;
+      html += `
+        <div class="shop">
+          <h3>${shop}</h3>
+          <p class="price">${data.total ? "€" + data.total.toFixed(2) : "-"}</p>
+        </div>`;
+    }
+    html += `</div>`;
+
+    // details tabel
+    html += `<h2>Productvergelijking</h2><table class="compare-table">
+      <thead><tr><th>Product</th><th>Winkel</th><th>Match</th><th>Prijs</th><th>Prijs per eenheid</th></tr></thead><tbody>`;
+
+    list.forEach((item) => {
+      for (const [shop, data] of Object.entries(totals)) {
+        const det = data.details.find((d) => d.name === item.name);
+        html += `<tr>
+          <td>${item.qty}× ${item.name}</td>
+          <td>${shop}</td>
+          <td>${det?.match ?? "—"}</td>
+          <td>${det?.price != null ? "€" + det.price.toFixed(2) : "—"}</td>
+          <td>${
+            det?.ppu != null
+              ? det.ppu.toFixed(2) +
+                (det?.match?.toLowerCase().includes("ml")
+                  ? " €/L"
+                  : det?.match?.toLowerCase().includes("g")
+                  ? " €/kg"
+                  : " €/stuk")
+              : "—"
+          }</td>
+        </tr>`;
+      }
+    });
+
+    html += `</tbody></table>`;
+    comparisonEl.innerHTML = html;
+  } catch (err) {
+    console.error("Data load error:", err);
+    comparisonEl.innerHTML = `<p>Kon supermarkt-data niet laden.</p>`;
   }
-  html += `</div>`;
-
-  comparisonEl.innerHTML = html;
 }
