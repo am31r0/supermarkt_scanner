@@ -200,6 +200,58 @@
     margin: 12px 0 16px;
 }
 
+/* === Categorie-grid wrapper === */
+.categories-grid-wrapper {
+    position: relative;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.categories-grid-wrapper::after {
+    content: '';
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent 60%, var(--bg));
+}
+
+.categories-grid-wrapper.expanded::after {
+    display: none;
+}
+
+/* Uitgeklapt: groot genoeg voor alle rijen */
+.categories-grid-wrapper.expanded {
+    max-height: 2000px;
+    /* wordt via JS aangepast */
+}
+
+/* === Meer/minder knop === */
+.categories-more-btn {
+    position: relative;
+    display: block;
+    width: max-content;
+    margin: 0 auto;
+    text-align: center;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0.75rem;
+    background: none;
+    color: var(--ink);
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-weight: 100;
+    font-size: 0.7rem;
+    transition: background 0.2s;
+}
+
+.categories-more-btn:hover {
+    background: var(--accent);
+}
+
 .category-card {
     display: flex;
     text-align: start;
