@@ -1,5 +1,7 @@
 // src/pages/home.js
+import { NAME_TO_CAT, PRODUCTS } from "../data/products.js";
 
+/* ---------------- CSS Loader ---------------- */
 function ensureCSS(href) {
   if (!document.querySelector(`link[data-dynamic="${href}"]`)) {
     const link = document.createElement("link");
@@ -35,6 +37,10 @@ function extractPrice(product) {
   if (!product) return null;
   if (product.promoPrice != null) return coercePrice(product.promoPrice);
   return coercePrice(product.price);
+}
+
+function getProductName(p) {
+  return (p?.title ?? p?.name ?? "").toString();
 }
 
 /* ---------------- Units ---------------- */
@@ -76,33 +82,102 @@ function calculatePPU(price, unitInfo) {
   return null;
 }
 
-/* ---------------- Matcher ---------------- */
-function findBestProduct(shopData, query) {
-  const q = (query ?? "").toLowerCase().trim();
-  if (!q) return null;
+/* ---------------- Category guessing ---------------- */
+function guessCategoryFromListItem(query) {
+  const q = query.toLowerCase();
 
-  let best = null;
-  let bestScore = -1;
+  // direct lookup
+  if (NAME_TO_CAT[q]) return NAME_TO_CAT[q];
 
-  for (const p of shopData) {
-    const name = (p?.name ?? "").toLowerCase();
-    if (!name) continue;
-
-    // woordoverlap
-    const qWords = q.split(/\s+/);
-    const matches = qWords.filter((w) => name.includes(w)).length;
-    let score = matches;
-
-    // boost: volledige query substring
-    if (name.includes(q)) score += qWords.length;
-
+  // fuzzy fallback in PRODUCTS
+  let best = null,
+    bestScore = -1;
+  for (const p of PRODUCTS) {
+    const name = p.name.toLowerCase();
+    let score = 0;
+    q.split(/\s+/).forEach((w) => {
+      if (name.includes(w)) score++;
+    });
+    if (name.includes(q)) score += 2;
     if (score > bestScore) {
       best = p;
       bestScore = score;
     }
   }
+  return best?.cat ?? null;
+}
 
-  return best;
+/* ---------------- House brand detection ---------------- */
+function isHouseBrand(shopName, productName) {
+  const n = productName.toLowerCase();
+  if (shopName === "AH")
+    return n.startsWith("ah ") || n.includes("albert heijn");
+  if (shopName === "Jumbo") return n.startsWith("jumbo ");
+  return false;
+}
+
+/* ---------------- Matcher ---------------- */
+function findBestProduct(shopData, query, shopName) {
+  const q = (query ?? "").toLowerCase().trim();
+  if (!q) return null;
+
+  const forcedCat = guessCategoryFromListItem(query);
+  let candidates = [];
+
+  for (const p of shopData) {
+    const name = getProductName(p).toLowerCase();
+    if (!name) continue;
+
+    let score = 0;
+    q.split(/\s+/).forEach((w) => {
+      if (name.includes(w)) score++;
+    });
+    if (name.includes(q)) score += 2;
+
+    if (forcedCat) {
+      const cat = (p.category ?? "").toLowerCase();
+      if (forcedCat === "bakery" && cat.includes("brood")) score += 6;
+      if (
+        forcedCat === "dairy" &&
+        (cat.includes("zuivel") || cat.includes("melk") || cat.includes("kaas"))
+      )
+        score += 6;
+      if (
+        forcedCat === "produce" &&
+        (cat.includes("fruit") || cat.includes("groente"))
+      )
+        score += 6;
+      if (
+        forcedCat === "snacks" &&
+        (cat.includes("chips") ||
+          cat.includes("snoep") ||
+          cat.includes("choco"))
+      )
+        score += 6;
+    }
+
+    const price = extractPrice(p);
+    if (price != null) {
+      candidates.push({
+        product: p,
+        score,
+        price,
+        house: isHouseBrand(shopName, name),
+      });
+    }
+  }
+
+  if (!candidates.length) return null;
+
+  // sort: best score > lowest price > house brand
+  candidates.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (a.price !== b.price) return a.price - b.price;
+    if (a.house !== b.house) return b.house - a.house;
+    return 0;
+  });
+
+  return candidates[0].product;
 }
 
 /* ---------------- Totals ---------------- */
@@ -113,19 +188,9 @@ function calculateTotals(list, shops) {
     const details = [];
 
     for (const item of list) {
-      const product = findBestProduct(shopData, item.name);
-      console.log(
-        "User item:",
-        item.name,
-        "→ Match:",
-        product?.name,
-        "Price:",
-        product?.price,
-        "Promo:",
-        product?.promoPrice
-      );
+      const product = findBestProduct(shopData, item.name, shopName);
       const price = extractPrice(product);
-      const pUnit = parseUnit(product?.name ?? "");
+      const pUnit = parseUnit(getProductName(product));
       const ppu = calculatePPU(price, pUnit);
 
       const itemTotal = price != null ? price * item.qty : null;
@@ -134,7 +199,7 @@ function calculateTotals(list, shops) {
       details.push({
         name: item.name,
         qty: item.qty,
-        match: product?.name ?? null,
+        match: getProductName(product) ?? null,
         price,
         ppu,
         unitInfo: pUnit,
@@ -147,7 +212,7 @@ function calculateTotals(list, shops) {
   return totals;
 }
 
-/* ---------------- Shop loader (no caching) ---------------- */
+/* ---------------- Shop loader ---------------- */
 async function loadShopData() {
   const ahRes = await fetch(
     "https://am31r0.github.io/supermarkt_scanner/dev/Data/ah.json"
