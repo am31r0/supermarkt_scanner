@@ -494,7 +494,9 @@
     cursor: pointer;
 }
 
-.icon-btn.trash-btn:hover {}
+.icon-btn.trash-btn:hover {
+    display: inline-flex;
+}
 
 /* Modal action row layout */
 .modal-actions {
