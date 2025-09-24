@@ -120,6 +120,16 @@ function calculateTotals(list, shops) {
 
     for (const item of list) {
       const product = findBestProduct(shopData, item.name);
+      console.log(
+        "User item:",
+        item.name,
+        "→ Match:",
+        product?.name,
+        "Price:",
+        product?.price,
+        "Promo:",
+        product?.promoPrice
+      );
       const price = extractPrice(product);
       const pUnit = parseUnit(product?.name ?? "");
       const ppu = calculatePPU(price, pUnit);
