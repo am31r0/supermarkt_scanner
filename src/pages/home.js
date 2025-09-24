@@ -40,65 +40,63 @@ function extractPrice(product) {
 /* ---------------- Units ---------------- */
 function parseUnit(text) {
   if (!text) return null;
-  const regex = /(\d+(?:[.,]\d+)?)(\s?(g|kg|ml|l|stuks?|stuk|pack|doos))/i;
+  const regex = /(\d+(?:[.,]\d+)?)(\s?)(g|kg|ml|l|stuks?|stuk|pack|doos)/i;
   const match = text.toLowerCase().match(regex);
   if (match) {
     let value = parseFloat(match[1].replace(",", "."));
     let unit = match[3];
-    // normaliseer units
     if (unit === "kg") {
-      value = value * 1000;
+      value *= 1000;
       unit = "g";
     }
     if (unit === "l") {
-      value = value * 1000;
+      value *= 1000;
       unit = "ml";
     }
     if (unit.startsWith("stuk")) unit = "stuk";
     if (unit === "stuks") unit = "stuk";
-    return { value, unit }; // bv { value:200, unit:"g" }
+    return { value, unit };
   }
   return null;
 }
 
+function ppuUnitLabel(unitInfo) {
+  if (!unitInfo) return "";
+  if (unitInfo.unit === "g") return "€/kg";
+  if (unitInfo.unit === "ml") return "€/L";
+  if (unitInfo.unit === "stuk") return "€/stuk";
+  return "€/unit";
+}
+
 function calculatePPU(price, unitInfo) {
-  if (!price || !unitInfo) return null;
-  if (unitInfo.unit === "g") {
-    return (price / unitInfo.value) * 1000; // €/kg
-  }
-  if (unitInfo.unit === "ml") {
-    return (price / unitInfo.value) * 1000; // €/L
-  }
-  if (unitInfo.unit === "stuk") {
-    return price / unitInfo.value; // €/stuk
-  }
+  if (price == null || !unitInfo) return null;
+  if (unitInfo.unit === "g") return (price / unitInfo.value) * 1000;
+  if (unitInfo.unit === "ml") return (price / unitInfo.value) * 1000;
+  if (unitInfo.unit === "stuk") return price / unitInfo.value;
   return null;
 }
 
 /* ---------------- Matcher ---------------- */
 function findBestProduct(shopData, query) {
-  const q = query.toLowerCase();
+  const q = (query ?? "").toLowerCase();
   const qUnit = parseUnit(q);
+  const qWords = q.split(/\s+/).filter(Boolean);
 
   let best = null;
   let bestScore = -1;
 
   for (const p of shopData) {
-    const name = p.name?.toLowerCase() ?? "";
+    const name = (p?.name ?? "").toLowerCase();
     if (!name) continue;
 
     const pUnit = parseUnit(name);
 
-    // basis fuzzy score: woordoverlap
-    const qWords = q.split(/\s+/);
     const pWords = name.split(/\s+/);
-    const matches = qWords.filter((w) => pWords.includes(w)).length;
-    let score = matches / qWords.length;
+    const overlap = qWords.filter((w) => pWords.includes(w)).length;
+    let score = qWords.length ? overlap / qWords.length : 0;
 
-    // boost bij substring
-    if (name.includes(q)) score += 0.5;
+    if (q && name.includes(q)) score += 0.5;
 
-    // eenheid vergelijking
     if (qUnit && pUnit && qUnit.unit === pUnit.unit) {
       const diff = Math.abs(qUnit.value - pUnit.value);
       score += Math.max(0, 1 - diff / qUnit.value);
@@ -135,6 +133,7 @@ function calculateTotals(list, shops) {
         match: product?.name ?? null,
         price,
         ppu,
+        unitInfo: pUnit,
         total: itemTotal,
       });
     }
@@ -144,34 +143,18 @@ function calculateTotals(list, shops) {
   return totals;
 }
 
-/* ---------------- Shop loader ---------------- */
-async function loadWithCache(key, url) {
-  const cached = localStorage.getItem("shop_" + key);
-  if (cached) {
-    try {
-      return JSON.parse(cached);
-    } catch {}
-  }
-
-  const res = await fetch(url);
-  if (res.ok) {
-    const data = await res.json();
-    localStorage.setItem("shop_" + key, JSON.stringify(data));
-    return data;
-  }
-
-  return [];
-}
-
+/* ---------------- Shop loader (no caching) ---------------- */
 async function loadShopData() {
-  const ah = await loadWithCache(
-    "ah",
-    "https://raw.githubusercontent.com/am31r0/supermarkt_scanner/main/dev/Data/ah.json"
+  const ahRes = await fetch(
+    "https://am31r0.github.io/supermarkt_scanner/dev/Data/ah.json"
   );
-  const jumbo = await loadWithCache(
-    "jumbo",
-    "https://raw.githubusercontent.com/am31r0/supermarkt_scanner/main/dev/Data/jumbo.json"
+  const jumboRes = await fetch(
+    "https://am31r0.github.io/supermarkt_scanner/dev/Data/jumbo.json"
   );
+
+  const ah = ahRes.ok ? await ahRes.json() : [];
+  const jumbo = jumboRes.ok ? await jumboRes.json() : [];
+
   return { AH: ah, Jumbo: jumbo };
 }
 
@@ -238,7 +221,6 @@ export async function renderHomePage(mount) {
     }
     html += `</div>`;
 
-    // details tabel
     html += `<h2>Productvergelijking</h2><table class="compare-table">
       <thead><tr><th>Product</th><th>Winkel</th><th>Match</th><th>Prijs</th><th>Prijs per eenheid</th></tr></thead><tbody>`;
 
@@ -252,12 +234,7 @@ export async function renderHomePage(mount) {
           <td>${det?.price != null ? "€" + det.price.toFixed(2) : "—"}</td>
           <td>${
             det?.ppu != null
-              ? det.ppu.toFixed(2) +
-                (det?.match?.toLowerCase().includes("ml")
-                  ? " €/L"
-                  : det?.match?.toLowerCase().includes("g")
-                  ? " €/kg"
-                  : " €/stuk")
+              ? det.ppu.toFixed(2) + " " + ppuUnitLabel(det.unitInfo)
               : "—"
           }</td>
         </tr>`;
