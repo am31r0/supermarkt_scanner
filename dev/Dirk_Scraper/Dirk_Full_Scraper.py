@@ -2,10 +2,11 @@
 """
 dirk_full_scraper.py
 
-Volledige scraper voor Dirk.nl producten via GraphQL API.
-- Haalt ALLE producten per webGroupId (met paginatie).
-- Neemt categorie-informatie mee.
-- Kan met 'n' tijdens runtime stoppen en data netjes opslaan.
+Scraper voor Dirk.nl producten via GraphQL API.
+- Loopt webGroupId 1..150 af
+- Haalt alle producten per webGroupId (geen paginatie nodig)
+- Neemt alle gevraagde details mee, incl. categoryLabel (webgroup uit de API)
+- Kan met 'n' tijdens runtime stoppen en data netjes opslaan
 """
 
 import requests
@@ -22,7 +23,6 @@ URL = "https://web-dirk-gateway.detailresult.nl/graphql"
 HEADERS = {"User-Agent": "Mozilla/5.0", "Content-Type": "application/json"}
 
 STORE_ID = 66
-PAGE_SIZE = 24
 MAX_RETRIES = 3
 MIN_DELAY = 2.0
 MAX_DELAY = 5.0
@@ -31,19 +31,14 @@ BATCH_SIZE = 1000
 OUT_DIR = "dirk_data"
 os.makedirs(OUT_DIR, exist_ok=True)
 
-# Vervang dit door jouw ontdekte geldige webGroupIds (met namen als je die hebt)
-WEBGROUPS = [
-    {"id": 1, "name": "Aardappelen"},
-    {"id": 2, "name": "Fruit"},
-    {"id": 3, "name": "Groente"},
-    # ...
-]
+RANGE_START = 1
+RANGE_END = 150
 # ==================
 
 QUERY_TEMPLATE = """
 query {
   listWebGroupProducts(webGroupId: %d) {
-    productAssortment(storeId: %d, page: %d, size: %d) {
+    productAssortment(storeId: %d) {
       productId
       normalPrice
       offerPrice
@@ -65,7 +60,6 @@ query {
 }
 """
 
-# globale stop-flag
 STOP_REQUESTED = False
 
 def listen_for_stop():
@@ -77,8 +71,9 @@ def listen_for_stop():
             STOP_REQUESTED = True
             print("\n[INFO] Stop-signaal ontvangen. Afronden...")
 
-def fetch_page(wgid, page, size):
-    query = QUERY_TEMPLATE % (wgid, STORE_ID, page, size)
+def fetch_webgroup(wgid):
+    """Haal producten van één webGroupId op."""
+    query = QUERY_TEMPLATE % (wgid, STORE_ID)
     payload = {"query": query, "variables": {}}
     for attempt in range(MAX_RETRIES):
         try:
@@ -91,44 +86,33 @@ def fetch_page(wgid, page, size):
             return [p for p in assortment if p]
         except Exception as e:
             if attempt == MAX_RETRIES - 1:
-                print(f"[ERROR] webGroupId={wgid} page={page} -> {e}")
+                print(f"[ERROR] webGroupId={wgid} -> {e}")
                 return []
             time.sleep(1.5 * (attempt + 1))
     return []
 
-def scrape_webgroup(wgid, wname):
-    """Scrape alle pagina’s van een webGroupId."""
+def scrape_webgroup(wgid):
+    """Scrape alle producten uit een webGroupId."""
     products = []
-    empty_pages = 0
-    page = 0
-    while not STOP_REQUESTED:
-        page_data = fetch_page(wgid, page, PAGE_SIZE)
-        if not page_data:
-            empty_pages += 1
-            if empty_pages >= 3:
-                break
-        else:
-            empty_pages = 0
-            for p in page_data:
-                info = p.get("productInformation", {}) or {}
-                offer = p.get("productOffer") or {}
-                products.append({
-                    "productId": p.get("productId"),
-                    "name": info.get("headerText"),
-                    "packaging": info.get("packaging"),
-                    "brand": info.get("brand"),
-                    "image": info.get("image"),
-                    "department": info.get("department"),
-                    "webgroupId": wgid,
-                    "webgroupName": wname,
-                    "normalPrice": p.get("normalPrice"),
-                    "offerPrice": p.get("offerPrice"),
-                    "priceLabel": offer.get("textPriceSign"),
-                    "offerStart": offer.get("startDate"),
-                    "offerEnd": offer.get("endDate")
-                })
-        page += 1
-        time.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
+    group_data = fetch_webgroup(wgid)
+    for p in group_data:
+        info = p.get("productInformation", {}) or {}
+        offer = p.get("productOffer") or {}
+        products.append({
+            "productId": p.get("productId"),
+            "name": info.get("headerText"),
+            "packaging": info.get("packaging"),
+            "brand": info.get("brand"),
+            "image": info.get("image"),
+            "department": info.get("department"),
+            "webgroupId": wgid,
+            "categoryLabel": info.get("webgroup"),  # label vanuit API
+            "normalPrice": p.get("normalPrice"),
+            "offerPrice": p.get("offerPrice"),
+            "priceLabel": offer.get("textPriceSign"),
+            "offerStart": offer.get("startDate"),
+            "offerEnd": offer.get("endDate")
+        })
     return products
 
 def save_batch(products, batch_num, run_id):
@@ -143,22 +127,22 @@ def main():
     all_products = []
     batch_num = 1
 
-    # start thread voor stop-signaal
     threading.Thread(target=listen_for_stop, daemon=True).start()
 
     print("=== Dirk.nl Product Scraper ===")
-    for group in tqdm(WEBGROUPS, desc="Scraping webGroups", unit="group"):
+    for wgid in tqdm(range(RANGE_START, RANGE_END + 1), desc="Scraping webGroups", unit="group"):
         if STOP_REQUESTED:
             break
-        wgid, wname = group["id"], group["name"]
-        group_products = scrape_webgroup(wgid, wname)
+        group_products = scrape_webgroup(wgid)
         if group_products:
+            print(f"[FOUND] webGroupId={wgid} -> {len(group_products)} producten "
+                  f"(voorbeeld: {group_products[0].get('name')})")
             all_products.extend(group_products)
             if len(all_products) >= batch_num * BATCH_SIZE:
                 save_batch(all_products, batch_num, run_id)
                 batch_num += 1
+        time.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
 
-    # final save full dataset
     outfile = os.path.join(OUT_DIR, f"dirk_products_full_{run_id}.json")
     with open(outfile, "w", encoding="utf-8") as f:
         json.dump(all_products, f, ensure_ascii=False, indent=2)
