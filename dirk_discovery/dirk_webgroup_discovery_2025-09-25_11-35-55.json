@@ -1,0 +1,594 @@
+{
+  "run_id": "2025-09-25_11-35-55",
+  "range_checked": [
+    1,
+    100
+  ],
+  "checked": 100,
+  "discovered_count": 97,
+  "discovered": [
+    {
+      "webGroupId": 1,
+      "count": 24,
+      "sample_productId": 21204,
+      "sample_name": "Fresh & Easy Zoete aardappelfriet"
+    },
+    {
+      "webGroupId": 2,
+      "count": 60,
+      "sample_productId": 4417,
+      "sample_name": "Hollandse Conference peren"
+    },
+    {
+      "webGroupId": 3,
+      "count": 28,
+      "sample_productId": 9109,
+      "sample_name": "Del Monte Ananasschijven op sap"
+    },
+    {
+      "webGroupId": 4,
+      "count": 11,
+      "sample_productId": 46138,
+      "sample_name": "Pruimen zonder pit ready to eat"
+    },
+    {
+      "webGroupId": 5,
+      "count": 123,
+      "sample_productId": 4439,
+      "sample_name": "Courgette"
+    },
+    {
+      "webGroupId": 6,
+      "count": 187,
+      "sample_productId": 5654,
+      "sample_name": "Hak Rode bieten schijven"
+    },
+    {
+      "webGroupId": 7,
+      "count": 51,
+      "sample_productId": 43355,
+      "sample_name": "1 de Beste Ijsbergsla melange"
+    },
+    {
+      "webGroupId": 8,
+      "count": 20,
+      "sample_productId": 9,
+      "sample_name": "Bio+ Biologische rode bieten gekookt"
+    },
+    {
+      "webGroupId": 9,
+      "count": 1,
+      "sample_productId": 58606,
+      "sample_name": "Garden Gourmet Sensational burger 2 stuks"
+    },
+    {
+      "webGroupId": 10,
+      "count": 23,
+      "sample_productId": 99071,
+      "sample_name": "Vleeschmeesters Runderhamburger 4 st."
+    },
+    {
+      "webGroupId": 11,
+      "count": 40,
+      "sample_productId": 112134,
+      "sample_name": "Vleeschmeesters Actie kipdrumsticks naturel"
+    },
+    {
+      "webGroupId": 13,
+      "count": 15,
+      "sample_productId": 99017,
+      "sample_name": "Vleeschmeesters Biefstuk 2 stuks"
+    },
+    {
+      "webGroupId": 14,
+      "count": 44,
+      "sample_productId": 98465,
+      "sample_name": "Vleeschmeesters Varkenslappen mager 5 st."
+    },
+    {
+      "webGroupId": 15,
+      "count": 56,
+      "sample_productId": 75,
+      "sample_name": "Valess Schnitzel gepaneerd 2 stuks"
+    },
+    {
+      "webGroupId": 16,
+      "count": 34,
+      "sample_productId": 58189,
+      "sample_name": "Hardanger Gerookte zalm"
+    },
+    {
+      "webGroupId": 17,
+      "count": 40,
+      "sample_productId": 427,
+      "sample_name": "Brunswick Sardines in sojaolie"
+    },
+    {
+      "webGroupId": 18,
+      "count": 41,
+      "sample_productId": 11905,
+      "sample_name": "Konecke Bockworst"
+    },
+    {
+      "webGroupId": 19,
+      "count": 140,
+      "sample_productId": 68954,
+      "sample_name": "1 de Beste Filet americain naturel"
+    },
+    {
+      "webGroupId": 20,
+      "count": 10,
+      "sample_productId": 102724,
+      "sample_name": "Bio+ Runderchipolata 5 st."
+    },
+    {
+      "webGroupId": 22,
+      "count": 11,
+      "sample_productId": 52898,
+      "sample_name": "Bio+ Spekreepjes gerookt"
+    },
+    {
+      "webGroupId": 24,
+      "count": 27,
+      "sample_productId": 4183,
+      "sample_name": "Efepasa Turkse specialiteiten arzum kipsalami"
+    },
+    {
+      "webGroupId": 25,
+      "count": 41,
+      "sample_productId": 5500,
+      "sample_name": "Danerolles Croissants 6 stuks"
+    },
+    {
+      "webGroupId": 26,
+      "count": 45,
+      "sample_productId": 1222,
+      "sample_name": "Beemsterkaasbroodje"
+    },
+    {
+      "webGroupId": 27,
+      "count": 72,
+      "sample_productId": 60201,
+      "sample_name": "Bolletje Beschuit volkoren"
+    },
+    {
+      "webGroupId": 28,
+      "count": 57,
+      "sample_productId": 85737,
+      "sample_name": "Bakker van der Akker Boeren tijger bruin heel"
+    },
+    {
+      "webGroupId": 29,
+      "count": 118,
+      "sample_productId": 38,
+      "sample_name": "Orinoko Hazelnootpasta"
+    },
+    {
+      "webGroupId": 30,
+      "count": 8,
+      "sample_productId": 1714,
+      "sample_name": "Ham kaas croissant"
+    },
+    {
+      "webGroupId": 31,
+      "count": 275,
+      "sample_productId": 20262,
+      "sample_name": "Lu Bastogne original"
+    },
+    {
+      "webGroupId": 32,
+      "count": 22,
+      "sample_productId": 99738,
+      "sample_name": "Peijnenburg Ontbijtkoek naturel ongesneden"
+    },
+    {
+      "webGroupId": 33,
+      "count": 20,
+      "sample_productId": 20809,
+      "sample_name": "Roombroodjes"
+    },
+    {
+      "webGroupId": 34,
+      "count": 5,
+      "sample_productId": 26629,
+      "sample_name": "Melvita Honing zacht & rijk biologisch"
+    },
+    {
+      "webGroupId": 35,
+      "count": 68,
+      "sample_productId": 2073,
+      "sample_name": "Campina Botergoud roomboter voor bakken & braden"
+    },
+    {
+      "webGroupId": 36,
+      "count": 8,
+      "sample_productId": 62565,
+      "sample_name": "Vrije uitloop eieren wit M"
+    },
+    {
+      "webGroupId": 37,
+      "count": 61,
+      "sample_productId": 48577,
+      "sample_name": "Uniekaas Belegen plakken 48+"
+    },
+    {
+      "webGroupId": 38,
+      "count": 34,
+      "sample_productId": 74423,
+      "sample_name": "Uniekaas Belegen stuk 48+"
+    },
+    {
+      "webGroupId": 39,
+      "count": 32,
+      "sample_productId": 7544,
+      "sample_name": "Alpro Amandeldrink"
+    },
+    {
+      "webGroupId": 40,
+      "count": 27,
+      "sample_productId": 6700,
+      "sample_name": "Betsies Volle geitenmelk"
+    },
+    {
+      "webGroupId": 41,
+      "count": 24,
+      "sample_productId": 13881,
+      "sample_name": "Alpro Cooking plant-based"
+    },
+    {
+      "webGroupId": 42,
+      "count": 65,
+      "sample_productId": 1204,
+      "sample_name": "Bessola Krentjebrij"
+    },
+    {
+      "webGroupId": 43,
+      "count": 23,
+      "sample_productId": 72096,
+      "sample_name": "Melkan Vla chocolade"
+    },
+    {
+      "webGroupId": 44,
+      "count": 154,
+      "sample_productId": 138,
+      "sample_name": "Konings Halfvolle aardbeien kwark"
+    },
+    {
+      "webGroupId": 45,
+      "count": 91,
+      "sample_productId": 1330,
+      "sample_name": "Campina Karnemelk met bosvruchten"
+    },
+    {
+      "webGroupId": 46,
+      "count": 167,
+      "sample_productId": 337,
+      "sample_name": "Apetina Classic 45+ kaasblokjes in olie"
+    },
+    {
+      "webGroupId": 47,
+      "count": 13,
+      "sample_productId": 23614,
+      "sample_name": "Arla Biologisch karnemelk"
+    },
+    {
+      "webGroupId": 48,
+      "count": 32,
+      "sample_productId": 4760,
+      "sample_name": "Smirnoff Red ice"
+    },
+    {
+      "webGroupId": 49,
+      "count": 222,
+      "sample_productId": 27065,
+      "sample_name": "Grolsch Premium pilsener 0.0 %"
+    },
+    {
+      "webGroupId": 50,
+      "count": 248,
+      "sample_productId": 68234,
+      "sample_name": "Hero Cassis"
+    },
+    {
+      "webGroupId": 51,
+      "count": 186,
+      "sample_productId": 13147,
+      "sample_name": "Nestlé Hot chocolate mix"
+    },
+    {
+      "webGroupId": 52,
+      "count": 27,
+      "sample_productId": 19666,
+      "sample_name": "Melkan Koffiemelk halfvol"
+    },
+    {
+      "webGroupId": 53,
+      "count": 65,
+      "sample_productId": 127,
+      "sample_name": "Raak Limonadesiroop framboos"
+    },
+    {
+      "webGroupId": 54,
+      "count": 31,
+      "sample_productId": 68231,
+      "sample_name": "Natural Cool Mineraalwater licht bruisend"
+    },
+    {
+      "webGroupId": 55,
+      "count": 120,
+      "sample_productId": 19445,
+      "sample_name": "Juttertje Kruidenbitter"
+    },
+    {
+      "webGroupId": 56,
+      "count": 98,
+      "sample_productId": 616,
+      "sample_name": "Pickwick Cranberry groene thee"
+    },
+    {
+      "webGroupId": 57,
+      "count": 169,
+      "sample_productId": 3616,
+      "sample_name": "Flevosap Appel"
+    },
+    {
+      "webGroupId": 58,
+      "count": 140,
+      "sample_productId": 37455,
+      "sample_name": "Just 0 Rood alcoholvrij"
+    },
+    {
+      "webGroupId": 59,
+      "count": 21,
+      "sample_productId": 45241,
+      "sample_name": "Bio+ Biologische houdbare halfvolle melk"
+    },
+    {
+      "webGroupId": 60,
+      "count": 30,
+      "sample_productId": 44838,
+      "sample_name": "Bio+ Biologische houdbare volle melk"
+    },
+    {
+      "webGroupId": 61,
+      "count": 175,
+      "sample_productId": 15,
+      "sample_name": "Ambition Gembersiroop"
+    },
+    {
+      "webGroupId": 62,
+      "count": 178,
+      "sample_productId": 2589,
+      "sample_name": "Go-Tan Chilisaus"
+    },
+    {
+      "webGroupId": 63,
+      "count": 174,
+      "sample_productId": 99005,
+      "sample_name": "1 de Beste Aardappelpuree a la minute 3 st."
+    },
+    {
+      "webGroupId": 64,
+      "count": 80,
+      "sample_productId": 517,
+      "sample_name": "Weetabix Graanontbijt original"
+    },
+    {
+      "webGroupId": 65,
+      "count": 234,
+      "sample_productId": 12455,
+      "sample_name": "Tromp & Rueb Kruidenazijn op 8 kruiden gerijpt"
+    },
+    {
+      "webGroupId": 66,
+      "count": 93,
+      "sample_productId": 3528,
+      "sample_name": "Grand'Italia Mini penne"
+    },
+    {
+      "webGroupId": 67,
+      "count": 50,
+      "sample_productId": 43156,
+      "sample_name": "Alesie Basmati rijst"
+    },
+    {
+      "webGroupId": 68,
+      "count": 145,
+      "sample_productId": 2425,
+      "sample_name": "Zonnatura Tarwezemelen 100% biologisch"
+    },
+    {
+      "webGroupId": 69,
+      "count": 34,
+      "sample_productId": 5601,
+      "sample_name": "Lassie Couscous biologische wereldgranen"
+    },
+    {
+      "webGroupId": 70,
+      "count": 165,
+      "sample_productId": 109122,
+      "sample_name": "Nerds Wonka rainbow"
+    },
+    {
+      "webGroupId": 71,
+      "count": 110,
+      "sample_productId": 9405,
+      "sample_name": "Knorr Soeppakket"
+    },
+    {
+      "webGroupId": 72,
+      "count": 13,
+      "sample_productId": 69944,
+      "sample_name": "1 de Beste Groene salade caesar mix met crout-dressing"
+    },
+    {
+      "webGroupId": 73,
+      "count": 96,
+      "sample_productId": 5352,
+      "sample_name": "Beretta Droge worst cacciatore"
+    },
+    {
+      "webGroupId": 74,
+      "count": 137,
+      "sample_productId": 28,
+      "sample_name": "Flemmings Broodje frikandel"
+    },
+    {
+      "webGroupId": 75,
+      "count": 74,
+      "sample_productId": 4276,
+      "sample_name": "Johma Beenham salade"
+    },
+    {
+      "webGroupId": 76,
+      "count": 2,
+      "sample_productId": 3978,
+      "sample_name": "Knoflooksaus"
+    },
+    {
+      "webGroupId": 77,
+      "count": 33,
+      "sample_productId": 2526,
+      "sample_name": "Aviko Aardappeltoefjes Pom Duchesse"
+    },
+    {
+      "webGroupId": 78,
+      "count": 9,
+      "sample_productId": 83454,
+      "sample_name": "Smuldier Runderpens"
+    },
+    {
+      "webGroupId": 79,
+      "count": 16,
+      "sample_productId": 2232,
+      "sample_name": "Koopmans Bladerdeeg"
+    },
+    {
+      "webGroupId": 80,
+      "count": 7,
+      "sample_productId": 76259,
+      "sample_name": "1 de Beste Appeltaart roomboter"
+    },
+    {
+      "webGroupId": 81,
+      "count": 22,
+      "sample_productId": 33844,
+      "sample_name": "Iglo Spinazie boursin"
+    },
+    {
+      "webGroupId": 82,
+      "count": 58,
+      "sample_productId": 12299,
+      "sample_name": "Iglo Roerbaksensatie tagliatelle bospaddenstoelen"
+    },
+    {
+      "webGroupId": 83,
+      "count": 79,
+      "sample_productId": 4921,
+      "sample_name": "Java Bapao kip 2 stuks"
+    },
+    {
+      "webGroupId": 84,
+      "count": 35,
+      "sample_productId": 6695,
+      "sample_name": "Klaas Puul Garnalen met kop"
+    },
+    {
+      "webGroupId": 85,
+      "count": 5,
+      "sample_productId": 9893,
+      "sample_name": "Heijs Braadkuiken"
+    },
+    {
+      "webGroupId": 86,
+      "count": 85,
+      "sample_productId": 75682,
+      "sample_name": "1 de Beste Roomijsstam vanillesmaak"
+    },
+    {
+      "webGroupId": 87,
+      "count": 27,
+      "sample_productId": 3707,
+      "sample_name": "Klok Afwasmiddel eco"
+    },
+    {
+      "webGroupId": 88,
+      "count": 230,
+      "sample_productId": 97095,
+      "sample_name": "Agriselect Hooi"
+    },
+    {
+      "webGroupId": 89,
+      "count": 13,
+      "sample_productId": 54062,
+      "sample_name": "Max Candles Theelichten 4 uur"
+    },
+    {
+      "webGroupId": 90,
+      "count": 9,
+      "sample_productId": 114138,
+      "sample_name": "Oplaadbare wandlamp licht hout"
+    },
+    {
+      "webGroupId": 91,
+      "count": 43,
+      "sample_productId": 115380,
+      "sample_name": "Ambi Pur 3volution bloesem starterskit"
+    },
+    {
+      "webGroupId": 92,
+      "count": 21,
+      "sample_productId": 90,
+      "sample_name": "Nagelborstel hout"
+    },
+    {
+      "webGroupId": 93,
+      "count": 60,
+      "sample_productId": 57873,
+      "sample_name": "1 de Beste Allesreiniger bloemen"
+    },
+    {
+      "webGroupId": 94,
+      "count": 39,
+      "sample_productId": 6765,
+      "sample_name": "Paper Keukenpapier maxi 96 vel 2 laags"
+    },
+    {
+      "webGroupId": 95,
+      "count": 35,
+      "sample_productId": 2362,
+      "sample_name": "1 de Beste Toiletblok met houder aqua"
+    },
+    {
+      "webGroupId": 96,
+      "count": 22,
+      "sample_productId": 70822,
+      "sample_name": "1 de Beste Vershoudfolie 15 meter"
+    },
+    {
+      "webGroupId": 97,
+      "count": 93,
+      "sample_productId": 1292,
+      "sample_name": "Nibro Textiel wit 5 zakjes"
+    },
+    {
+      "webGroupId": 98,
+      "count": 52,
+      "sample_productId": 3399,
+      "sample_name": "Hegron Douche & bad karnemelk honey"
+    },
+    {
+      "webGroupId": 99,
+      "count": 4,
+      "sample_productId": 5901,
+      "sample_name": "Nutrilon Omneo 1 0-6 Maanden"
+    },
+    {
+      "webGroupId": 100,
+      "count": 10,
+      "sample_productId": 53513,
+      "sample_name": "Bonbébé Biofruit 4+ maanden banaan"
+    }
+  ],
+  "timestamp": "2025-09-25T11:39:12.394697"
+}
