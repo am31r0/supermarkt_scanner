@@ -46,7 +46,7 @@ function getProductName(p) {
 /* ---------------- Units ---------------- */
 function parseUnit(text) {
   if (!text) return null;
-  const regex = /(\d+(?:[.,]\d+)?)(\s?)(g|kg|ml|l|stuks?|stuk|pack|doos)/i;
+  const regex = /(\d+(?:[.,]\d+)?)(\s?)(g|kg|ml|l|stuks?|stuk|pack|doos)\b/i;
   const match = text.toLowerCase().match(regex);
   if (match) {
     let value = parseFloat(match[1].replace(",", "."));
@@ -85,8 +85,6 @@ function calculatePPU(price, unitInfo) {
 /* ---------------- Category guessing ---------------- */
 function guessCategoryFromListItem(query) {
   const q = query.toLowerCase();
-
-  // direct lookup
   if (NAME_TO_CAT[q]) return NAME_TO_CAT[q];
 
   // fuzzy fallback in PRODUCTS
@@ -113,6 +111,7 @@ function isHouseBrand(shopName, productName) {
   if (shopName === "AH")
     return n.startsWith("ah ") || n.includes("albert heijn");
   if (shopName === "Jumbo") return n.startsWith("jumbo ");
+  if (shopName === "Dirk") return n.startsWith("dirk ");
   return false;
 }
 
@@ -139,7 +138,7 @@ function findBestProduct(shopData, query, shopName) {
       if (forcedCat === "bakery" && cat.includes("brood")) score += 6;
       if (
         forcedCat === "dairy" &&
-        (cat.includes("zuivel") || cat.includes("melk") || cat.includes("kaas"))
+        (cat.includes("zuivel") || cat.includes("melk"))
       )
         score += 6;
       if (
@@ -150,8 +149,8 @@ function findBestProduct(shopData, query, shopName) {
       if (
         forcedCat === "snacks" &&
         (cat.includes("chips") ||
-          cat.includes("snoep") ||
-          cat.includes("choco"))
+          cat.includes("choco") ||
+          cat.includes("snoep"))
       )
         score += 6;
     }
@@ -184,30 +183,25 @@ function findBestProduct(shopData, query, shopName) {
 function calculateTotals(list, shops) {
   const totals = {};
   for (const [shopName, shopData] of Object.entries(shops)) {
-    let total = 0;
     const details = [];
-
     for (const item of list) {
       const product = findBestProduct(shopData, item.name, shopName);
       const price = extractPrice(product);
-      const pUnit = parseUnit(getProductName(product));
+      const pName = getProductName(product);
+      const pUnit = parseUnit(pName);
       const ppu = calculatePPU(price, pUnit);
-
-      const itemTotal = price != null ? price * item.qty : null;
-      if (itemTotal != null) total += itemTotal;
 
       details.push({
         name: item.name,
         qty: item.qty,
-        match: getProductName(product) ?? null,
+        match: pName || null,
+        image: product?.image ?? null,
         price,
         ppu,
         unitInfo: pUnit,
-        total: itemTotal,
       });
     }
-
-    totals[shopName] = { total, details };
+    totals[shopName] = { details };
   }
   return totals;
 }
@@ -220,12 +214,22 @@ async function loadShopData() {
   const jumboRes = await fetch(
     "https://am31r0.github.io/supermarkt_scanner/dev/Data/jumbo.json"
   );
+  // Dirk kan later toegevoegd worden als dataset beschikbaar is
 
   const ah = ahRes.ok ? await ahRes.json() : [];
   const jumbo = jumboRes.ok ? await jumboRes.json() : [];
 
-  return { AH: ah, Jumbo: jumbo };
+  return { AH: ah, Jumbo: jumbo }; // Dirk later bijvoegen
 }
+
+/* ---------------- UI helpers ---------------- */
+const shopClass = (s) => s.toLowerCase();
+const logoPath = (s) => {
+  if (s === "AH") return "public/icons/ah-logo.webp";
+  if (s === "Jumbo") return "public/icons/jumbo-logo.webp";
+  if (s === "Dirk") return "public/icons/dirk-logo.webp";
+  return "";
+};
 
 /* ---------------- Renderer ---------------- */
 export async function renderHomePage(mount) {
@@ -239,12 +243,6 @@ export async function renderHomePage(mount) {
         <a href="#/search" class="btn btn--primary">Start zoeken</a>
       </section>
     </main>
-
-    <section class="features">
-      <article class="card"><h2>🔎 Slim zoeken</h2><p>Zoek producten en merken met actuele prijzen.</p></article>
-      <article class="card"><h2>💰 Prijsvergelijking</h2><p>Bekijk per supermarkt of gecombineerde mandjes.</p></article>
-      <article class="card"><h2>🔥 Aanbiedingen</h2><p>Ontdek actuele acties en kortingen in één oogopslag.</p></article>
-    </section>
 
     <section class="comparison" id="comparison"><div>Prijzen laden…</div></section>
 
@@ -265,52 +263,83 @@ export async function renderHomePage(mount) {
     const shops = await loadShopData();
     const totals = calculateTotals(list, shops);
 
-    const cheapest = Object.entries(totals).reduce((a, b) =>
-      (a[1].total || Infinity) < (b[1].total || Infinity) ? a : b
-    );
+    let html = `<h2>Prijsvergelijking per product</h2>`;
 
-    let html = `
-      <h2>Goedkoopste winkel</h2>
-      <div class="shop cheapest">
-        <h3>${cheapest[0]}</h3>
-        <p class="price">€${cheapest[1].total.toFixed(2)}</p>
-      </div>
-
-      <h2>Andere winkels</h2>
-      <div class="other-shops">
-    `;
-
-    for (const [shop, data] of Object.entries(totals)) {
-      if (shop === cheapest[0]) continue;
-      html += `
-        <div class="shop">
-          <h3>${shop}</h3>
-          <p class="price">${data.total ? "€" + data.total.toFixed(2) : "-"}</p>
-        </div>`;
-    }
-    html += `</div>`;
-
-    html += `<h2>Productvergelijking</h2><table class="compare-table">
-      <thead><tr><th>Product</th><th>Winkel</th><th>Match</th><th>Prijs</th><th>Prijs per eenheid</th></tr></thead><tbody>`;
-
-    list.forEach((item) => {
+    for (const item of list) {
+      // verzamel resultaten per shop voor dit item
+      let results = [];
       for (const [shop, data] of Object.entries(totals)) {
         const det = data.details.find((d) => d.name === item.name);
-        html += `<tr>
-          <td>${item.qty}× ${item.name}</td>
-          <td>${shop}</td>
-          <td>${det?.match ?? "—"}</td>
-          <td>${det?.price != null ? "€" + det.price.toFixed(2) : "—"}</td>
-          <td>${
-            det?.ppu != null
-              ? det.ppu.toFixed(2) + " " + ppuUnitLabel(det.unitInfo)
-              : "—"
-          }</td>
-        </tr>`;
+        if (det?.price != null) results.push({ shop, ...det });
       }
-    });
+      if (!results.length) continue;
 
-    html += `</tbody></table>`;
+      // sorteer goedkoopste eerst
+      results.sort((a, b) => a.price - b.price);
+      const cheapest = results[0];
+      const others = results.slice(1, 3); // max 2 alternatieven
+
+      html += `
+        <div class="product-row">
+          <!-- Winner / left -->
+          <div class="winner-card shop-card ${shopClass(cheapest.shop)}">
+            <div class="shop-header">
+              <img class="logo" src="${logoPath(cheapest.shop)}" alt="${
+        cheapest.shop
+      } logo" />
+              <h3 class="shop-name">${cheapest.shop}</h3>
+              <span class="badge">Goedkoopst</span>
+            </div>
+            ${
+              cheapest.image
+                ? `<img class="product-img" src="${cheapest.image}" alt="${cheapest.match}" />`
+                : ""
+            }
+            <div class="product-info">
+              <p class="name" title="${cheapest.match}">${cheapest.match}</p>
+              <p class="price">€${cheapest.price.toFixed(2)}</p>
+              <p class="ppu">${
+                cheapest.ppu != null
+                  ? cheapest.ppu.toFixed(2) +
+                    " " +
+                    ppuUnitLabel(cheapest.unitInfo)
+                  : ""
+              }</p>
+            </div>
+          </div>
+
+          <!-- Alternatives / right (two columns) -->
+          <div class="alts-grid">
+            ${others
+              .map(
+                (o) => `
+                <div class="alt-card shop-card ${shopClass(o.shop)}">
+                  <div class="shop-header">
+                    <img class="logo" src="${logoPath(o.shop)}" alt="${
+                  o.shop
+                } logo" />
+                    <h4 class="shop-name">${o.shop}</h4>
+                  </div>
+                  ${
+                    o.image
+                      ? `<img class="product-img tiny" src="${o.image}" alt="${o.match}" />`
+                      : ""
+                  }
+                  <p class="price">€${o.price.toFixed(2)}</p>
+                  <p class="ppu">${
+                    o.ppu != null
+                      ? o.ppu.toFixed(2) + " " + ppuUnitLabel(o.unitInfo)
+                      : ""
+                  }</p>
+                </div>
+              `
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
+    }
+
     comparisonEl.innerHTML = html;
   } catch (err) {
     console.error("Data load error:", err);

@@ -61,7 +61,10 @@ export function renderListPage(mount) {
         <h1>Mijn boodschappenlijst</h1>
       </header>
 
-      <div class="categories-grid" aria-label="Categorieën"></div>
+      <div class="categories-grid-wrapper">
+        <div class="categories-grid" aria-label="Categorieën"></div>
+      </div>
+      <button class="categories-more-btn">Meer tonen</button>
 
       <div class="list-container">
         <ul class="list-items" aria-live="polite"></ul>
@@ -85,6 +88,8 @@ export function renderListPage(mount) {
   const ul = mount.querySelector(".list-items");
   const inputRows = mount.querySelector(".input-rows");
   const catGrid = mount.querySelector(".categories-grid");
+  const catWrapper = mount.querySelector(".categories-grid-wrapper");
+  const moreBtn = mount.querySelector(".categories-more-btn");
   const modal = mount.querySelector(".category-modal");
   const modalClose = modal.querySelector(".modal-close");
   const modalBackdrop = modal.querySelector(".modal-backdrop");
@@ -159,7 +164,30 @@ export function renderListPage(mount) {
     catGrid.querySelectorAll(".category-card").forEach((btn) => {
       btn.addEventListener("click", () => openCategoryModal(btn.dataset.cat));
     });
+
+    // Dynamisch max-height = 2.5 rijen
+    const firstCard = catGrid.querySelector(".category-card");
+    if (firstCard) {
+      const cardHeight = firstCard.offsetHeight + 8; // marge meenemen
+      catWrapper.style.maxHeight = `${cardHeight * 2.9}px`;
+    }
   }
+
+  // --- Meer/minder knop ---
+  moreBtn.addEventListener("click", () => {
+    const expanded = catWrapper.classList.toggle("expanded");
+    if (expanded) {
+      catWrapper.style.maxHeight = "2000px"; // groot genoeg voor alle rijen
+      moreBtn.textContent = "Minder tonen";
+    } else {
+      const firstCard = catGrid.querySelector(".category-card");
+      if (firstCard) {
+        const cardHeight = firstCard.offsetHeight + 8;
+        catWrapper.style.maxHeight = `${cardHeight * 2.9}px`;
+      }
+      moreBtn.textContent = "Meer tonen";
+    }
+  });
 
   // --- Modal ---
   let currentModalCat = null;
@@ -473,7 +501,7 @@ export function renderListPage(mount) {
     commitBtn.addEventListener("click", commit);
 
     inputRows.appendChild(row);
-    input.focus();
+    // ⚡ Geen auto-focus meer, zodat mobiel toetsenbord niet opent
     return row;
   }
 
