@@ -35,7 +35,9 @@ function coercePrice(p) {
 
 function extractPrice(product) {
   if (!product) return null;
-  if (product.promoPrice != null) return coercePrice(product.promoPrice);
+  if (product.promoPrice != null && product.promoPrice > 0) {
+    return coercePrice(product.promoPrice);
+  }
   return coercePrice(product.price);
 }
 
@@ -87,7 +89,6 @@ function guessCategoryFromListItem(query) {
   const q = query.toLowerCase();
   if (NAME_TO_CAT[q]) return NAME_TO_CAT[q];
 
-  // fuzzy fallback in PRODUCTS
   let best = null,
     bestScore = -1;
   for (const p of PRODUCTS) {
@@ -111,7 +112,8 @@ function isHouseBrand(shopName, productName) {
   if (shopName === "AH")
     return n.startsWith("ah ") || n.includes("albert heijn");
   if (shopName === "Jumbo") return n.startsWith("jumbo ");
-  if (shopName === "Dirk") return n.startsWith("dirk ");
+  if (shopName === "Dirk")
+    return n.startsWith("dirk ") || n.includes("1 de beste");
   return false;
 }
 
@@ -168,7 +170,6 @@ function findBestProduct(shopData, query, shopName) {
 
   if (!candidates.length) return null;
 
-  // sort: best score > lowest price > house brand
   candidates.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
     if (a.price !== b.price) return a.price - b.price;
@@ -206,6 +207,19 @@ function calculateTotals(list, shops) {
   return totals;
 }
 
+/* ---------------- Normalizers ---------------- */
+function normalizeDirkData(raw) {
+  const base = "https://d3r3h30p75xj6a.cloudfront.net/";
+  return raw.map((p) => ({
+    id: p.productId,
+    name: p.name,
+    category: p.categoryLabel ?? p.department ?? "",
+    price: p.normalPrice,
+    promoPrice: p.offerPrice && p.offerPrice > 0 ? p.offerPrice : null,
+    image: p.image ? base + p.image : null,
+  }));
+}
+
 /* ---------------- Shop loader ---------------- */
 async function loadShopData() {
   const ahRes = await fetch(
@@ -214,12 +228,17 @@ async function loadShopData() {
   const jumboRes = await fetch(
     "https://am31r0.github.io/supermarkt_scanner/dev/Data/jumbo.json"
   );
-  // Dirk kan later toegevoegd worden als dataset beschikbaar is
+  const dirkRes = await fetch(
+    "https://am31r0.github.io/supermarkt_scanner/dev/Data/dirk.json"
+  );
 
   const ah = ahRes.ok ? await ahRes.json() : [];
   const jumbo = jumboRes.ok ? await jumboRes.json() : [];
+  let dirk = dirkRes.ok ? await dirkRes.json() : [];
 
-  return { AH: ah, Jumbo: jumbo }; // Dirk later bijvoegen
+  dirk = normalizeDirkData(dirk);
+
+  return { AH: ah, Jumbo: jumbo, Dirk: dirk };
 }
 
 /* ---------------- UI helpers ---------------- */
@@ -266,7 +285,6 @@ export async function renderHomePage(mount) {
     let html = `<h2>Prijsvergelijking per product</h2>`;
 
     for (const item of list) {
-      // verzamel resultaten per shop voor dit item
       let results = [];
       for (const [shop, data] of Object.entries(totals)) {
         const det = data.details.find((d) => d.name === item.name);
@@ -274,14 +292,12 @@ export async function renderHomePage(mount) {
       }
       if (!results.length) continue;
 
-      // sorteer goedkoopste eerst
       results.sort((a, b) => a.price - b.price);
       const cheapest = results[0];
-      const others = results.slice(1, 3); // max 2 alternatieven
+      const others = results.slice(1, 3);
 
       html += `
         <div class="product-row">
-          <!-- Winner / left -->
           <div class="winner-card shop-card ${shopClass(cheapest.shop)}">
             <div class="shop-header">
               <img class="logo" src="${logoPath(cheapest.shop)}" alt="${
@@ -308,31 +324,30 @@ export async function renderHomePage(mount) {
             </div>
           </div>
 
-          <!-- Alternatives / right (two columns) -->
           <div class="alts-grid">
             ${others
               .map(
                 (o) => `
-                <div class="alt-card shop-card ${shopClass(o.shop)}">
-                  <div class="shop-header">
-                    <img class="logo" src="${logoPath(o.shop)}" alt="${
+              <div class="alt-card shop-card ${shopClass(o.shop)}">
+                <div class="shop-header">
+                  <img class="logo" src="${logoPath(o.shop)}" alt="${
                   o.shop
                 } logo" />
-                    <h4 class="shop-name">${o.shop}</h4>
-                  </div>
-                  ${
-                    o.image
-                      ? `<img class="product-img tiny" src="${o.image}" alt="${o.match}" />`
-                      : ""
-                  }
-                  <p class="price">€${o.price.toFixed(2)}</p>
-                  <p class="ppu">${
-                    o.ppu != null
-                      ? o.ppu.toFixed(2) + " " + ppuUnitLabel(o.unitInfo)
-                      : ""
-                  }</p>
+                  <h4 class="shop-name">${o.shop}</h4>
                 </div>
-              `
+                ${
+                  o.image
+                    ? `<img class="product-img tiny" src="${o.image}" alt="${o.match}" />`
+                    : ""
+                }
+                <p class="price">€${o.price.toFixed(2)}</p>
+                <p class="ppu">${
+                  o.ppu != null
+                    ? o.ppu.toFixed(2) + " " + ppuUnitLabel(o.unitInfo)
+                    : ""
+                }</p>
+              </div>
+            `
               )
               .join("")}
           </div>
