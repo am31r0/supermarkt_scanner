@@ -50,11 +50,13 @@
 
 .store-ah {
     background-color: #1e6bb8;
+    color: #fff;
     /* AH blauw */
 }
 
 .store-dirk {
     background-color: #e30613;
+    color: #fff;
     /* Dirk rood */
 }
 
@@ -75,6 +77,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    flex-grow: 1;
 }
 
 .list-item.done {
@@ -128,6 +131,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
+    flex-grow: 1;
 }
 
 .item-name {
@@ -142,8 +146,9 @@
 }
 
 .item-actions {
-    flex-shrink: 0;
-    justify-self: flex-end;
+    display: inline-flex;
+    justify-content: flex-end;
+    flex-grow: 1;
     align-self: flex-end;
 }
 

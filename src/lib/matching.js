@@ -101,6 +101,7 @@ export function normalizeDirk(p) {
   const unitInfo = parseUnit(p.packaging);
   const price = p.normalPrice;
   const amount = unitInfo?.amount || 1;
+  const base = "https://d3r3h30p75xj6a.cloudfront.net/";
 
   return {
     store: "dirk",
@@ -114,7 +115,7 @@ export function normalizeDirk(p) {
     unit: unitInfo?.unit || "st",
     amount,
     pricePerUnit: amount ? price / amount : price,
-    image: p.image,
+    image: p.image ? base + p.image : null,
     link: null,
   };
 }
@@ -231,22 +232,26 @@ function scoreMatch(query, productName) {
   const q = query.toLowerCase();
   const n = productName.toLowerCase();
 
+  if (!q) return 1.0; // lege query = full match
   if (n.includes(q)) return 1.0;
+
   const dist = levenshtein(q, n);
   const maxLen = Math.max(q.length, n.length);
   return 1 - dist / maxLen;
 }
 
 // =======================
-// Nieuwe zoekfunctie
+// Search engine
 // =======================
 // Input: genormaliseerde producten, zoekterm, optioneel categorie
-// Output: alle matches, gesorteerd op prijsPerUnit -> score
+// Output: matches, gesorteerd op prijsPerUnit -> score
 export function searchProducts(
   normalizedProducts,
-  query,
+  query = "",
   chosenCategory = null
 ) {
+  if (!Array.isArray(normalizedProducts)) return [];
+
   const results = [];
 
   for (const p of normalizedProducts) {
@@ -254,18 +259,16 @@ export function searchProducts(
 
     const sc = scoreMatch(query, p.name);
 
-    // minimum threshold om ruis te voorkomen
-    if (sc >= 0.4) {
+    // bij query filteren op threshold, bij lege query altijd includen
+    if (!query || sc >= 0.4) {
       results.push({ ...p, score: sc });
     }
   }
 
-  results.sort((a, b) => {
+  return results.sort((a, b) => {
     if (a.pricePerUnit !== b.pricePerUnit) {
-      return a.pricePerUnit - b.pricePerUnit; // goedkoopste per eenheid eerst
+      return a.pricePerUnit - b.pricePerUnit;
     }
-    return b.score - a.score; // bij gelijke ppu: beste match
+    return b.score - a.score;
   });
-
-  return results;
 }

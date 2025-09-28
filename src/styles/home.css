@@ -40,6 +40,7 @@
     margin: 0;
     font-size: 1rem;
     font-weight: 700;
+    display: none;
 }
 
 .badge {
@@ -128,4 +129,17 @@
 .shop-card.dirk {
     background: #e30613;
     color: #fff;
+}
+
+.pack-badge {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 2px 6px;
+    font-size: calc(0.75rem * var(--font-size-factor));
+    border-radius: 999px;
+    background: var(--mini-surface);
+    /* neutrale bg */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--ink);
+    white-space: nowrap;
 }

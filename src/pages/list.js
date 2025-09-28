@@ -2,7 +2,10 @@
 import { PRODUCTS, NAME_TO_CAT } from "../data/products.js";
 import { initEngine } from "/src/lib/cpi.js";
 import { renderCategoryGrid } from "/src/lib/categoryGrid.js";
-import { loadJSONOncePerDay } from "/src/lib/cache.js"; // pad even checken
+import { loadJSONOncePerDay } from "/src/lib/cache.js";
+import { normalizeAll, searchProducts } from "/src/lib/matching.js";
+import { showSearchModal } from "/src/lib/modal.js";
+import { escHtml, uid, formatPrice } from "/src/lib/utils.js";
 
 const LS_KEY = "sms_list";
 
@@ -18,22 +21,6 @@ function loadList() {
 }
 function saveList(items) {
   localStorage.setItem(LS_KEY, JSON.stringify(items));
-}
-function uid() {
-  return Math.random().toString(36).slice(2, 9);
-}
-
-// -------------------------
-// Escaping helpers
-// -------------------------
-function escHtml(str) {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
-function escAttr(str) {
-  return escHtml(str).replaceAll('"', "&quot;");
 }
 
 // -------------------------
@@ -72,6 +59,8 @@ export async function renderListPage(mount) {
       pack: product.pack || null,
       qty: 1,
       done: false,
+      store: product.store || null,
+      price: product.price || null,
     };
     state.push(item);
     saveList(state);
@@ -98,31 +87,36 @@ export async function renderListPage(mount) {
       if (item.done) li.classList.add("done");
 
       li.innerHTML = `
-        <label class="item-check">
-          <input type="checkbox" ${
-            item.done ? "checked" : ""
-          } aria-label="Afvinken ${escAttr(item.name)}" />
-          <span class="item-name">
-            ${escHtml(item.name)}
-            ${
-              item.pack
-                ? `<span class="list-pack-badge">${escHtml(item.pack)}</span>`
-                : ""
-            }
-          </span>
-        </label>
-
-        <div class="item-actions">
-          <span class="qty-badge">×${item.qty}</span>
-          <div class="qty-controls" aria-label="Aantal aanpassen">
-            <button class="icon-btn minus" title="Minder" aria-label="Minder">−</button>
-            <span class="qty-num" aria-live="polite">${item.qty}</span>
-            <button class="icon-btn plus" title="Meer" aria-label="Meer">+</button>
-          </div>
-          <button class="icon-btn trash-btn delete" title="Verwijderen" aria-label="Verwijderen">
-            ${trashSvg()}
-          </button>
-        </div>
+      <label class="item-check">
+      <input type="checkbox" ${item.done ? "checked" : ""} />
+      <span class="item-full-name"><span class="item-name">
+        ${escHtml(item.name)}
+        </span>
+      <span class="item-name-store-price">
+        ${
+          item.store
+            ? `<span class="list-store store-${item.store.toLowerCase()}">${escHtml(
+                item.store
+              )}</span>`
+            : ""
+        }
+        ${
+          item.price
+            ? `<span class="list-price">${formatPrice(item.price)}</span>`
+            : ""
+        }
+      </span></span>
+      <div class="item-actions">
+      <div class="qty-controls">
+        <button class="icon-btn minus">−</button>
+        <span class="qty-num">${item.qty}</span>
+        <button class="icon-btn plus">+</button>
+      </div>
+      <button class="icon-btn trash-btn delete">
+        ${trashSvg()}
+      </button>
+    </div>
+    </label>
       `;
 
       // Events
@@ -152,116 +146,83 @@ export async function renderListPage(mount) {
   }
 
   // -------------------------
-  // Input row with suggestions
+  // Input row with modal search
   // -------------------------
-  function createInputRow() {
+  function createInputRow(allProducts) {
     const row = document.createElement("div");
     row.className = "input-row";
     row.innerHTML = `
       <input type="text" class="item-input" placeholder="Typ hier..." />
-      <button class="btn small commit">Toevoegen</button>
-      <div class="suggestions"></div>
+      <button class="btn small commit">Zoeken</button>
     `;
     const input = row.querySelector(".item-input");
     const commitBtn = row.querySelector(".commit");
-    const sug = row.querySelector(".suggestions");
 
-    function showSuggestions(list) {
-      if (!list.length) {
-        sug.innerHTML = "";
-        sug.classList.remove("open");
+    async function handleSearch() {
+      const q = input.value.trim();
+      if (!q) return;
+
+      const results = searchProducts(allProducts, q);
+      if (!results.length) {
+        alert("Geen resultaten gevonden");
         return;
       }
-      sug.innerHTML = list
-        .map(
-          (p) => `
-          <button role="option" class="sug-item" data-name="${escAttr(p.name)}">
-            <span class="sug-name">${escHtml(p.name)}</span>
-            ${
-              p.packs?.length
-                ? `<span class="sug-pack">${p.packs.join(", ")}</span>`
-                : ""
-            }
-          </button>`
-        )
-        .join("");
-      sug.classList.add("open");
 
-      sug.querySelectorAll(".sug-item").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const product = PRODUCTS.find(
-            (pp) => pp.name.toLowerCase() === btn.dataset.name.toLowerCase()
-          );
-          if (!product) return;
-
-          if (product.packs?.length > 1) {
-            sug.innerHTML = product.packs
-              .map(
-                (pack) => `
-                <button class="chip" data-name="${escAttr(
-                  product.name
-                )}" data-pack="${escAttr(pack)}">
-                  + ${pack}
-                </button>`
-              )
-              .join("");
-            sug.querySelectorAll(".chip").forEach((chip) => {
-              chip.addEventListener("click", () => {
-                addItem({ ...product, pack: chip.dataset.pack });
-                input.value = "";
-                sug.innerHTML = "";
-              });
-            });
-          } else {
-            addItem(product);
-            input.value = "";
-            sug.innerHTML = "";
-          }
-          input.focus();
+      showSearchModal(results, (chosen) => {
+        addItem({
+          name: chosen.name,
+          cat: chosen.unifiedCategory,
+          pack: chosen.unit,
+          store: chosen.store,
+          price: chosen.price,
         });
+        input.value = "";
       });
     }
 
-    function handleCommit() {
-      const q = input.value.trim().toLowerCase();
-      if (!q) return;
-      const matches = PRODUCTS.filter((p) =>
-        p.name.toLowerCase().includes(q)
-      ).slice(0, 8);
-      showSuggestions(matches);
-    }
-
-    input.addEventListener("input", handleCommit);
-    commitBtn.addEventListener("click", handleCommit);
+    commitBtn.addEventListener("click", handleSearch);
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        handleCommit();
+        handleSearch();
       }
     });
 
     inputRows.prepend(row);
+
+    // Expose naar global zodat CategoryGrid dit kan triggeren
+    window.triggerListSearch = (name) => {
+      input.value = name;
+      handleSearch();
+    };
   }
 
   // -------------------------
   // Init CPI engine + categories
   // -------------------------
+  const [ahRaw, dirkRaw, jumboRaw] = await Promise.all([
+    loadJSONOncePerDay("ah", "/dev/Data/ah.json"),
+    loadJSONOncePerDay("dirk", "/dev/Data/dirk.json"),
+    loadJSONOncePerDay("jumbo", "/dev/Data/jumbo.json"),
+  ]);
+
+  const allProducts = normalizeAll({
+    ah: ahRaw,
+    dirk: dirkRaw,
+    jumbo: jumboRaw,
+  });
+
   await initEngine(
-    {
-      ah: await (await loadJSONOncePerDay("/dev/Data/AH.json")).json(),
-      dirk: await (await loadJSONOncePerDay("/dev/Data/Dirk.json")).json(),
-      jumbo: await (await loadJSONOncePerDay("/dev/Data/Jumbo.json")).json(),
-    },
+    { ah: ahRaw, dirk: dirkRaw, jumbo: jumboRaw },
     { onReady: () => console.log("CPI engine ready") }
   );
 
   renderCategoryGrid(catSection, {
-    onSelect: (product) => {
-      addItem(product);
-    },
+    onSelect: (product) => addItem(product),
+    allProducts,
   });
 
-  createInputRow();
+  createInputRow(allProducts);
   renderCommitted();
 }
 

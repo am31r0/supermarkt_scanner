@@ -22,28 +22,30 @@ export function showSearchModal(results, onSelect) {
         <button class="search-modal-close" aria-label="Sluiten">✕</button>
       </div>
       <div class="search-results">
-        ${
-          results.length
-            ? results
-                .map(
-                  (p) => `
+      ${
+        results.length
+          ? results
+              .map(
+                (p) => `
           <div class="result-row" data-id="${p.id}" data-store="${p.store}">
             <img src="${p.image || ""}" alt="${escAttr(p.name)}"/>
             <div class="info">
               <div class="name">${escHtml(p.name)}</div>
               <div class="meta">
-                <span class="store">${escHtml(p.store)}</span>
+                <span class="list-store store-${p.store}">
+                  ${escHtml(p.store)}
+                </span>
                 <span class="price">${formatPrice(p.price)}</span>
                 <span class="ppu">${p.pricePerUnit.toFixed(2)} / ${
-                    p.unit
-                  }</span>
+                  p.unit
+                }</span>
               </div>
             </div>
           </div>`
-                )
-                .join("")
-            : `<div class="empty">Geen resultaten gevonden.</div>`
-        }
+              )
+              .join("")
+          : `<div class="empty">Geen resultaten gevonden.</div>`
+      }
       </div>
     </div>
   `;

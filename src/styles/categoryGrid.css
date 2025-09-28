@@ -107,15 +107,18 @@
 .category-modal {
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: 998;
+
     /* boven alles */
 }
 
 .category-modal .modal-backdrop {
-    position: fixed;
+    position: absolute;
+    height: 100vh;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(2px);
+    animation: fadeIn 0.3s ease-out;
 }
 
 .category-modal .modal-content {
@@ -133,6 +136,9 @@
     padding: 14px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
     z-index: 1;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: slideUp 0.2s ease-out;
 }
 
 .modal-header {
@@ -230,7 +236,12 @@
 }
 
 .modal-item-name {
+    flex: 1;
+    word-break: break-word;
     font-size: calc(0.95rem * var(--font-size-factor));
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .modal-item-act.btn.small {
@@ -288,4 +299,52 @@
     border-radius: 999px;
     background: var(--accent);
     font-size: calc(0.8rem * var(--font-size-factor));
+}
+
+.modal-item-row .modal-item-act {
+    flex-shrink: 0;
+}
+
+/* 🔥 Als er varianten zijn → layout stapelen */
+.modal-item-row.has-variants {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.modal-item-row.has-variants .modal-item-act {
+    align-self: flex-end;
+    /* knop onderaan rechts */
+    margin-top: 6px;
+}
+
+.pack-badge {
+    display: inline-block;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-size: calc(0.8rem * var(--font-size-factor));
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.pack-badge::before {
+    content: "+ ";
+}
+
+.pack-badge:hover {
+    background: #181818;
+    /* zelfde hover als de kleine btns */
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }

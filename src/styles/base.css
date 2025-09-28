@@ -9,7 +9,7 @@
     --radius: 16px;
     --btnradius: 50px;
     --transition: 0.25s ease;
-    --mini-surface: #222;
+    --mini-surface: #282828;
     --border-line-muted: #444444;
     --font-size-factor: 1;
     --font-family-accessibility: Inter;
@@ -19,7 +19,7 @@ html[data-theme="light"] {
     --buttonbg: #f0f0f0;
     --bg: #dededede;
     --surface: #fff;
-    --mini-surface: #eee;
+    --mini-surface: #efefef;
     --ink: #161616;
     --muted: #5a5a5a;
     --border-line-muted: #e5e5e5;
