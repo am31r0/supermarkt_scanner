@@ -1,11 +1,11 @@
 // src/pages/list.js
 import { PRODUCTS, NAME_TO_CAT } from "../data/products.js";
-import { initEngine } from "/src/lib/cpi.js";
-import { renderCategoryGrid } from "/src/lib/categoryGrid.js";
-import { loadJSONOncePerDay } from "/src/lib/cache.js";
-import { normalizeAll, searchProducts } from "/src/lib/matching.js";
-import { showSearchModal } from "/src/lib/modal.js";
-import { escHtml, uid, formatPrice } from "/src/lib/utils.js";
+import { initEngine } from "../lib/cpi.js";
+import { renderCategoryGrid } from "../lib/categoryGrid.js";
+import { loadJSONOncePerDay } from "../lib/cache.js";
+import { normalizeAll, searchProducts } from "../lib/matching.js";
+import { showSearchModal } from "../lib/modal.js";
+import { escHtml, uid, formatPrice } from "../lib/utils.js";
 
 const LS_KEY = "sms_list";
 

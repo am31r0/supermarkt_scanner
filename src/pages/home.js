@@ -1,6 +1,6 @@
 // src/pages/home.js
 import { NAME_TO_CAT, PRODUCTS } from "../data/products.js";
-import { loadJSONOncePerDay } from "/src/lib/cache.js";
+import { loadJSONOncePerDay } from "../lib/cache.js";
 
 /* ---------------- CSS Loader ---------------- */
 function ensureCSS(href) {

@@ -1,5 +1,5 @@
 // src/lib/categoryGrid.js
-import { CATEGORIES, PRODUCTS } from "/src/data/products.js";
+import { CATEGORIES, PRODUCTS } from "../data/products.js";
 
 /**
  * Render categorie-grid
