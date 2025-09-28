@@ -113,7 +113,7 @@
 }
 
 .category-modal .modal-backdrop {
-    position: absolute;
+    position: fixed;
     height: 100vh;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
@@ -136,8 +136,6 @@
     padding: 14px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
     z-index: 1;
-    left: 50%;
-    transform: translateX(-50%);
     animation: slideUp 0.2s ease-out;
 }
 

@@ -146,7 +146,7 @@ export async function renderListPage(mount) {
   }
 
   // -------------------------
-  // Input row with autosuggest + modal search
+  // Input row with autosuggest (PRODUCTS) + modal search (allProducts)
   // -------------------------
   function createInputRow(allProducts) {
     const row = document.createElement("div");
@@ -160,26 +160,53 @@ export async function renderListPage(mount) {
     const commitBtn = row.querySelector(".commit");
     const sugBox = row.querySelector(".suggestions");
 
-    function renderSuggestions(q) {
+    // Bepaal veilige bron voor suggesties
+    const SUG_SOURCE =
+      Array.isArray(PRODUCTS) && PRODUCTS.every((x) => typeof x === "string")
+        ? PRODUCTS
+        : Object.keys(NAME_TO_CAT || {});
+
+    function openSug() {
+      if (!sugBox.classList.contains("open")) sugBox.classList.add("open");
+    }
+    function closeSug() {
       sugBox.innerHTML = "";
       sugBox.classList.remove("open");
+    }
+
+    function renderSuggestions(q) {
+      closeSug();
       if (!q) return;
 
-      const results = searchProducts(allProducts, q).slice(0, 5);
+      const ql = q.toLowerCase();
+
+      // Eerst prefix-matches, dan includes, uit PRODUCTS
+      const prefix = [];
+      const contains = [];
+      for (const name of SUG_SOURCE) {
+        const nl = name.toLowerCase();
+        if (nl.startsWith(ql)) {
+          prefix.push(name);
+        } else if (nl.includes(ql)) {
+          contains.push(name);
+        }
+        if (prefix.length + contains.length >= 8) break; // max 8 kandidaten
+      }
+      const results = [...prefix, ...contains].slice(0, 5);
+
       if (!results.length) return;
 
-      for (const r of results) {
+      for (const name of results) {
         const opt = document.createElement("div");
         opt.className = "suggestion";
-        opt.textContent = r.name;
+        opt.textContent = name;
         opt.addEventListener("click", () => {
-          input.value = r.name;
-          sugBox.innerHTML = "";
-          sugBox.classList.remove("open");
+          input.value = name;
+          closeSug();
         });
         sugBox.appendChild(opt);
       }
-      sugBox.classList.add("open");
+      openSug();
     }
 
     async function handleSearch() {
@@ -201,8 +228,7 @@ export async function renderListPage(mount) {
           price: chosen.price,
         });
         input.value = "";
-        sugBox.innerHTML = "";
-        sugBox.classList.remove("open");
+        closeSug();
       });
     }
 
@@ -211,11 +237,17 @@ export async function renderListPage(mount) {
       if (e.key === "Enter") {
         e.preventDefault();
         handleSearch();
+      } else if (e.key === "Escape") {
+        closeSug();
       }
     });
 
+    // Perf: throttle via rAF
+    let rafId = null;
     input.addEventListener("input", () => {
-      renderSuggestions(input.value.trim());
+      if (rafId) cancelAnimationFrame(rafId);
+      const val = input.value.trim();
+      rafId = requestAnimationFrame(() => renderSuggestions(val));
     });
 
     input.addEventListener("focus", () => {
@@ -229,13 +261,14 @@ export async function renderListPage(mount) {
         top: absoluteY - 30,
         behavior: "smooth",
       });
+      // Toon (opnieuw) suggesties bij focus als er tekst staat
+      if (input.value.trim()) renderSuggestions(input.value.trim());
     });
 
-    // 🔑 Klik buiten input/suggesties sluit de box
+    // Klik buiten → sluit suggesties
     document.addEventListener("click", (e) => {
       if (!row.contains(e.target)) {
-        sugBox.innerHTML = "";
-        sugBox.classList.remove("open");
+        closeSug();
       }
     });
 

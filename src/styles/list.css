@@ -196,20 +196,7 @@ span.item-full-name {
     background: #181818;
 }
 
-.suggestions {
-    position: absolute;
-    left: 0;
-    right: 96px;
-    top: calc(100% + 4px);
-    background: #0f0f0f;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    padding: 6px;
-    display: none;
-    z-index: 20;
-    max-height: 220px;
-    overflow: auto;
-}
+
 
 .suggestions.open {
     display: block;
@@ -259,24 +246,35 @@ span.item-full-name {
 
 .suggestions {
     position: absolute;
-    top: 100%;
     left: 0;
-    right: 0;
-    background: var(--mini-surface);
-    border: 1px solid var(--border-line-muted);
-    border-top: none;
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 1000;
-    font-size: 0.8rem;
+    right: 96px;
+    top: calc(100% + 4px);
+    background: #0f0f0f;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 6px;
+    display: none;
+    z-index: 20;
+    max-height: 220px;
+    overflow: auto;
+    display: none;
+
+}
+
+.suggestions.open {
+    display: block;
+    animation: fadeIn 0.2s ease-out;
 }
 
 .suggestion {
+    height: 100%;
+    width: 100%;
     padding: 8px 10px;
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-size: 0.7rem;
 }
 
 .suggestion:hover {
