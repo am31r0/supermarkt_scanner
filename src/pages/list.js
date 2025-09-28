@@ -201,9 +201,9 @@ export async function renderListPage(mount) {
   // Init CPI engine + categories
   // -------------------------
   const [ahRaw, dirkRaw, jumboRaw] = await Promise.all([
-    loadJSONOncePerDay("ah", "/dev/Data/ah.json"),
-    loadJSONOncePerDay("dirk", "/dev/Data/dirk.json"),
-    loadJSONOncePerDay("jumbo", "/dev/Data/jumbo.json"),
+    loadJSONOncePerDay("ah", "../Data/ah.json"),
+    loadJSONOncePerDay("dirk", "../Data/dirk.json"),
+    loadJSONOncePerDay("jumbo", "../Data/jumbo.json"),
   ]);
 
   const allProducts = normalizeAll({
