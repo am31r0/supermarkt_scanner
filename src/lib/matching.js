@@ -186,12 +186,6 @@ export function normalizeJumbo(p) {
     ppu = p.price / amount;
   }
 
-  // --- Afbeelding altijd forceren naar 190x190 ---
-  let image = null;
-  if (p.image) {
-    image = p.image.replace(/fit-in\/\d+x\d+\//, "fit-in/190x190/");
-  }
-
   return {
     store: "jumbo",
     id: p.id,
