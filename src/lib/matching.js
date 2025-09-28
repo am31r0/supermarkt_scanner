@@ -104,6 +104,15 @@ export function normalizeDirk(p) {
   const base = "https://d3r3h30p75xj6a.cloudfront.net/";
   const postfix = "?width=190";
 
+  let image = null;
+  if (p.image) {
+    image = base + p.image;
+    // als er nog geen querystring inzit → plak ?width=190
+    if (!image.includes("?")) {
+      image += postfix;
+    }
+  }
+
   return {
     store: "dirk",
     id: p.productId,
@@ -116,7 +125,7 @@ export function normalizeDirk(p) {
     unit: unitInfo?.unit || "st",
     amount,
     pricePerUnit: amount ? price / amount : price,
-    image: base + p.image + postfix : null,
+    image,
     link: null,
   };
 }
