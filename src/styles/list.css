@@ -256,3 +256,29 @@ span.item-full-name {
     border: 1px solid rgba(255, 255, 255, 0.15);
     white-space: nowrap;
 }
+
+.suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--mini-surface);
+    border: 1px solid var(--border-line-muted);
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    font-size: 0.8rem;
+}
+
+.suggestion {
+    padding: 8px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion:hover {
+    background: var(--accent);
+}

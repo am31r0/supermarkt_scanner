@@ -146,7 +146,7 @@ export async function renderListPage(mount) {
   }
 
   // -------------------------
-  // Input row with modal search
+  // Input row with autosuggest + modal search
   // -------------------------
   function createInputRow(allProducts) {
     const row = document.createElement("div");
@@ -154,9 +154,33 @@ export async function renderListPage(mount) {
     row.innerHTML = `
       <input type="text" class="item-input" placeholder="Typ hier..." />
       <button class="btn small commit">Zoeken</button>
+      <div class="suggestions" role="listbox"></div>
     `;
     const input = row.querySelector(".item-input");
     const commitBtn = row.querySelector(".commit");
+    const sugBox = row.querySelector(".suggestions");
+
+    function renderSuggestions(q) {
+      sugBox.innerHTML = "";
+      sugBox.classList.remove("open");
+      if (!q) return;
+
+      const results = searchProducts(allProducts, q).slice(0, 5);
+      if (!results.length) return;
+
+      for (const r of results) {
+        const opt = document.createElement("div");
+        opt.className = "suggestion";
+        opt.textContent = r.name;
+        opt.addEventListener("click", () => {
+          input.value = r.name;
+          sugBox.innerHTML = "";
+          sugBox.classList.remove("open");
+        });
+        sugBox.appendChild(opt);
+      }
+      sugBox.classList.add("open");
+    }
 
     async function handleSearch() {
       const q = input.value.trim();
@@ -177,6 +201,8 @@ export async function renderListPage(mount) {
           price: chosen.price,
         });
         input.value = "";
+        sugBox.innerHTML = "";
+        sugBox.classList.remove("open");
       });
     }
 
@@ -188,9 +214,33 @@ export async function renderListPage(mount) {
       }
     });
 
+    input.addEventListener("input", () => {
+      renderSuggestions(input.value.trim());
+    });
+
+    input.addEventListener("focus", () => {
+      row.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      const rect = row.getBoundingClientRect();
+      const absoluteY = window.scrollY + rect.top;
+      window.scrollTo({
+        top: absoluteY - 30,
+        behavior: "smooth",
+      });
+    });
+
+    // 🔑 Klik buiten input/suggesties sluit de box
+    document.addEventListener("click", (e) => {
+      if (!row.contains(e.target)) {
+        sugBox.innerHTML = "";
+        sugBox.classList.remove("open");
+      }
+    });
+
     inputRows.prepend(row);
 
-    // Expose naar global zodat CategoryGrid dit kan triggeren
     window.triggerListSearch = (name) => {
       input.value = name;
       handleSearch();

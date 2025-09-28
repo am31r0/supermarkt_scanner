@@ -102,12 +102,11 @@ export function normalizeDirk(p) {
   const price = p.normalPrice;
   const amount = unitInfo?.amount || 1;
   const base = "https://d3r3h30p75xj6a.cloudfront.net/";
-  const postfix = "?width=190";
+  const postfix = "?width=120";
 
   let image = null;
   if (p.image) {
     image = base + p.image;
-    // als er nog geen querystring inzit → plak ?width=190
     if (!image.includes("?")) {
       image += postfix;
     }
@@ -127,6 +126,32 @@ export function normalizeDirk(p) {
     pricePerUnit: amount ? price / amount : price,
     image,
     link: null,
+  };
+}
+
+export function normalizeAH(p) {
+  const price = p.price;
+  const unit = p.unit ? p.unit.toLowerCase() : "st";
+  let amount = null;
+
+  if (p.price && p.price_per_unit) {
+    amount = price / p.price_per_unit;
+  }
+
+  return {
+    store: "ah",
+    id: p.id,
+    name: p.title,
+    brand: p.title.split(" ")[0],
+    rawCategory: p.category,
+    unifiedCategory: unifyCategory("AH", p.category),
+    price,
+    promoPrice: p.promoPrice,
+    unit,
+    amount: amount || 1,
+    pricePerUnit: p.price_per_unit || (amount ? price / amount : price),
+    image: p.image,
+    link: p.link,
   };
 }
 
@@ -160,10 +185,9 @@ export function normalizeJumbo(p) {
     ppu = p.price / amount;
   }
 
-  // --- Afbeelding altijd forceren naar 190x190 ---
   let image = null;
   if (p.image) {
-    image = p.image.replace(/fit-in\/\d+x\d+\//, "fit-in/190x190/");
+    image = p.image.replace(/fit-in\/\d+x\d+\//, "fit-in/120x120/");
   }
 
   return {
@@ -219,22 +243,43 @@ function levenshtein(a, b) {
 }
 
 function scoreMatch(query, productName) {
-  const q = query.toLowerCase();
+  const q = query.toLowerCase().trim();
   const n = productName.toLowerCase();
+  if (!q) return 1.0;
 
-  if (!q) return 1.0; // lege query = full match
+  const words = n.split(/\s+/);
+
+  // 1. Exacte frase
   if (n.includes(q)) return 1.0;
 
-  const dist = levenshtein(q, n);
-  const maxLen = Math.max(q.length, n.length);
-  return 1 - dist / maxLen;
+  // 2. Eerste 2 letters moeten ergens matchen
+  if (q.length >= 2) {
+    const prefix = q.slice(0, 2);
+    const prefixOk = words.some((w) => w.startsWith(prefix));
+    if (!prefixOk) return 0.0;
+  }
+
+  // 3. Exact woord-prefix
+  for (const w of words) {
+    if (w.startsWith(q)) return 0.95;
+  }
+
+  // 4. Woord-niveau fuzzy
+  let best = 0;
+  for (const w of words) {
+    const dist = levenshtein(q, w);
+    const maxLen = Math.max(q.length, w.length);
+    const sc = 1 - dist / maxLen;
+    if (sc > best) best = sc;
+  }
+  if (best >= 0.75) return best;
+
+  return 0.0;
 }
 
 // =======================
 // Search engine
 // =======================
-// Input: genormaliseerde producten, zoekterm, optioneel categorie
-// Output: matches, gesorteerd op prijsPerUnit -> score
 export function searchProducts(
   normalizedProducts,
   query = "",
@@ -243,22 +288,23 @@ export function searchProducts(
   if (!Array.isArray(normalizedProducts)) return [];
 
   const results = [];
+  const threshold = 0.7;
 
   for (const p of normalizedProducts) {
     if (chosenCategory && p.unifiedCategory !== chosenCategory) continue;
 
     const sc = scoreMatch(query, p.name);
 
-    // bij query filteren op threshold, bij lege query altijd includen
-    if (!query || sc >= 0.4) {
+    if (!query || sc >= threshold) {
       results.push({ ...p, score: sc });
     }
   }
 
   return results.sort((a, b) => {
+    if (a.score !== b.score) return b.score - a.score;
     if (a.pricePerUnit !== b.pricePerUnit) {
       return a.pricePerUnit - b.pricePerUnit;
     }
-    return b.score - a.score;
+    return a.name.localeCompare(b.name);
   });
 }
