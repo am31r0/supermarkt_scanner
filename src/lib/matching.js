@@ -102,6 +102,7 @@ export function normalizeDirk(p) {
   const price = p.normalPrice;
   const amount = unitInfo?.amount || 1;
   const base = "https://d3r3h30p75xj6a.cloudfront.net/";
+  const postfix = "?width=190";
 
   return {
     store: "dirk",
@@ -115,7 +116,7 @@ export function normalizeDirk(p) {
     unit: unitInfo?.unit || "st",
     amount,
     pricePerUnit: amount ? price / amount : price,
-    image: p.image ? base + p.image : null,
+    image: p.image ? base + p.image + postfix : null,
     link: null,
   };
 }
