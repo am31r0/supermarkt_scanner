@@ -198,7 +198,7 @@ export function normalizeJumbo(p) {
     unit,
     amount,
     pricePerUnit: ppu,
-    image,
+    image: p.image,
     link: null,
   };
 }
