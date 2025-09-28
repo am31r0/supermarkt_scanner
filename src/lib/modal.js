@@ -28,7 +28,13 @@ export function showSearchModal(results, onSelect) {
               .map(
                 (p) => `
           <div class="result-row" data-id="${p.id}" data-store="${p.store}">
-            <img src="${p.image || ""}" alt="${escAttr(p.name)}"/>
+          <img src="${
+            p.image
+              ? p.store === "dirk" && !p.image.includes("?width=")
+                ? p.image + "?width=190"
+                : p.image
+              : ""
+          }" alt="${escAttr(p.name)}"/>
             <div class="info">
               <div class="name">${escHtml(p.name)}</div>
               <div class="meta">
