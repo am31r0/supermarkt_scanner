@@ -116,7 +116,7 @@ export function normalizeDirk(p) {
     unit: unitInfo?.unit || "st",
     amount,
     pricePerUnit: amount ? price / amount : price,
-    image: p.image ? base + p.image + postfix : null,
+    image: base + p.image + postfix : null,
     link: null,
   };
 }
