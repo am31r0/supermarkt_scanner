@@ -1,32 +1,38 @@
-/* ====== Compact Winner + Alternatives Layout ====== */
+/* ====== Mobile-first Winner + Alternatives Layout ====== */
 
-.product-row {
-    display: grid;
-    grid-template-columns: 1.6fr 1fr;
-    gap: 12px;
-    margin-bottom: 18px;
-    align-items: stretch;
+.comparison {
+    max-width: 95%;
+    margin: 0 auto;
+    padding: 10px;
+    overflow: hidden;
 }
 
-/* Winner card (left) */
+.product-row {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+/* Winner card */
 .winner-card {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    border-radius: 10px;
+    border-radius: var(--radius);
     padding: 12px;
     position: relative;
+    flex: 1.8;
 }
 
 .shop-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    justify-content: flex-start;
 }
 
 .shop-header .logo {
-    width: 36px;
+    width: 32px;
     height: auto;
 }
 
@@ -40,117 +46,86 @@
     margin-left: auto;
     font-size: 0.75rem;
     font-weight: 700;
-    background: rgba(255, 255, 255, 0.2);
-    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.25);
+    padding: 2px 6px;
     border-radius: 999px;
 }
 
 .product-img {
-    max-width: 120px;
-    max-height: 120px;
-    margin: 4px 0 0 0;
-    border-radius: 8px;
+    width: 100px;
+    height: auto;
+    margin: 4px 0;
+    border-radius: 6px;
     display: block;
 }
 
 .product-info .name {
-    margin: 6px 0 0 0;
-    font-size: 0.95rem;
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+    font-weight: 500;
     line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .product-info .price {
-    margin: 4px 0 0 0;
-    font-size: 1.35rem;
+    margin: 4px 0 0;
+    font-size: 1.25rem;
     font-weight: 800;
 }
 
 .product-info .ppu {
-    margin: 2px 0 0 0;
-    font-size: 0.85rem;
-    opacity: 0.9;
+    margin: 0;
+    font-size: 0.8rem;
+    opacity: 0.85;
 }
 
-/* Alternatives grid (right) */
+/* Alternatives below winner */
 .alts-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    /* 2 kolommen */
+    display: flex;
+    flex-direction: column;
     gap: 8px;
+    flex: 1;
 }
 
 .alt-card {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    border-radius: 10px;
+    border-radius: var(--radius);
     padding: 10px;
     text-align: center;
 }
 
 .alt-card .product-img.tiny {
-    max-width: 64px;
-    max-height: 64px;
+    width: 60px;
+    height: auto;
     margin: 2px auto 0;
-    display: block;
-    border-radius: 6px;
+    border-radius: 4px;
 }
 
 .alt-card .price {
-    font-size: 1.05rem;
-    font-weight: 800;
-    margin: 2px 0 0 0;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 2px 0 0;
 }
 
 .alt-card .ppu {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     margin: 0;
-    opacity: 0.9;
+    opacity: 0.85;
 }
 
 /* ====== Supermarkt kleuren ====== */
-/* AH: blauw + wit */
 .shop-card.ah {
     background: #009fe3;
     color: #fff;
 }
 
-/* Dirk: rood + wit */
-.shop-card.dirk {
-    background: #e30613;
-    color: #fff;
-}
-
-/* Jumbo: donkergrijs + geel */
 .shop-card.jumbo {
     background: #444;
     color: #ffd200;
 }
 
-/* ====== Responsiveness ====== */
-@media (max-width: 820px) {
-    .product-row {
-        grid-template-columns: 1fr;
-        /* stack */
-    }
-
-    .alts-grid {
-        grid-template-columns: 1fr 1fr;
-        /* 2 kolommen houden */
-    }
-}
-
-@media (max-width: 420px) {
-    .alts-grid {
-        grid-template-columns: 1fr;
-        /* op heel smal 1 kolom */
-    }
-
-    .product-img {
-        max-width: 96px;
-        max-height: 96px;
-    }
+.shop-card.dirk {
+    background: #e30613;
+    color: #fff;
 }

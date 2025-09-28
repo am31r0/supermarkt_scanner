@@ -1,5 +1,6 @@
 // src/pages/home.js
 import { NAME_TO_CAT, PRODUCTS } from "../data/products.js";
+import { loadJSONOncePerDay } from "/src/lib/cache.js";
 
 /* ---------------- CSS Loader ---------------- */
 function ensureCSS(href) {
@@ -13,6 +14,7 @@ function ensureCSS(href) {
 }
 
 const LS_KEY = "sms_list";
+const DEBUG = false; // zet op true om console-debug te zien
 
 /* ---------------- Utils ---------------- */
 function loadList() {
@@ -45,43 +47,59 @@ function getProductName(p) {
   return (p?.title ?? p?.name ?? "").toString();
 }
 
-/* ---------------- Units ---------------- */
-function parseUnit(text) {
-  if (!text) return null;
-  const regex = /(\d+(?:[.,]\d+)?)(\s?)(g|kg|ml|l|stuks?|stuk|pack|doos)\b/i;
-  const match = text.toLowerCase().match(regex);
-  if (match) {
-    let value = parseFloat(match[1].replace(",", "."));
-    let unit = match[3];
-    if (unit === "kg") {
-      value *= 1000;
-      unit = "g";
-    }
-    if (unit === "l") {
-      value *= 1000;
-      unit = "ml";
-    }
-    if (unit.startsWith("stuk")) unit = "stuk";
-    if (unit === "stuks") unit = "stuk";
-    return { value, unit };
-  }
+/* ---------------- Units helpers ---------------- */
+/** normaliseert unit-codes naar 'g' | 'ml' | 'stuk' | null */
+function normUnit(u) {
+  if (!u) return null;
+  const s = String(u).toLowerCase();
+  if (s === "kg") return "g";
+  if (s === "g") return "g";
+  if (s === "l") return "ml";
+  if (s === "ml") return "ml";
+  if (s === "st" || s.startsWith("stuk") || s === "stuks") return "stuk";
   return null;
 }
 
-function ppuUnitLabel(unitInfo) {
-  if (!unitInfo) return "";
-  if (unitInfo.unit === "g") return "€/kg";
-  if (unitInfo.unit === "ml") return "€/L";
-  if (unitInfo.unit === "stuk") return "€/stuk";
+/** parse "500 g", "1 kg", "2L", "6 st" uit willekeurige tekst */
+function parseUnitAny(text) {
+  if (!text) return null;
+  const re = /(\d+(?:[.,]\d+)?)[\s]*?(kg|g|l|ml|stuks?|stuk)\b/i;
+  const m = String(text).toLowerCase().match(re);
+  if (!m) return null;
+  let value = parseFloat(m[1].replace(",", "."));
+  let u = m[2];
+  if (u === "kg") {
+    value *= 1000;
+    u = "g";
+  }
+  if (u === "l") {
+    value *= 1000;
+    u = "ml";
+  }
+  if (u === "stuks") u = "stuk";
+  if (u.startsWith("stuk")) u = "stuk";
+  return { value, unit: u }; // g/ml/stuk
+}
+
+/** label voor PPU */
+function ppuUnitLabel(unit) {
+  if (unit === "g") return "€/kg";
+  if (unit === "ml") return "€/L";
+  if (unit === "stuk") return "€/stuk";
   return "€/unit";
 }
 
-function calculatePPU(price, unitInfo) {
-  if (price == null || !unitInfo) return null;
-  if (unitInfo.unit === "g") return (price / unitInfo.value) * 1000;
-  if (unitInfo.unit === "ml") return (price / unitInfo.value) * 1000;
-  if (unitInfo.unit === "stuk") return price / unitInfo.value;
-  return null;
+/** strip hoeveelheid uit een titel voor nette weergave */
+function stripQtyFromTitle(name) {
+  if (!name) return "";
+  // verwijder patronen als " 225 g", "1L", "500 ml", "(225 g)", "+ 225 g" etc.
+  let s = name.replace(
+    /\s*\(?\+?\s*\d+(?:[.,]\d+)?\s*(?:kg|g|l|ml|stuks?|stuk)\)?/gi,
+    ""
+  );
+  // verklein dubbele spaties en trim
+  s = s.replace(/\s{2,}/g, " ").trim();
+  return s;
 }
 
 /* ---------------- Category guessing ---------------- */
@@ -115,6 +133,113 @@ function isHouseBrand(shopName, productName) {
   if (shopName === "Dirk")
     return n.startsWith("dirk ") || n.includes("1 de beste");
   return false;
+}
+
+/* ---------------- Shop-specific metrics (amount/ppu/displayName) ---------------- */
+/**
+ * Geeft { unitInfo: {value, unit}, ppu, displayName, source }
+ * - unitInfo.value in g/ml/stuk
+ * - displayName is naam zonder hoeveelheid als die in titel zat (Jumbo)
+ * - source is string voor debug ("ah:ppu", "dirk:packaging", etc)
+ */
+function deriveMetricsForShop(shopName, product) {
+  const price = extractPrice(product);
+  const rawName = getProductName(product);
+  let unitInfo = null;
+  let ppu = null;
+  let displayName = rawName;
+  let source = "fallback:stuk";
+
+  if (shopName === "Jumbo") {
+    // 1) eerst uit titel
+    const fromTitle = parseUnitAny(rawName);
+    if (fromTitle) {
+      unitInfo = fromTitle; // g/ml/stuk
+      displayName = stripQtyFromTitle(rawName);
+      ppu = price != null && unitInfo.value > 0 ? price / unitInfo.value : null;
+      source = "jumbo:title";
+    }
+    // 2) anders uit pricePerUnit
+    if (!ppu && product.pricePerUnit) {
+      const parts = String(product.pricePerUnit).split(/\s+/);
+      if (parts.length === 2) {
+        const val = parseFloat(parts[0].replace(",", "."));
+        const u = normUnit(parts[1]);
+        if (Number.isFinite(val) && u) {
+          ppu = val; // al €/L of €/kg of €/stuk
+          // hoeveelheid = prijs / ppu (in basis-unit)
+          const amountBase = price / val;
+          unitInfo = { value: amountBase, unit: u };
+          displayName = stripQtyFromTitle(rawName);
+          source = "jumbo:ppuField";
+        }
+      }
+    }
+  } else if (shopName === "AH") {
+    // AH heeft price_per_unit (getal) + unit (KG/L/ST)
+    const unitCode = normUnit(product.unit);
+    if (Number.isFinite(product.price_per_unit) && unitCode && price != null) {
+      ppu = product.price_per_unit; // €/kg of €/L of €/stuk
+      const amountBase = price / ppu; // in kg/L/stuk -> wij willen g/ml/stuk
+      if (unitCode === "g") unitInfo = { value: amountBase * 1000, unit: "g" };
+      else if (unitCode === "ml")
+        unitInfo = { value: amountBase * 1000, unit: "ml" };
+      else unitInfo = { value: amountBase, unit: "stuk" };
+      displayName = rawName; // AH titel laat meestal geen hoeveelheid zien
+      source = "ah:ppu+unit";
+    } else {
+      // Fallback: soms staat hoeveelheid in titel
+      const fromTitle = parseUnitAny(rawName);
+      if (fromTitle) {
+        unitInfo = fromTitle;
+        ppu =
+          price != null && unitInfo.value > 0 ? price / unitInfo.value : null;
+        source = "ah:title";
+      }
+    }
+  } else if (shopName === "Dirk") {
+    // Dirk: packaging bevat altijd hoeveelheid
+    if (product.packaging) {
+      const fromPack = parseUnitAny(product.packaging);
+      if (fromPack) {
+        unitInfo = fromPack;
+        ppu =
+          price != null && unitInfo.value > 0 ? price / unitInfo.value : null;
+        source = "dirk:packaging";
+      }
+    }
+    // fallback via titel als packaging leeg
+    if (!unitInfo) {
+      const fromTitle = parseUnitAny(rawName);
+      if (fromTitle) {
+        unitInfo = fromTitle;
+        ppu =
+          price != null && unitInfo.value > 0 ? price / unitInfo.value : null;
+        source = "dirk:title";
+      }
+    }
+  }
+
+  // absolute fallback: per stuk
+  if (!unitInfo) unitInfo = { value: 1, unit: "stuk" };
+  if (!ppu && price != null) {
+    ppu = price / (unitInfo.value || 1);
+    source += " -> fallback ppu";
+  }
+
+  if (DEBUG) {
+    console.log(`[DEBUG][${shopName}]`, {
+      name: rawName,
+      displayName,
+      price,
+      unitInfo,
+      ppu,
+      source,
+      raw: product,
+    });
+  }
+
+  return { unitInfo, ppu, displayName };
 }
 
 /* ---------------- Matcher ---------------- */
@@ -188,18 +313,31 @@ function calculateTotals(list, shops) {
     for (const item of list) {
       const product = findBestProduct(shopData, item.name, shopName);
       const price = extractPrice(product);
-      const pName = getProductName(product);
-      const pUnit = parseUnit(pName);
-      const ppu = calculatePPU(price, pUnit);
+      if (!product || price == null) {
+        details.push({
+          name: item.name,
+          qty: item.qty,
+          match: null,
+          image: null,
+          price: null,
+          ppu: null,
+          unitInfo: null,
+          displayName: null,
+        });
+        continue;
+      }
+
+      const metrics = deriveMetricsForShop(shopName, product);
 
       details.push({
         name: item.name,
         qty: item.qty,
-        match: pName || null,
+        match: getProductName(product),
         image: product?.image ?? null,
         price,
-        ppu,
-        unitInfo: pUnit,
+        ppu: metrics.ppu,
+        unitInfo: metrics.unitInfo,
+        displayName: metrics.displayName,
       });
     }
     totals[shopName] = { details };
@@ -217,25 +355,28 @@ function normalizeDirkData(raw) {
     price: p.normalPrice,
     promoPrice: p.offerPrice && p.offerPrice > 0 ? p.offerPrice : null,
     image: p.image ? base + p.image : null,
+    packaging: p.packaging ?? null, // <-- BELANGRIJK: behoud packaging!
   }));
 }
 
 /* ---------------- Shop loader ---------------- */
+/* ---------------- Shop loader ---------------- */
 async function loadShopData() {
-  const ahRes = await fetch(
+  // via cache.js, max 1x per dag ophalen
+  const ah = await loadJSONOncePerDay(
+    "ah",
     "https://am31r0.github.io/supermarkt_scanner/dev/Data/ah.json"
   );
-  const jumboRes = await fetch(
+  const jumbo = await loadJSONOncePerDay(
+    "jumbo",
     "https://am31r0.github.io/supermarkt_scanner/dev/Data/jumbo.json"
   );
-  const dirkRes = await fetch(
+  let dirk = await loadJSONOncePerDay(
+    "dirk",
     "https://am31r0.github.io/supermarkt_scanner/dev/Data/dirk.json"
   );
 
-  const ah = ahRes.ok ? await ahRes.json() : [];
-  const jumbo = jumboRes.ok ? await jumboRes.json() : [];
-  let dirk = dirkRes.ok ? await dirkRes.json() : [];
-
+  // normaliseer Dirk-data zodat packaging en prijs kloppen
   dirk = normalizeDirkData(dirk);
 
   return { AH: ah, Jumbo: jumbo, Dirk: dirk };
@@ -312,15 +453,24 @@ export async function renderHomePage(mount) {
                 : ""
             }
             <div class="product-info">
-              <p class="name" title="${cheapest.match}">${cheapest.match}</p>
+              <p class="name" title="${cheapest.match}">
+                ${cheapest.displayName || cheapest.match}
+                ${
+                  cheapest.unitInfo
+                    ? `<span class="pack-badge">${cheapest.unitInfo.value} ${cheapest.unitInfo.unit}</span>`
+                    : ""
+                }
+              </p>
               <p class="price">€${cheapest.price.toFixed(2)}</p>
-              <p class="ppu">${
-                cheapest.ppu != null
-                  ? cheapest.ppu.toFixed(2) +
-                    " " +
-                    ppuUnitLabel(cheapest.unitInfo)
-                  : ""
-              }</p>
+              <p class="ppu">
+                ${
+                  cheapest.ppu != null
+                    ? `${cheapest.ppu.toFixed(2)} ${ppuUnitLabel(
+                        cheapest.unitInfo?.unit
+                      )}`
+                    : ""
+                }
+              </p>
             </div>
           </div>
 
@@ -340,12 +490,22 @@ export async function renderHomePage(mount) {
                     ? `<img class="product-img tiny" src="${o.image}" alt="${o.match}" />`
                     : ""
                 }
+                <p class="alt-name">
+                  ${o.displayName || o.match}
+                  ${
+                    o.unitInfo
+                      ? `<span class="pack-badge">${o.unitInfo.value} ${o.unitInfo.unit}</span>`
+                      : ""
+                  }
+                </p>
                 <p class="price">€${o.price.toFixed(2)}</p>
-                <p class="ppu">${
-                  o.ppu != null
-                    ? o.ppu.toFixed(2) + " " + ppuUnitLabel(o.unitInfo)
-                    : ""
-                }</p>
+                <p class="ppu">
+                  ${
+                    o.ppu != null
+                      ? `${o.ppu.toFixed(2)} ${ppuUnitLabel(o.unitInfo?.unit)}`
+                      : ""
+                  }
+                </p>
               </div>
             `
               )

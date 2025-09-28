@@ -1,0 +1,102 @@
+/* Zoekmodal als onderpaneel */
+.search-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+}
+
+.search-modal-backdrop {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.search-modal-panel {
+    background: #fff;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    max-height: 70vh;
+    overflow-y: auto;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.25);
+    animation: slideUp 0.25s ease-out;
+}
+
+.search-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.search-modal-header h2 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.search-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.search-results {
+    display: flex;
+    flex-direction: column;
+}
+
+.result-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.result-row:hover {
+    background: #f7f7f7;
+}
+
+.result-row img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.result-row .info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.result-row .name {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.result-row .meta {
+    font-size: 0.8rem;
+    color: #555;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.empty {
+    padding: 1rem;
+    text-align: center;
+    color: #888;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0%);
+    }
+}

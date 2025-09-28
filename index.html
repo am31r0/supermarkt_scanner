@@ -20,6 +20,9 @@
     <link rel="stylesheet" href="src/styles/layout.css">
     <link rel="stylesheet" href="src/styles/list.css">
     <link rel="stylesheet" href="src/styles/settings.css">
+    <link rel="stylesheet" href="src/styles/categoryGrid.css">
+    <link rel="stylesheet" href="src/styles/home.css">
+
     <script type="module" src="src/app/main.js"></script>
 
   </head>
@@ -101,6 +104,22 @@
 
     // Als hash verandert (bijv. via back/forward knop browser)
     window.addEventListener("hashchange", setActiveLink);
+  });
+</script>
+    <script>
+  window.addEventListener("error", (event) => {
+    console.warn("[JS ERROR]", event.message, "in", event.filename, "line:", event.lineno);
+  });
+
+  window.addEventListener("securitypolicyviolation", (e) => {
+    console.error(
+      "[CSP VIOLATION]",
+      "Directive:", e.violatedDirective,
+      "| Blocked:", e.blockedURI,
+      "| Source:", e.sourceFile,
+      "| Line:", e.lineNumber,
+      "| Column:", e.columnNumber
+    );
   });
 </script>
 
