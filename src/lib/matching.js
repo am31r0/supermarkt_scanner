@@ -130,32 +130,6 @@ export function normalizeDirk(p) {
   };
 }
 
-export function normalizeAH(p) {
-  const price = p.price;
-  const unit = p.unit ? p.unit.toLowerCase() : "st";
-  let amount = null;
-
-  if (p.price && p.price_per_unit) {
-    amount = price / p.price_per_unit;
-  }
-
-  return {
-    store: "ah",
-    id: p.id,
-    name: p.title,
-    brand: p.title.split(" ")[0],
-    rawCategory: p.category,
-    unifiedCategory: unifyCategory("AH", p.category),
-    price,
-    promoPrice: p.promoPrice,
-    unit,
-    amount: amount || 1,
-    pricePerUnit: p.price_per_unit || (amount ? price / amount : price),
-    image: p.image,
-    link: p.link,
-  };
-}
-
 export function normalizeJumbo(p) {
   let unit = null,
     amount = null,
@@ -186,6 +160,12 @@ export function normalizeJumbo(p) {
     ppu = p.price / amount;
   }
 
+  // --- Afbeelding altijd forceren naar 190x190 ---
+  let image = null;
+  if (p.image) {
+    image = p.image.replace(/fit-in\/\d+x\d+\//, "fit-in/190x190/");
+  }
+
   return {
     store: "jumbo",
     id: p.id,
@@ -198,7 +178,7 @@ export function normalizeJumbo(p) {
     unit,
     amount,
     pricePerUnit: ppu,
-    image: p.image,
+    image,
     link: null,
   };
 }
