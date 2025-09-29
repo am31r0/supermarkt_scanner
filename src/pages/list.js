@@ -203,6 +203,7 @@ export async function renderListPage(mount) {
         opt.addEventListener("click", () => {
           input.value = name;
           closeSug();
+          handleSearch(); // meteen zoeken alsof user enter drukt
         });
         sugBox.appendChild(opt);
       }
@@ -284,9 +285,9 @@ export async function renderListPage(mount) {
   // Init CPI engine + categories
   // -------------------------
   const [ahRaw, dirkRaw, jumboRaw] = await Promise.all([
-    loadJSONOncePerDay("ah", "../Data/ah.json"),
-    loadJSONOncePerDay("dirk", "../Data/dirk.json"),
-    loadJSONOncePerDay("jumbo", "../Data/jumbo.json"),
+    loadJSONOncePerDay("ah", "dev/store_database/ah.json"),
+    loadJSONOncePerDay("dirk", "dev/store_database/dirk.json"),
+    loadJSONOncePerDay("jumbo", "dev/store_database/jumbo.json"),
   ]);
 
   const allProducts = normalizeAll({

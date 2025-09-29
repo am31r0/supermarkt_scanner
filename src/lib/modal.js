@@ -1,16 +1,14 @@
 // src/lib/modal.js
 import { escHtml, escAttr, formatPrice } from "./utils.js";
 
-/**
- * Toont de officiële zoekmodal met echte supermarktproducten.
- * Werkt als een paneel onderin het scherm (onder input of na category-modal).
- *
- * @param {Array} results - genormaliseerde producten
- * @param {Function} onSelect - callback(product) na keuze
- */
+// Externe sluitfunctie (handig voor router of navbar)
+export function closeAllModals() {
+  document.querySelectorAll(".search-modal").forEach((el) => el.remove());
+}
+
 export function showSearchModal(results, onSelect) {
   // Verwijder eerdere instance
-  document.querySelectorAll(".search-modal").forEach((el) => el.remove());
+  closeAllModals();
 
   const modal = document.createElement("div");
   modal.className = "search-modal";
@@ -19,7 +17,25 @@ export function showSearchModal(results, onSelect) {
     <div class="search-modal-panel" role="dialog" aria-modal="true">
       <div class="search-modal-header">
         <h2>Producten</h2>
-        <button class="search-modal-close" aria-label="Sluiten">✕</button>
+        <button class="search-modal-close" aria-label="Sluiten">✕</button> 
+      </div>
+      <div class="result-filters">
+        <select id="sort-select">
+          <option value="ppu">Prijs kg/liter</option>
+          <option value="price">Laagste prijs</option>
+          <option value="promo">Aanbiedingen</option>
+          <option value="alpha">Alfabetisch</option>
+        </select>
+        <select id="category-filter">
+          <option value="">Alle categorieën</option>
+          <option value="produce">Groente & fruit</option>
+          <option value="dairy">Zuivel</option>
+          <option value="meat_fish_veg">Vlees/Vis/Vega</option>
+          <option value="bakery">Bakkerij</option>
+          <option value="frozen">Diepvries</option>
+          <option value="snacks">Snacks</option>
+          <option value="pantry">Voorraad/Conserven</option>
+        </select>
       </div>
       <div class="search-results">
       ${
@@ -28,13 +44,13 @@ export function showSearchModal(results, onSelect) {
               .map(
                 (p) => `
           <div class="result-row" data-id="${p.id}" data-store="${p.store}">
-          <img src="${
-            p.image
-              ? p.store === "dirk" && !p.image.includes("?width=")
-                ? p.image + "?width=190"
-                : p.image
-              : ""
-          }" alt="${escAttr(p.name)}"/>
+            <img loading="lazy" src="${
+              p.image
+                ? p.store === "dirk" && !p.image.includes("?width=")
+                  ? p.image + "?width=190"
+                  : p.image
+                : ""
+            }" alt="${escAttr(p.name)}"/>
             <div class="info">
               <div class="name">${escHtml(p.name)}</div>
               <div class="meta">
@@ -58,7 +74,29 @@ export function showSearchModal(results, onSelect) {
 
   document.body.appendChild(modal);
 
-  // Selectie
+  const panel = modal.querySelector(".search-modal-panel");
+  const backdrop = modal.querySelector(".search-modal-backdrop");
+  const btnClose = modal.querySelector(".search-modal-close");
+
+  // ---------- teardown ----------
+  function closeModal() {
+    modal.remove();
+    document.removeEventListener("keydown", onKeyDown);
+    document.removeEventListener("pointerdown", onGlobalClick, true);
+  }
+
+  // ---------- events ----------
+  function onKeyDown(e) {
+    if (e.key === "Escape") closeModal();
+  }
+
+  function onGlobalClick(e) {
+    // klik in panel? → niet sluiten
+    if (panel.contains(e.target)) return;
+    closeModal();
+  }
+
+  // Result selectie
   modal.querySelectorAll(".result-row").forEach((row) => {
     row.addEventListener("click", () => {
       const chosen = results.find(
@@ -69,21 +107,10 @@ export function showSearchModal(results, onSelect) {
     });
   });
 
-  // Sluiten
-  modal
-    .querySelector(".search-modal-close")
-    .addEventListener("click", closeModal);
-  modal
-    .querySelector(".search-modal-backdrop")
-    .addEventListener("click", closeModal);
-  document.addEventListener("keydown", handleEscape);
+  // Sluiters
+  btnClose.addEventListener("click", closeModal);
+  backdrop.addEventListener("click", closeModal);
 
-  function handleEscape(e) {
-    if (e.key === "Escape") closeModal();
-  }
-
-  function closeModal() {
-    modal.remove();
-    document.removeEventListener("keydown", handleEscape);
-  }
+  document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("pointerdown", onGlobalClick, true);
 }
