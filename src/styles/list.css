@@ -249,7 +249,7 @@ span.item-full-name {
     left: 0;
     right: 96px;
     top: calc(100% + 4px);
-    background: #0f0f0f;
+    background: var(--mini-surface);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
     padding: 6px;
@@ -275,8 +275,32 @@ span.item-full-name {
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 0.7rem;
+    color:var(--ink);
+    border-radius: 8px;
 }
 
 .suggestion:hover {
-    background: var(--accent);
+    background: color-mix(in lab, var(--accent),#fff 30%);
+}
+
+.list-item .promo-badge {
+    display: inline-block;
+    margin-left: 6px;
+    background: #e63946;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.list-item .list-price.old {
+    text-decoration: line-through;
+    color: #888;
+    margin-right: 4px;
+}
+
+.list-item .list-price.new {
+    color: #e63946;
+    font-weight: 700;
 }

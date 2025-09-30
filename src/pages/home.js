@@ -365,15 +365,15 @@ async function loadShopData() {
   // via cache.js, max 1x per dag ophalen
   const ah = await loadJSONOncePerDay(
     "ah",
-    "https://am31r0.github.io/supermarkt_scanner/dev/store_database/ah.json"
+    "https://github.com/am31r0/supermarkt_scanner/dev/store_database/ah.json"
   );
   const jumbo = await loadJSONOncePerDay(
     "jumbo",
-    "https://am31r0.github.io/supermarkt_scanner/dev/store_database/jumbo.json"
+    "https://github.com/am31r0/supermarkt_scanner/dev/store_database/jumbo.json"
   );
   let dirk = await loadJSONOncePerDay(
     "dirk",
-    "https://am31r0.github.io/supermarkt_scanner/dev/store_database/dirk.json"
+    "https://github.com/am31r0/supermarkt_scanner/dev/store_database/dirk.json"
   );
 
   // normaliseer Dirk-data zodat packaging en prijs kloppen

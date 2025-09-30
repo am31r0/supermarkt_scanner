@@ -12,7 +12,7 @@ export const ACCENTS = [
 ];
 
 const DEFAULTS = {
-  theme: "dark", // "dark" | "light" | "system"
+  theme: "light", // altijd "light" standaard
   accent: ACCENTS[0],
   fontSizeFactor: 1, // 1 of 1.3
   accessibilityFont: "default", // "default" | "dyslexic"
@@ -31,11 +31,6 @@ function load() {
 function save() {
   localStorage.setItem(LS_KEY, JSON.stringify(state));
 }
-function prefers() {
-  return window.matchMedia?.("(prefers-color-scheme: light)").matches
-    ? "light"
-    : "dark";
-}
 function updateThemeColorMeta() {
   let meta = document.querySelector('meta[name="theme-color"]');
   if (!meta) {
@@ -52,8 +47,8 @@ function updateThemeColorMeta() {
 
 /* -------------------- appliers -------------------- */
 function applyTheme(theme) {
-  const resolved = theme === "system" ? prefers() : theme;
-  document.documentElement.setAttribute("data-theme", resolved);
+  // altijd exact de waarde gebruiken die in state.theme staat
+  document.documentElement.setAttribute("data-theme", theme);
   updateThemeColorMeta();
 }
 function applyAccent(color) {
@@ -97,11 +92,6 @@ export function initSettings() {
   applyFontSizeFactor(state.fontSizeFactor);
   applyAccessibilityFont(state.accessibilityFont);
   updateThemeColorMeta();
-
-  const mq = window.matchMedia?.("(prefers-color-scheme: light)");
-  mq?.addEventListener?.("change", () => {
-    if (state.theme === "system") applyTheme("system");
-  });
 }
 
 /* -------------------- API -------------------- */

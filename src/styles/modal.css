@@ -100,10 +100,11 @@
 }
 
 .result-row {
+    position: relative;
     display: flex;
     width: 98%;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     justify-content: center;
     padding: 0.5rem 0.5rem;
@@ -126,6 +127,7 @@
     height: auto;
     border-radius: 10px;
     object-fit: contain;
+    align-self: center;
 }
 
 .result-row .info {
@@ -194,6 +196,34 @@
     align-items: center;
     gap: 4px;
 }
+
+.result-row.promo {
+    background: color-mix(in lab, var(--mini-surface), #ff6a00 25%);
+}
+
+.promo-badge {
+    position:absolute;
+    top: 6px;
+    left: 6px;
+    background: #ff6a00;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.price.old {
+    text-decoration: line-through;
+    color: var(--muted);
+    margin-right: 4px;
+}
+
+.price.new {
+    color: #ff6a00;
+    font-weight: 700; }
+
+
 
 
 @keyframes slideUp {

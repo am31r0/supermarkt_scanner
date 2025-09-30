@@ -86,12 +86,14 @@ export async function renderListPage(mount) {
       li.className = "list-item";
       if (item.done) li.classList.add("done");
 
+      const hasPromo = !!(item.promoPrice || item.offerPrice);
+      const promoPrice = item.promoPrice || item.offerPrice || null;
+
       li.innerHTML = `
-      <label class="item-check">
-      <input type="checkbox" ${item.done ? "checked" : ""} />
-      <span class="item-full-name"><span class="item-name">
-        ${escHtml(item.name)}
-        </span>
+  <label class="item-check">
+    <input type="checkbox" ${item.done ? "checked" : ""} />
+    <span class="item-full-name">
+      <span class="item-name">${escHtml(item.name)}</span>
       <span class="item-name-store-price">
         ${
           item.store
@@ -101,22 +103,28 @@ export async function renderListPage(mount) {
             : ""
         }
         ${
-          item.price
+          hasPromo
+            ? `<span class="promo-pill">Aanbieding</span>
+               <span class="list-price old">${formatPrice(item.price)}</span>
+               <span class="list-price new">${formatPrice(promoPrice)}</span>`
+            : item.price
             ? `<span class="list-price">${formatPrice(item.price)}</span>`
             : ""
         }
-      </span></span>
-      <div class="item-actions">
-      <div class="qty-controls">
-        <button class="icon-btn minus">−</button>
-        <span class="qty-num">${item.qty}</span>
-        <button class="icon-btn plus">+</button>
-      </div>
-      <button class="icon-btn trash-btn delete">
-        ${trashSvg()}
-      </button>
-    </div>
-    </label>
+            </span>
+          </span>
+          
+          <div class="item-actions">
+            <div class="qty-controls">
+              <button class="icon-btn minus">−</button>
+              <span class="qty-num">${item.qty}</span>
+              <button class="icon-btn plus">+</button>
+            </div>
+            <button class="icon-btn trash-btn delete">
+              ${trashSvg()}
+            </button>
+          </div>
+        </label>
       `;
 
       // Events
@@ -203,7 +211,7 @@ export async function renderListPage(mount) {
         opt.addEventListener("click", () => {
           input.value = name;
           closeSug();
-          handleSearch(); // meteen zoeken alsof user enter drukt
+          handleSearch();
         });
         sugBox.appendChild(opt);
       }
@@ -285,9 +293,18 @@ export async function renderListPage(mount) {
   // Init CPI engine + categories
   // -------------------------
   const [ahRaw, dirkRaw, jumboRaw] = await Promise.all([
-    loadJSONOncePerDay("ah", "dev/store_database/ah.json"),
-    loadJSONOncePerDay("dirk", "dev/store_database/dirk.json"),
-    loadJSONOncePerDay("jumbo", "dev/store_database/jumbo.json"),
+    loadJSONOncePerDay(
+      "ah",
+      "https://github.com/am31r0/supermarkt_scanner/dev/store_database/ah.json"
+    ),
+    loadJSONOncePerDay(
+      "dirk",
+      "https://github.com/am31r0/supermarkt_scanner/dev/store_database/dirk.json"
+    ),
+    loadJSONOncePerDay(
+      "jumbo",
+      "https://github.com/am31r0/supermarkt_scanner/dev/store_database/jumbo.json"
+    ),
   ]);
 
   const allProducts = normalizeAll({

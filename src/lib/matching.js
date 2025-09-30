@@ -254,18 +254,24 @@ function dynThresh(len) {
 }
 
 function bestWordScore(qw, nameWords) {
-  // 1) exact prefix → 1.0
+  // Exacte prefix: alleen sterk als lengteverschil klein is
   for (const w of nameWords) {
-    if (w.startsWith(qw)) return { score: 1.0, why: `prefix:${qw}->${w}` };
-  }
-  // 2) prefix3 boost (alleen zinvol bij ≥3)
-  if (qw.length >= 3) {
-    const p3 = qw.slice(0, 3);
-    for (const w of nameWords) {
-      if (w.startsWith(p3)) return { score: 0.9, why: `prefix3:${p3}->${w}` };
+    if (w.startsWith(qw)) {
+      if (Math.abs(w.length - qw.length) <= 2) {
+        return { score: 1.0, why: `prefix-strict:${qw}->${w}` };
+      } else {
+        return { score: 0.8, why: `prefix-loose:${qw}->${w}` };
+      }
     }
   }
-  // 3) fuzzy per woord → beste score pakken
+
+  // Vereis minimaal gedeelde prefix van 3 om fuzzy te doen
+  const p3 = qw.slice(0, 3);
+  if (!nameWords.some((w) => w.startsWith(p3))) {
+    return { score: 0.0, why: `no-prefix3:${qw}` };
+  }
+
+  // Fuzzy berekenen
   let best = 0;
   let bestW = null;
   for (const w of nameWords) {
@@ -277,6 +283,7 @@ function bestWordScore(qw, nameWords) {
   }
   return { score: best, why: `fuzzy:${qw}->${bestW}` };
 }
+
 
 /**
  * scoreMatch:

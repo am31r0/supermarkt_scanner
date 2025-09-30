@@ -8,7 +8,7 @@
     align-items: center;
     padding: 0.8rem 1rem;
     background: var(--surface);
-    border-radius: 0 0 var(--radius) var(--radius);
+    border-radius: 0;
     position: fixed;
     width: min(100%, 500px);
     bottom: 0;

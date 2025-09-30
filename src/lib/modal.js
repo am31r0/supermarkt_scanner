@@ -1,14 +1,14 @@
 // src/lib/modal.js
 import { escHtml, escAttr, formatPrice } from "./utils.js";
 
-// Externe sluitfunctie (handig voor router of navbar)
 export function closeAllModals() {
   document.querySelectorAll(".search-modal").forEach((el) => el.remove());
 }
 
 export function showSearchModal(results, onSelect) {
-  // Verwijder eerdere instance
   closeAllModals();
+
+  const baseResults = Array.isArray(results) ? results.slice() : [];
 
   const modal = document.createElement("div");
   modal.className = "search-modal";
@@ -19,6 +19,7 @@ export function showSearchModal(results, onSelect) {
         <h2>Producten</h2>
         <button class="search-modal-close" aria-label="Sluiten">✕</button> 
       </div>
+
       <div class="result-filters">
         <select id="sort-select">
           <option value="ppu">Prijs kg/liter</option>
@@ -37,38 +38,8 @@ export function showSearchModal(results, onSelect) {
           <option value="pantry">Voorraad/Conserven</option>
         </select>
       </div>
-      <div class="search-results">
-      ${
-        results.length
-          ? results
-              .map(
-                (p) => `
-          <div class="result-row" data-id="${p.id}" data-store="${p.store}">
-            <img loading="lazy" src="${
-              p.image
-                ? p.store === "dirk" && !p.image.includes("?width=")
-                  ? p.image + "?width=190"
-                  : p.image
-                : ""
-            }" alt="${escAttr(p.name)}"/>
-            <div class="info">
-              <div class="name">${escHtml(p.name)}</div>
-              <div class="meta">
-                <span class="list-store store-${p.store}">
-                  ${escHtml(p.store)}
-                </span>
-                <span class="price">${formatPrice(p.price)}</span>
-                <span class="ppu">${p.pricePerUnit.toFixed(2)} / ${
-                  p.unit
-                }</span>
-              </div>
-            </div>
-          </div>`
-              )
-              .join("")
-          : `<div class="empty">Geen resultaten gevonden.</div>`
-      }
-      </div>
+
+      <div class="search-results"></div>
     </div>
   `;
 
@@ -77,40 +48,141 @@ export function showSearchModal(results, onSelect) {
   const panel = modal.querySelector(".search-modal-panel");
   const backdrop = modal.querySelector(".search-modal-backdrop");
   const btnClose = modal.querySelector(".search-modal-close");
+  const resultsBox = modal.querySelector(".search-results");
+  const sortSelect = modal.querySelector("#sort-select");
+  const catSelect = modal.querySelector("#category-filter");
 
-  // ---------- teardown ----------
+  let currentSort = "ppu";
+  let currentCat = "";
+  let promoOnly = false;
+
+  function getFilteredSorted() {
+    let arr = baseResults;
+
+    if (currentCat) {
+      arr = arr.filter(
+        (p) => (p.unifiedCategory || p.rawCategory) === currentCat
+      );
+    }
+
+    if (promoOnly) {
+      arr = arr.filter((p) => !!(p.promoPrice || p.offerPrice));
+    }
+
+    const sorted = arr.slice();
+    if (currentSort === "price") {
+      sorted.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
+    } else if (currentSort === "alpha") {
+      sorted.sort((a, b) =>
+        a.name.localeCompare(b.name, "nl", { sensitivity: "base" })
+      );
+    } else {
+      sorted.sort(
+        (a, b) => (a.pricePerUnit ?? Infinity) - (b.pricePerUnit ?? Infinity)
+      );
+    }
+    return sorted;
+  }
+
+  function renderResults() {
+    const data = getFilteredSorted();
+
+    resultsBox.innerHTML = data.length
+      ? data
+          .map((p) => {
+            const hasPromo = !!(p.promoPrice || p.offerPrice);
+            const promoPrice = p.promoPrice || p.offerPrice || null;
+
+            return `
+              <div class="result-row ${hasPromo ? "promo" : ""}" data-id="${
+              p.id
+            }" data-store="${p.store}">
+                ${hasPromo ? `<span class="promo-badge">Aanbieding</span>` : ""}
+                <img loading="lazy" src="${
+                  p.image
+                    ? p.store === "dirk" && !p.image.includes("?width=")
+                      ? p.image + "?width=190"
+                      : p.image
+                    : ""
+                }" alt="${escAttr(p.name)}"/>
+                <div class="info">
+                  <div class="name">${escHtml(p.name)}</div>
+                  <div class="meta">
+                    <span class="list-store store-${(
+                      p.store || ""
+                    ).toLowerCase()}">
+                      ${escHtml(p.store || "")}
+                    </span>
+                    ${
+                      hasPromo
+                        ? `<span class="price old">${formatPrice(
+                            p.price
+                          )}</span>
+                           <span class="price new">${formatPrice(
+                             promoPrice
+                           )}</span>`
+                        : `<span class="price">${formatPrice(p.price)}</span>`
+                    }
+                    <span class="ppu">${(p.pricePerUnit ?? 0).toFixed(2)} / ${
+              p.unit
+            }</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          })
+          .join("")
+      : `<div class="empty">Geen resultaten gevonden.</div>`;
+
+    resultsBox.querySelectorAll(".result-row").forEach((row) => {
+      row.addEventListener("click", () => {
+        const id = row.dataset.id;
+        const store = row.dataset.store;
+        const chosen = data.find(
+          (r) => String(r.id) === id && String(r.store) === store
+        );
+        if (chosen) onSelect(chosen);
+        closeModal();
+      });
+    });
+  }
+
+  renderResults();
+
   function closeModal() {
     modal.remove();
     document.removeEventListener("keydown", onKeyDown);
-    document.removeEventListener("pointerdown", onGlobalClick, true);
+    document.removeEventListener("pointerdown", onDocPointerDown, true);
   }
 
-  // ---------- events ----------
   function onKeyDown(e) {
     if (e.key === "Escape") closeModal();
   }
 
-  function onGlobalClick(e) {
-    // klik in panel? → niet sluiten
+  function onDocPointerDown(e) {
     if (panel.contains(e.target)) return;
     closeModal();
   }
 
-  // Result selectie
-  modal.querySelectorAll(".result-row").forEach((row) => {
-    row.addEventListener("click", () => {
-      const chosen = results.find(
-        (r) => r.id == row.dataset.id && r.store == row.dataset.store
-      );
-      if (chosen) onSelect(chosen);
-      closeModal();
-    });
-  });
-
-  // Sluiters
   btnClose.addEventListener("click", closeModal);
   backdrop.addEventListener("click", closeModal);
-
   document.addEventListener("keydown", onKeyDown);
-  document.addEventListener("pointerdown", onGlobalClick, true);
+  document.addEventListener("pointerdown", onDocPointerDown, true);
+
+  sortSelect.addEventListener("change", (e) => {
+    const v = e.target.value;
+    if (v === "promo") {
+      promoOnly = true;
+      currentSort = "ppu";
+    } else {
+      promoOnly = false;
+      currentSort = v;
+    }
+    renderResults();
+  });
+
+  catSelect.addEventListener("change", (e) => {
+    currentCat = e.target.value || "";
+    renderResults();
+  });
 }

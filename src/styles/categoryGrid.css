@@ -48,7 +48,7 @@
     background: none;
     color: var(--ink);
     border: none;
-    border-radius: var(--radius);
+    border-radius: var(--btnradius);
     cursor: pointer;
     font-weight: 100;
     font-size: 0.7rem;
@@ -57,6 +57,7 @@
 
 .categories-more-btn:hover {
     background: var(--accent);
+    color: white;
 }
 
 /* === Category Card === */
@@ -66,7 +67,7 @@
     align-items: center;
     gap: 8px;
     font-family: var(--font-family-accessibilty);
-    padding: 12px;
+    padding: 10px;
     border-radius: 12px;
     background: var(--surface);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -80,7 +81,7 @@
 }
 
 .category-card .label {
-    font-size: calc(.95rem * var(--font-size-factor));
+    font-size: calc(.90rem * var(--font-size-factor));
     font-family: var(--font-family-accessibilty);
     font-weight: 700;
 }
