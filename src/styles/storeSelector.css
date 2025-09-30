@@ -1,0 +1,44 @@
+/* Store selector styles */
+.store-select {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.store-select-label {
+    font-weight: 600;
+    margin-right: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.store-option {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.store-option input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.store-option img {
+    width: 2rem;
+    height: auto;
+    transition: all 0.2s ease;
+}
+
+/* Checked state: highlight */
+.store-option input[type="checkbox"]:checked+img {
+    border-color: var(--accent, #3f7540);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Hover effect */
+.store-option:hover img {
+    transform: scale(1.05);
+}

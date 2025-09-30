@@ -136,3 +136,19 @@ export function subscribe(fn) {
 function broadcast() {
   for (const fn of listeners) fn(getSettings());
 }
+
+/* -------------------- enabled stores -------------------- */
+let enabledStores = {
+  ah: true,
+  dirk: true,
+  jumbo: true,
+};
+
+export function getEnabledStores() {
+  return { ...enabledStores };
+}
+
+export function setEnabledStore(store, enabled) {
+  enabledStores[store] = enabled;
+  broadcast(); // zorgt dat subscribers (zoals de UI) updaten
+}

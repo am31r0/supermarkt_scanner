@@ -6,6 +6,9 @@ import { loadJSONOncePerDay } from "../lib/cache.js";
 import { normalizeAll, searchProducts } from "../lib/matching.js";
 import { showSearchModal } from "../lib/modal.js";
 import { escHtml, uid, formatPrice } from "../lib/utils.js";
+import { renderStoreSelector } from "../lib/storeSelector.js";
+import { getEnabledStores } from "../lib/settings.js";
+
 
 const LS_KEY = "sms_list";
 
@@ -29,6 +32,7 @@ function saveList(items) {
 export async function renderListPage(mount) {
   const state = loadList();
 
+
   mount.innerHTML = `
     <section class="list-page">
       <header class="list-header">
@@ -47,6 +51,9 @@ export async function renderListPage(mount) {
   const ul = mount.querySelector(".list-items");
   const inputRows = mount.querySelector(".input-rows");
   const catSection = mount.querySelector(".categories-section");
+  const selectorMount = document.createElement("div");
+  mount.querySelector(".list-page").insertBefore(selectorMount, catSection);
+  renderStoreSelector(selectorMount);
 
   // -------------------------
   // State mutators
@@ -61,6 +68,8 @@ export async function renderListPage(mount) {
       done: false,
       store: product.store || null,
       price: product.price || null,
+      promoPrice: chosen.promoPrice, // 👈 doorgeven
+      offerPrice: chosen.offerPrice, // 👈 doorgeven
     };
     state.push(item);
     saveList(state);
@@ -82,6 +91,8 @@ export async function renderListPage(mount) {
   function renderCommitted() {
     ul.innerHTML = "";
     for (const item of state) {
+      const enabled = getEnabledStores();
+      if (!enabled[item.store?.toLowerCase()]) continue;
       const li = document.createElement("li");
       li.className = "list-item";
       if (item.done) li.classList.add("done");
@@ -222,7 +233,11 @@ export async function renderListPage(mount) {
       const q = input.value.trim();
       if (!q) return;
 
-      const results = searchProducts(allProducts, q);
+      const enabled = getEnabledStores();
+      const filtered = allProducts.filter(
+        (p) => enabled[p.store.toLowerCase()]
+      );
+      const results = searchProducts(filtered, q);
       if (!results.length) {
         alert("Geen resultaten gevonden");
         return;
@@ -235,6 +250,8 @@ export async function renderListPage(mount) {
           pack: chosen.unit,
           store: chosen.store,
           price: chosen.price,
+          promoPrice: product.promoPrice || null, // 👈 toegevoegd
+          offerPrice: product.offerPrice || null,
         });
         input.value = "";
         closeSug();
@@ -295,15 +312,15 @@ export async function renderListPage(mount) {
   const [ahRaw, dirkRaw, jumboRaw] = await Promise.all([
     loadJSONOncePerDay(
       "ah",
-      "https://github.com/am31r0/supermarkt_scanner/dev/store_database/ah.json"
+      "https://am31r0.github.io/supermarkt_scanner/dev/store_database/ah.json"
     ),
     loadJSONOncePerDay(
       "dirk",
-      "https://github.com/am31r0/supermarkt_scanner/dev/store_database/dirk.json"
+      "https://am31r0.github.io/supermarkt_scanner/dev/store_database/dirk.json"
     ),
     loadJSONOncePerDay(
       "jumbo",
-      "https://github.com/am31r0/supermarkt_scanner/dev/store_database/jumbo.json"
+      "https://am31r0.github.io/supermarkt_scanner/dev/store_database/jumbo.json"
     ),
   ]);
 
