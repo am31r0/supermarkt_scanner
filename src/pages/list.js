@@ -111,18 +111,11 @@ export async function renderListPage(mount) {
   // -------------------------
   function setupStoreFilterReactivity() {
     const rerender = () => {
-      // minimal debounce via rAF zodat snelle toggles smooth blijven
       requestAnimationFrame(renderCommitted);
     };
-
-    // 1) meteen luisteren op interacties binnen de store selector
     selectorMount.addEventListener("change", rerender);
     selectorMount.addEventListener("input", rerender);
-
-    // 2) optionele custom event als storeSelector die dispatcht
     document.addEventListener("stores:changed", rerender);
-
-    // 3) fallback: wijzigingen vanuit andere tabs/vensters
     window.addEventListener("storage", rerender);
   }
   setupStoreFilterReactivity();
@@ -131,13 +124,9 @@ export async function renderListPage(mount) {
   // State mutators
   // -------------------------
   function addItem(product) {
-    // normaliseer store op moment van toevoegen
     const normStore = normalizeStoreKey(product?.store);
-
-    // promo bepalen
     let promo = product?.promoPrice ?? product?.offerPrice ?? null;
 
-    // Verrijk indien nodig
     if (promo == null && Array.isArray(allProducts) && normStore !== "other") {
       let match = allProducts.find(
         (p) =>
@@ -159,7 +148,7 @@ export async function renderListPage(mount) {
       pack: product.pack || null,
       qty: 1,
       done: false,
-      store: normStore, // ← altijd genormaliseerd in state
+      store: normStore,
       price: product.price || null,
       promoPrice: promo,
     };
@@ -200,28 +189,23 @@ export async function renderListPage(mount) {
   function renderCommitted() {
     listContainer.innerHTML = "";
 
-    // normaliseer enabled map
     const enabledRaw = getEnabledStores();
     const enabled = normalizeEnabledMap(enabledRaw);
 
-    // groepeer items per store (normaliseer ook items die eerder al in LS stonden)
     const grouped = {};
     for (const item of state) {
       const storeKey = normalizeStoreKey(item.store);
-      if (enabled[storeKey] !== true) continue; // ← skip disabled stores hier
+      if (enabled[storeKey] !== true) continue;
       if (!grouped[storeKey]) grouped[storeKey] = [];
-      // zorg dat item.store ook genormaliseerd blijft in-memory (oude data migratie)
       item.store = storeKey;
       grouped[storeKey].push(item);
     }
 
-    // render in vaste volgorde van stores
     const keys = STORE_ORDER.filter((k) => grouped[k]?.length).concat(
       Object.keys(grouped).filter((k) => !STORE_ORDER.includes(k))
     );
 
     for (const storeKey of keys) {
-      // extra guard (nogmaals) – render geen disabled wrapper
       if (enabled[storeKey] !== true) continue;
 
       const wrapper = document.createElement("div");
@@ -229,6 +213,7 @@ export async function renderListPage(mount) {
       wrapper.style.background = STORE_COLORS[storeKey] || "transparent";
       wrapper.style.marginBottom = "5px";
       wrapper.style.borderRadius = "10px";
+      wrapper.style.overflow = "clip";
 
       const ul = document.createElement("ul");
       ul.className = "store-list";
@@ -284,7 +269,6 @@ export async function renderListPage(mount) {
           </label>
         `;
 
-        // events
         li.querySelector("input[type=checkbox]").addEventListener(
           "change",
           (e) => {
@@ -309,8 +293,12 @@ export async function renderListPage(mount) {
         ul.appendChild(li);
       }
 
-      // alleen toevoegen als er items zijn (voorkomt lege wrappers)
       if (ul.children.length) listContainer.appendChild(wrapper);
+    }
+
+    // --- totals onderaan ---
+    if (state.length) {
+      renderTotals(listContainer, state);
     }
   }
 
@@ -365,6 +353,7 @@ export async function renderListPage(mount) {
           input.value = name;
           closeSug();
           handleSearch();
+          input.blur();
         });
         sugBox.appendChild(opt);
       }
@@ -392,7 +381,7 @@ export async function renderListPage(mount) {
           name: chosen.name,
           cat: chosen.unifiedCategory,
           pack: chosen.unit,
-          store: normalizeStoreKey(chosen.store), // ← genormaliseerd
+          store: normalizeStoreKey(chosen.store),
           price: chosen.price,
           promoPrice: chosen.promoPrice ?? chosen.offerPrice ?? null,
         });
@@ -406,6 +395,7 @@ export async function renderListPage(mount) {
       if (e.key === "Enter") {
         e.preventDefault();
         handleSearch();
+        input.blur();
       } else if (e.key === "Escape") {
         closeSug();
       }
@@ -426,17 +416,13 @@ export async function renderListPage(mount) {
       if (!row.contains(e.target)) closeSug();
     });
 
-    // maak de globale trigger beschikbaar voor categoryGrid & andere callers
     window.triggerListSearch = (nameOrProduct) => {
       const name =
         typeof nameOrProduct === "string"
           ? nameOrProduct
           : nameOrProduct?.name ?? "";
-
       if (!name) return;
       input.value = name;
-      // optioneel: meteen suggesties sluiten
-      // closeSug();
       handleSearch();
     };
 
@@ -471,7 +457,7 @@ export async function renderListPage(mount) {
     { ah: ahRaw, dirk: dirkRaw, jumbo: jumboRaw },
     { onReady: () => DEBUG && console.log("CPI engine ready") }
   );
-  
+
   createInputRow(allProducts);
 
   renderCategoryGrid(catSection, {
@@ -479,15 +465,58 @@ export async function renderListPage(mount) {
       if (window.triggerListSearch) {
         window.triggerListSearch(product.name);
       } else {
-        // fallback als input-row nog niet bestaat
         addItem(product);
       }
     },
     allProducts,
   });
 
-
   renderCommitted();
+}
+
+// -------------------------
+// Totals
+// -------------------------
+function calculateTotals(items) {
+  let totalNormal = 0;
+  let totalOffer = 0;
+
+  for (const i of items) {
+    const base = Number(i.price) || 0;
+    const promo = Number(i.promoPrice) || 0;
+    const qty = i.qty ?? 1;
+
+    const usePrice = promo > 0 && promo < base ? promo : base;
+    totalOffer += usePrice * qty;
+    totalNormal += base * qty;
+  }
+
+  const discount = totalNormal - totalOffer;
+  return { total: totalOffer, discount };
+}
+
+function renderTotals(container, items) {
+  const { total, discount } = calculateTotals(items);
+
+  const el = document.createElement("div");
+  el.className = "totals-bar";
+
+  let html = `
+    <div class="totals-line">
+      <span>Totaal:</span>
+      <strong>€${total.toFixed(2)}</strong>
+    </div>
+  `;
+  if (discount > 0.001) {
+    html += `
+      <div class="totals-line discount">
+        <span>Je bespaart:</span>
+        <strong>€${discount.toFixed(2)}</strong>
+      </div>
+    `;
+  }
+  el.innerHTML = html;
+  container.appendChild(el);
 }
 
 // -------------------------

@@ -39,6 +39,13 @@ export function showSearchModal(results, onSelect) {
         </select>
       </div>
 
+      <div class="extra-filters">
+        <button class="filter-btn" data-filter="promoFirst">Aanbieding eerst</button>
+        <button class="filter-btn" data-filter="huismerk">Huismerk</button>
+        <button class="filter-btn" data-filter="amerk">A-merk</button>
+        <button class="filter-btn" data-filter="bio">Bio</button>
+      </div>
+
       <div class="search-results"></div>
     </div>
   `;
@@ -51,25 +58,77 @@ export function showSearchModal(results, onSelect) {
   const resultsBox = modal.querySelector(".search-results");
   const sortSelect = modal.querySelector("#sort-select");
   const catSelect = modal.querySelector("#category-filter");
+  const extraBtns = modal.querySelectorAll(".extra-filters .filter-btn");
 
   let currentSort = "ppu";
   let currentCat = "";
   let promoOnly = false;
+  let filterMode = ""; // "", "promoFirst", "huismerk", "amerk", "bio"
 
   function getFilteredSorted() {
     let arr = baseResults;
 
+    // category filter
     if (currentCat) {
       arr = arr.filter(
         (p) => (p.unifiedCategory || p.rawCategory) === currentCat
       );
     }
 
+    // promoOnly (via select)
     if (promoOnly) {
       arr = arr.filter((p) => !!(p.promoPrice || p.offerPrice));
     }
 
+    // extra filter modes
+    if (filterMode === "huismerk") {
+      arr = arr.filter((p) => {
+        const name = (p.name || "").toLowerCase();
+        return (
+          name.includes("1 de beste") ||
+          name.includes("dirk") ||
+          name.includes("ah ") ||
+          name.includes("basic") ||
+          name.includes("jumbo")
+        );
+      });
+    } else if (filterMode === "amerk") {
+      arr = arr.filter((p) => {
+        const name = (p.name || "").toLowerCase();
+        return !(
+          name.includes("1 de beste") ||
+          name.includes("dirk") ||
+          name.includes("ah ") ||
+          name.includes("basic") ||
+          name.includes("jumbo")
+        );
+      });
+    } else if (filterMode === "bio") {
+      arr = arr.filter((p) => {
+        const name = (p.name || "").toLowerCase();
+        return (
+          name.includes(" bio") ||
+          name.includes("biologisch") ||
+          name.includes("biologische") ||
+          name.includes("organic")
+        );
+      });
+    }
+
     const sorted = arr.slice();
+
+    if (filterMode === "promoFirst") {
+      // promoties eerst, daarna ppu sort
+      sorted.sort((a, b) => {
+        const aPromo = !!(a.promoPrice || a.offerPrice);
+        const bPromo = !!(b.promoPrice || b.offerPrice);
+        if (aPromo !== bPromo) return aPromo ? -1 : 1;
+        return (a.pricePerUnit ?? Infinity) - (b.pricePerUnit ?? Infinity);
+      });
+      return sorted;
+    }
+
+    // default sorters
     if (currentSort === "price") {
       sorted.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
     } else if (currentSort === "alpha") {
@@ -97,6 +156,20 @@ export function showSearchModal(results, onSelect) {
               <div class="result-row ${hasPromo ? "promo" : ""}" data-id="${
               p.id
             }" data-store="${p.store}">
+              <div class="meta">
+              <span class="list-store store-${(p.store || "").toLowerCase()}">
+                ${escHtml(p.store || "")}
+              </span>
+              <div class="price-group">${
+                hasPromo
+                  ? `<span class="price old">${formatPrice(p.price)}</span>
+                     <span class="price new">${formatPrice(promoPrice)}</span>`
+                  : `<span class="price">${formatPrice(p.price)}</span>`
+              }
+              <span class="ppu">${(p.pricePerUnit ?? 0).toFixed(2)} / ${
+              p.unit
+            }</span></div>
+            </div>
                 ${hasPromo ? `<span class="promo-badge">Aanbieding</span>` : ""}
                 <img loading="lazy" src="${
                   p.image
@@ -107,26 +180,6 @@ export function showSearchModal(results, onSelect) {
                 }" alt="${escAttr(p.name)}"/>
                 <div class="info">
                   <div class="name">${escHtml(p.name)}</div>
-                  <div class="meta">
-                    <span class="list-store store-${(
-                      p.store || ""
-                    ).toLowerCase()}">
-                      ${escHtml(p.store || "")}
-                    </span>
-                    ${
-                      hasPromo
-                        ? `<span class="price old">${formatPrice(
-                            p.price
-                          )}</span>
-                           <span class="price new">${formatPrice(
-                             promoPrice
-                           )}</span>`
-                        : `<span class="price">${formatPrice(p.price)}</span>`
-                    }
-                    <span class="ppu">${(p.pricePerUnit ?? 0).toFixed(2)} / ${
-              p.unit
-            }</span>
-                  </div>
                 </div>
               </div>
             `;
@@ -178,11 +231,27 @@ export function showSearchModal(results, onSelect) {
       promoOnly = false;
       currentSort = v;
     }
+    filterMode = "";
+    extraBtns.forEach((b) => b.classList.remove("active"));
     renderResults();
   });
 
   catSelect.addEventListener("change", (e) => {
     currentCat = e.target.value || "";
     renderResults();
+  });
+
+  extraBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (filterMode === btn.dataset.filter) {
+        filterMode = "";
+        btn.classList.remove("active");
+      } else {
+        filterMode = btn.dataset.filter;
+        extraBtns.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+      }
+      renderResults();
+    });
   });
 }

@@ -39,6 +39,7 @@
 .categories-more-btn {
     position: relative;
     display: block;
+    text-decoration: underline;
     width: max-content;
     margin: 0 auto;
     text-align: center;
@@ -58,6 +59,7 @@
 .categories-more-btn:hover {
     background: var(--accent);
     color: white;
+    text-decoration: none;
 }
 
 /* === Category Card === */
@@ -134,7 +136,7 @@
     transform: translateX(-2.5%);
     width: min(480px, calc(100% - 24px));
     max-width: 480px;
-    max-height: 80vh;
+    max-height: 80dvh;
     overflow: auto;
     background: var(--surface);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -195,7 +197,7 @@
 }
 
 .modal-list {
-    max-height: 65vh;
+    max-height: 65dvh;
     overflow: auto;
     display: grid;
     grid-template-columns: 1fr;

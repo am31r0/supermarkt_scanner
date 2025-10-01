@@ -2,13 +2,20 @@
 // =============================================
 // Matching & Normalisatie Engine
 // =============================================
+//
+// Doelen:
+// 1. Normaliseer AH, Jumbo, Dirk naar hetzelfde schema
+// 2. Units / hoeveelheden correct parsen
+// 3. Fuzzy matching met dynamische drempel
+// 4. Semantic filtering voor dubbelzinnige zoekwoorden
+//
+// =============================================
 
-// --- zet op true om console-debug te zien ---
 const DEBUG = false;
 
-// =======================
-// CATEGORY MAPPING
-// =======================
+/* =======================
+   CATEGORY MAPPING
+   ======================= */
 const CATEGORY_MAPPING = {
   AH: {
     "Groente, aardappelen": "produce",
@@ -50,17 +57,14 @@ const CATEGORY_MAPPING = {
   },
 };
 
-// =======================
-// Helper: unifyCategory
-// =======================
 function unifyCategory(store, rawCategory) {
   const mapping = CATEGORY_MAPPING[store.toUpperCase()] || {};
   return mapping[rawCategory] || "other";
 }
 
-// =======================
-// Helper: parseUnit()
-// =======================
+/* =======================
+   Unit parser
+   ======================= */
 export function parseUnit(str) {
   if (!str) return null;
   const lower = str.toLowerCase().trim();
@@ -88,9 +92,9 @@ export function parseUnit(str) {
   return null;
 }
 
-// =======================
-// Normalizers per winkel
-// =======================
+/* =======================
+   Normalizers
+   ======================= */
 export function normalizeDirk(p) {
   const unitInfo = parseUnit(p.packaging);
   const price = p.normalPrice;
@@ -201,9 +205,6 @@ export function normalizeJumbo(p) {
   };
 }
 
-// =======================
-// All-in normalizer
-// =======================
 export function normalizeAll({ ah = [], dirk = [], jumbo = [] }) {
   return [
     ...ah.map(normalizeAH),
@@ -212,9 +213,9 @@ export function normalizeAll({ ah = [], dirk = [], jumbo = [] }) {
   ];
 }
 
-// =======================
-// Matching helpers
-// =======================
+/* =======================
+   Fuzzy helpers
+   ======================= */
 function levenshtein(a, b) {
   const matrix = Array.from({ length: b.length + 1 }, (_, i) => [i]);
   for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
@@ -244,17 +245,15 @@ function tokenize(str) {
   return str.toLowerCase().trim().split(/\s+/).filter(Boolean);
 }
 
-// Dynamische drempel per woordlengte (tolerant voor korte woorden)
 function dynThresh(len) {
-  if (len <= 2) return 0.0; // praktisch geen fuzzy op 1–2 chars
+  if (len <= 2) return 0.0;
   if (len === 3) return 0.68;
   if (len <= 5) return 0.74;
   if (len <= 7) return 0.77;
-  return 0.8; // ≥8
+  return 0.8;
 }
 
 function bestWordScore(qw, nameWords) {
-  // Exacte prefix: alleen sterk als lengteverschil klein is
   for (const w of nameWords) {
     if (w.startsWith(qw)) {
       if (Math.abs(w.length - qw.length) <= 2) {
@@ -264,14 +263,10 @@ function bestWordScore(qw, nameWords) {
       }
     }
   }
-
-  // Vereis minimaal gedeelde prefix van 3 om fuzzy te doen
   const p3 = qw.slice(0, 3);
   if (!nameWords.some((w) => w.startsWith(p3))) {
     return { score: 0.0, why: `no-prefix3:${qw}` };
   }
-
-  // Fuzzy berekenen
   let best = 0;
   let bestW = null;
   for (const w of nameWords) {
@@ -284,14 +279,6 @@ function bestWordScore(qw, nameWords) {
   return { score: best, why: `fuzzy:${qw}->${bestW}` };
 }
 
-
-/**
- * scoreMatch:
- * - splitst query in woorden
- * - elk query-woord moet “voldoende” op een woord in de productnaam lijken
- * - gecombineerde score = gemiddelde, met kleine boosts voor frase/prefix
- * - GEEN infix-only logic (voorkomt cola->chocola)
- */
 function scoreMatch(query, productName) {
   const q = query.toLowerCase().trim();
   const n = productName.toLowerCase().trim();
@@ -302,53 +289,128 @@ function scoreMatch(query, productName) {
 
   if (qWords.length === 0 || nWords.length === 0) return 0.0;
 
-  // Per-woord scores
   const perWord = qWords.map((qw) => bestWordScore(qw, nWords));
 
-  // Gate: elk query-woord moet minimaal zijn eigen drempel halen
   for (let i = 0; i < qWords.length; i++) {
     const need = dynThresh(qWords[i].length);
-    if (perWord[i].score < need) {
-      if (DEBUG)
-        console.log(
-          `[MISS] "${q}" vs "${n}" — word "${qWords[i]}" failed (${perWord[
-            i
-          ].score.toFixed(3)} < ${need}) [${perWord[i].why}]`
-        );
-      return 0.0;
-    }
+    if (perWord[i].score < need) return 0.0;
   }
 
-  // Basis: gemiddelde van per-woord scores
   let avg =
     perWord.reduce((acc, x) => acc + x.score, 0) / Math.max(1, perWord.length);
 
-  // Boosts:
-  // - frase-boost als query als geheel voorkomt (maar niet verplicht)
   if (n.includes(q)) avg = Math.min(1, avg + 0.05);
-  // - als minstens één hard prefix was, lichte boost
   if (perWord.some((x) => x.why.startsWith("prefix:"))) {
     avg = Math.min(1, avg + 0.03);
   }
 
-  if (DEBUG)
-    console.log(
-      `[HIT] "${q}" vs "${n}" — avg=${avg.toFixed(3)} parts=${perWord
-        .map((x) => `${x.score.toFixed(3)}{${x.why}}`)
-        .join(", ")}`
-    );
-
   return avg;
 }
 
-// =======================
-// Search engine
-// =======================
+/* =======================
+   Semantic filters
+   ======================= */
+const QUERY_FILTERS = {
+  water: {
+    bannedWords: [
+      "pleister",
+      "ijs",
+      "ballon",
+      "filter",
+      "verf",
+      "doekjes",
+      "meloen",
+      "elastic",
+      "drop",
+      "lelie",
+      "katoen",
+      "tonijn",
+    ],
+    mustCats: ["drank", "frisdrank", "water"],
+  },
+  cola: {
+    bannedWords: ["chocola", "ijsjes", "strips", "pure", "infuse"],
+    mustCats: ["frisdrank"],
+  },
+  melk: {
+    bannedWords: ["poeder", "tablet", "groente", "rijst", "brood", "brioches" , "biscuits" , "reep" ,"chocolade", "wafel"],
+    mustCats: ["zuivel", "melk", "dairy"],
+  },
+  kaas: { bannedWords: ["schaaf", "rasp"], mustCats: ["zuivel", "kaas"] },
+  chips: { bannedWords: ["chipolata", "microchip"], mustCats: ["snacks"] },
+  brood: { bannedWords: ["broodbeleg"], mustCats: ["bakery"] },
+  rijst: { bannedWords: ["rijsttafel"], mustCats: ["pantry"] },
+  pasta: { bannedWords: ["tandpasta"], mustCats: ["pantry"] },
+  olie: { bannedWords: ["lampolie", "massage", "haar"], mustCats: ["pantry"] },
+  soep: { bannedWords: ["zeep"], mustCats: ["pantry"] },
+  ijs: { bannedWords: ["pleister"], mustCats: ["frozen"] },
+  yoghurt: { bannedWords: ["masker"], mustCats: ["dairy"] },
+  suiker: { bannedWords: ["suikerziekte"], mustCats: ["pantry"] },
+  zout: { bannedWords: ["zoutsteen"], mustCats: ["pantry"] },
+  bier: { bannedWords: ["bierglas"], mustCats: ["drank"] },
+  wijn: { bannedWords: ["azijn"], mustCats: ["drank"] },
+  kip: { bannedWords: ["kips"], mustCats: ["meat_fish_veg"] },
+  vis: { bannedWords: ["vissenkom"], mustCats: ["meat_fish_veg"] },
+  vlees: { bannedWords: ["vleesvervanger"], mustCats: ["meat_fish_veg"] },
+  appel: { bannedWords: ["appeltaart"], mustCats: ["produce"] },
+  banaan: { bannedWords: ["bananenchips"], mustCats: ["produce"] },
+  druif: { bannedWords: ["druivenpitolie"], mustCats: ["produce"] },
+  aardappel: { bannedWords: ["aardappelmes"], mustCats: ["produce"] },
+  tomaat: { bannedWords: ["tomatenmes"], mustCats: ["produce"] },
+  ui: { bannedWords: ["uiensoepmix"], mustCats: ["produce"] },
+  knoflook: { bannedWords: ["knoflookpers"], mustCats: ["produce"] },
+  paprika: { bannedWords: ["paprikapoeder"], mustCats: ["produce"] },
+  sla: { bannedWords: ["slasaus"], mustCats: ["produce"] },
+  wortel: { bannedWords: ["worteltaart"], mustCats: ["produce"] },
+  kaasstengel: { bannedWords: [], mustCats: ["bakery"] },
+  chocola: { bannedWords: [], mustCats: ["snacks"] },
+  koek: { bannedWords: ["kook"], mustCats: ["bakery"] },
+  koekjes: { bannedWords: ["kook"], mustCats: ["bakery"] },
+  cake: { bannedWords: ["cakevorm"], mustCats: ["bakery"] },
+  taart: { bannedWords: ["taartvorm"], mustCats: ["bakery"] },
+  koffie: { bannedWords: ["koffiemok"], mustCats: ["pantry"] },
+  thee: { bannedWords: ["theedoek"], mustCats: ["pantry"] },
+  boter: { bannedWords: ["boterhamzak","worst"], mustCats: ["dairy"] },
+  margarine: { bannedWords: [], mustCats: ["dairy"] },
+  ei: { bannedWords: ["eivorm"], mustCats: ["dairy"] },
+  saus: { bannedWords: ["schoensaus"], mustCats: ["pantry"] },
+  mayonaise: { bannedWords: ["verf"], mustCats: ["pantry"] },
+  ketchup: { bannedWords: [], mustCats: ["pantry"] },
+  honing: { bannedWords: ["honingraat"], mustCats: ["pantry"] },
+  jam: { bannedWords: ["jampot"], mustCats: ["pantry"] },
+};
+
+function semanticFilter(query, product) {
+  const q = query.toLowerCase();
+  const rules = QUERY_FILTERS[q];
+  if (!rules) return 1;
+
+  const name = product.name.toLowerCase();
+  const cat = (
+    product.rawCategory ||
+    product.unifiedCategory ||
+    ""
+  ).toLowerCase();
+
+  for (const bad of rules.bannedWords) {
+    if (name.includes(bad)) return 0;
+  }
+
+  if (rules.mustCats.some((c) => cat.includes(c))) {
+    return 1.1;
+  } else {
+    return 0.7;
+  }
+}
+
+/* =======================
+   Search
+   ======================= */
 export function searchProducts(
   normalizedProducts,
   query = "",
   chosenCategory = null,
-  sortBy = "ppu" // default: prijs per eenheid
+  sortBy = "ppu"
 ) {
   if (!Array.isArray(normalizedProducts)) return [];
   const q = (query || "").trim();
@@ -360,10 +422,14 @@ export function searchProducts(
   for (const p of normalizedProducts) {
     if (chosenCategory && p.unifiedCategory !== chosenCategory) continue;
     const sc = scoreMatch(q, p.name);
-    if (sc >= THRESHOLD) results.push({ ...p, score: sc });
+    if (sc >= THRESHOLD) {
+      const sem = semanticFilter(q, p);
+      if (sem > 0) {
+        results.push({ ...p, score: sc * sem });
+      }
+    }
   }
 
-  // --- Sorteren ---
   return results.sort((a, b) => {
     if (sortBy === "ppu") {
       if (a.pricePerUnit !== b.pricePerUnit)
@@ -373,12 +439,10 @@ export function searchProducts(
     } else if (sortBy === "alpha") {
       return a.name.localeCompare(b.name);
     } else if (sortBy === "promo") {
-      // zet promo items bovenaan
       if ((a.promoPrice ? 1 : 0) !== (b.promoPrice ? 1 : 0)) {
         return b.promoPrice ? 1 : -1;
       }
     }
-    // fallback op score
     return b.score - a.score;
   });
 }
