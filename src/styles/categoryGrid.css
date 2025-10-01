@@ -77,13 +77,18 @@
 }
 
 .category-card .emoji {
-    font-size: calc(1.25rem * var(--font-size-factor));
+    font-size: calc(1.0rem * var(--font-size-factor));
 }
 
 .category-card .label {
-    font-size: calc(.90rem * var(--font-size-factor));
+
     font-family: var(--font-family-accessibilty);
     font-weight: 700;
+}
+
+.categories-grid-wrapper>div>button:nth-child(4)>span.label{
+    font-size: calc(.80rem * var(--font-size-factor));
+    text-wrap:nowrap;
 }
 
 .category-card:hover {
@@ -115,18 +120,18 @@
 
 .category-modal .modal-backdrop {
     position: fixed;
-    height: 100vh;
+    height: 400vh;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
-    animation: fadeIn 0.3s ease-out;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(3px);
+    animation: fadeIn 0.6s ease-out;
 }
 
 .category-modal .modal-content {
-    position: fixed;
+    position: sticky;
     top: calc(10vh + env(safe-area-inset-top));
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-2.5%);
     width: min(480px, calc(100% - 24px));
     max-width: 480px;
     max-height: 80vh;
@@ -137,7 +142,7 @@
     padding: 14px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
     z-index: 1;
-    animation: slideUp 0.2s ease-out;
+    animation: fadeIn 0.2s ease-out;
 }
 
 .modal-header {
@@ -190,7 +195,7 @@
 }
 
 .modal-list {
-    max-height: 50vh;
+    max-height: 65vh;
     overflow: auto;
     display: grid;
     grid-template-columns: 1fr;

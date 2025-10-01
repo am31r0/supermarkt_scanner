@@ -37,19 +37,21 @@
 .list-store {
     text-transform: uppercase;
     border-radius: 99px;
-    font-size: 0.8rem;
-    padding: 0.2rem 0.5rem;
+    font-size: calc(0.65rem * var(--font-size-factor));
+    padding: 0.2rem 0.4rem;
+    vertical-align: middle;
 }
 
 .store-jumbo {
     background-color: #ffd200;
     /* Jumbo geel */
-    color: #000;
+    color: #fff;
+    text-shadow: 1px 1px 1px #00000075;
     /* zwart tekst want geel bg */
 }
 
 .store-ah {
-    background-color: #1e6bb8;
+    background-color: #00a0e3;
     color: #fff;
     /* AH blauw */
 }
@@ -69,9 +71,6 @@
 }
 
 .list-item {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
     padding: 10px 12px;
     display: flex;
     align-items: center;
@@ -86,12 +85,12 @@
     background: color-mix(in oklab, var(--mini-surface) 80%, #000 20%);
 }
 
-.list-item.done .item-check {
+.list-item.done .item-check .item-name {
     text-decoration: line-through;
 }
 
 .list-item input {
-    font-size: calc(1rem * var(--font-size-factor));
+    font-size: calc(1.1rem * var(--font-size-factor));
     grid-area: 2 / 1 / 3 / 2;
 }
 
@@ -130,7 +129,7 @@
 .item-check {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: calc(0.7rem * var(--font-size-factor));
     flex-grow: 1;
 }
 
@@ -141,7 +140,7 @@
     word-break: keep-all;
     width: 150%;
     align-items: flex-start;
-    line-height: 1.8rem;
+    line-height: 1.4rem;
     font-size: calc(0.95rem * var(--font-size-factor));
 }
 
@@ -283,24 +282,32 @@ span.item-full-name {
     background: color-mix(in lab, var(--accent),#fff 30%);
 }
 
-.list-item .promo-badge {
+.list-item .promo-pill {
     display: inline-block;
-    margin-left: 6px;
-    background: #e63946;
+    margin-left: 0px;
+    background: #ff6a00;
     color: #fff;
-    font-size: 0.7rem;
     font-weight: 600;
     padding: 2px 8px;
+    font-size: calc(0.5rem * var(--font-size-factor));
     border-radius: 999px;
+    vertical-align: middle;
 }
 
 .list-item .list-price.old {
     text-decoration: line-through;
+    font-style: italic;
     color: #888;
+    font-size: calc(0.9rem * var(--font-size-factor));
     margin-right: 4px;
 }
 
 .list-item .list-price.new {
-    color: #e63946;
+    color: #ff6a00;
     font-weight: 700;
+    font-size: calc(1rem * var(--font-size-factor));
+}
+
+.list-item .list-price{
+    font-size: calc(1rem * var(--font-size-factor));
 }

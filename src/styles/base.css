@@ -11,7 +11,7 @@
     --transition: 0.25s ease;
     --mini-surface: #282828;
     --border-line-muted: #444444;
-    --font-size-factor: 1;
+    --font-size-factor:0.9;
     --font-family-accessibility: Inter;
 }
 
@@ -36,19 +36,20 @@ html[data-theme="light"] {
 body {
     font-family: var(--font-family-accessibility);
     background: var(--bg);
+    background-size: cover;
     color: var(--ink);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     max-width: 500px;
     margin: 0 auto;
-    margin-bottom: 100px;
+    margin-bottom: 110px;
     overflow-x: hidden;
     overflow-y: auto;
     scroll-behavior: smooth;
 }
 
 body::-webkit-scrollbar {
-    display: none;
+    /*display: none;*/
 }
 
 h1,

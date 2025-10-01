@@ -386,7 +386,7 @@ async function loadShopData() {
 const shopClass = (s) => s.toLowerCase();
 const logoPath = (s) => {
   if (s === "AH") return "public/icons/ah-logo.webp";
-  if (s === "Jumbo") return "public/icons/jumbo-logo.webp";
+  if (s === "Jumbo") return "public/icons/jumbo-logo-transparent.webp";
   if (s === "Dirk") return "public/icons/dirk-logo.webp";
   return "";
 };

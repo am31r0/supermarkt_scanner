@@ -44,11 +44,11 @@ export function renderSettingsPage(mount) {
       <div class="card">
         <h2>Tekstgrootte</h2>
         <div class="row" id="font-size-group" role="radiogroup" aria-label="Tekstgrootte">
-          <button class="btn" data-f="1" aria-checked="${
-            s.fontSizeFactor === 1
+          <button class="btn" data-f="0.9" aria-checked="${
+            s.fontSizeFactor === 0.9
           }">Standaard (aanbevolen)</button>
-          <button class="btn" data-f="1.3" aria-checked="${
-            s.fontSizeFactor === 1.3
+          <button class="btn" data-f="1.2" aria-checked="${
+            s.fontSizeFactor === 1.2
           }">Groot</button>
         </div>
         

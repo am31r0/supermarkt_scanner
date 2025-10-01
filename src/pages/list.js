@@ -9,8 +9,58 @@ import { escHtml, uid, formatPrice } from "../lib/utils.js";
 import { renderStoreSelector } from "../lib/storeSelector.js";
 import { getEnabledStores } from "../lib/settings.js";
 
-
 const LS_KEY = "sms_list";
+const DEBUG = false;
+
+const CATEGORY_ORDER = [
+  "produce",
+  "dairy",
+  "meat_fish_veg",
+  "bakery",
+  "frozen",
+  "snacks",
+  "pantry",
+  "other",
+];
+
+// Kleur per winkel (lichte tinten)
+const STORE_COLORS = {
+  ah: "#6bdcff35",
+  jumbo: "#ffd00011",
+  dirk: "#e3061511",
+};
+
+const STORE_LABEL = {
+  ah: "AH",
+  jumbo: "Jumbo",
+  dirk: "Dirk",
+  other: "Overig",
+};
+
+const STORE_ORDER = ["ah", "jumbo", "dirk", "other"];
+
+// ---------- Helpers: normaliseer store keys ----------
+function normalizeStoreKey(s) {
+  if (!s) return "other";
+  const v = String(s).trim().toLowerCase();
+  if (["ah", "a.h.", "albert heijn", "albertheijn", "albert-heijn"].includes(v))
+    return "ah";
+  if (["jumbo"].includes(v)) return "jumbo";
+  if (["dirk", "dirk van den broek", "dirk v d broek"].includes(v))
+    return "dirk";
+  // als de key al exact onze code is, laat staan:
+  if (["ah", "jumbo", "dirk", "other"].includes(v)) return v;
+  return "other";
+}
+
+function normalizeEnabledMap(map) {
+  const out = {};
+  for (const k of Object.keys(map || {})) {
+    const nk = normalizeStoreKey(k);
+    out[nk] = !!map[k];
+  }
+  return out;
+}
 
 // -------------------------
 // Storage helpers
@@ -32,7 +82,6 @@ function saveList(items) {
 export async function renderListPage(mount) {
   const state = loadList();
 
-
   mount.innerHTML = `
     <section class="list-page">
       <header class="list-header">
@@ -43,22 +92,66 @@ export async function renderListPage(mount) {
 
       <div class="list-container">
         <div class="input-rows"></div>
-        <ul class="list-items" aria-live="polite"></ul>
+        <div class="list-items" aria-live="polite"></div>
       </div>
     </section>
   `;
 
-  const ul = mount.querySelector(".list-items");
+  const listContainer = mount.querySelector(".list-items");
   const inputRows = mount.querySelector(".input-rows");
   const catSection = mount.querySelector(".categories-section");
   const selectorMount = document.createElement("div");
   mount.querySelector(".list-page").insertBefore(selectorMount, catSection);
   renderStoreSelector(selectorMount);
 
+  let allProducts = [];
+
+  // -------------------------
+  // Reactiviteit op store selector
+  // -------------------------
+  function setupStoreFilterReactivity() {
+    const rerender = () => {
+      // minimal debounce via rAF zodat snelle toggles smooth blijven
+      requestAnimationFrame(renderCommitted);
+    };
+
+    // 1) meteen luisteren op interacties binnen de store selector
+    selectorMount.addEventListener("change", rerender);
+    selectorMount.addEventListener("input", rerender);
+
+    // 2) optionele custom event als storeSelector die dispatcht
+    document.addEventListener("stores:changed", rerender);
+
+    // 3) fallback: wijzigingen vanuit andere tabs/vensters
+    window.addEventListener("storage", rerender);
+  }
+  setupStoreFilterReactivity();
+
   // -------------------------
   // State mutators
   // -------------------------
   function addItem(product) {
+    // normaliseer store op moment van toevoegen
+    const normStore = normalizeStoreKey(product?.store);
+
+    // promo bepalen
+    let promo = product?.promoPrice ?? product?.offerPrice ?? null;
+
+    // Verrijk indien nodig
+    if (promo == null && Array.isArray(allProducts) && normStore !== "other") {
+      let match = allProducts.find(
+        (p) =>
+          normalizeStoreKey(p.store) === normStore &&
+          String(p.name).toLowerCase() === String(product.name).toLowerCase()
+      );
+      if (match) {
+        promo = match.promoPrice ?? match.offerPrice ?? null;
+        if (product.price == null && match.price != null) {
+          product.price = match.price;
+        }
+      }
+    }
+
     const item = {
       id: uid(),
       name: product.name,
@@ -66,11 +159,13 @@ export async function renderListPage(mount) {
       pack: product.pack || null,
       qty: 1,
       done: false,
-      store: product.store || null,
+      store: normStore, // ← altijd genormaliseerd in state
       price: product.price || null,
-      promoPrice: chosen.promoPrice, // 👈 doorgeven
-      offerPrice: chosen.offerPrice, // 👈 doorgeven
+      promoPrice: promo,
     };
+
+    if (DEBUG) console.log("[addItem]", item);
+
     state.push(item);
     saveList(state);
     renderCommitted();
@@ -86,88 +181,143 @@ export async function renderListPage(mount) {
   }
 
   // -------------------------
+  // Sort helpers
+  // -------------------------
+  function sortItemsForRender(items) {
+    return items.slice().sort((a, b) => {
+      const catA = a.cat || "other";
+      const catB = b.cat || "other";
+      const idxA = CATEGORY_ORDER.indexOf(catA);
+      const idxB = CATEGORY_ORDER.indexOf(catB);
+      if (idxA !== idxB) return idxA - idxB;
+      return a.name.localeCompare(b.name, "nl", { sensitivity: "base" });
+    });
+  }
+
+  // -------------------------
   // Render committed list
   // -------------------------
   function renderCommitted() {
-    ul.innerHTML = "";
+    listContainer.innerHTML = "";
+
+    // normaliseer enabled map
+    const enabledRaw = getEnabledStores();
+    const enabled = normalizeEnabledMap(enabledRaw);
+
+    // groepeer items per store (normaliseer ook items die eerder al in LS stonden)
+    const grouped = {};
     for (const item of state) {
-      const enabled = getEnabledStores();
-      if (!enabled[item.store?.toLowerCase()]) continue;
-      const li = document.createElement("li");
-      li.className = "list-item";
-      if (item.done) li.classList.add("done");
+      const storeKey = normalizeStoreKey(item.store);
+      if (enabled[storeKey] !== true) continue; // ← skip disabled stores hier
+      if (!grouped[storeKey]) grouped[storeKey] = [];
+      // zorg dat item.store ook genormaliseerd blijft in-memory (oude data migratie)
+      item.store = storeKey;
+      grouped[storeKey].push(item);
+    }
 
-      const hasPromo = !!(item.promoPrice || item.offerPrice);
-      const promoPrice = item.promoPrice || item.offerPrice || null;
+    // render in vaste volgorde van stores
+    const keys = STORE_ORDER.filter((k) => grouped[k]?.length).concat(
+      Object.keys(grouped).filter((k) => !STORE_ORDER.includes(k))
+    );
 
-      li.innerHTML = `
-  <label class="item-check">
-    <input type="checkbox" ${item.done ? "checked" : ""} />
-    <span class="item-full-name">
-      <span class="item-name">${escHtml(item.name)}</span>
-      <span class="item-name-store-price">
-        ${
-          item.store
-            ? `<span class="list-store store-${item.store.toLowerCase()}">${escHtml(
-                item.store
-              )}</span>`
-            : ""
-        }
-        ${
-          hasPromo
-            ? `<span class="promo-pill">Aanbieding</span>
-               <span class="list-price old">${formatPrice(item.price)}</span>
-               <span class="list-price new">${formatPrice(promoPrice)}</span>`
-            : item.price
-            ? `<span class="list-price">${formatPrice(item.price)}</span>`
-            : ""
-        }
+    for (const storeKey of keys) {
+      // extra guard (nogmaals) – render geen disabled wrapper
+      if (enabled[storeKey] !== true) continue;
+
+      const wrapper = document.createElement("div");
+      wrapper.className = `store-block`;
+      wrapper.style.background = STORE_COLORS[storeKey] || "transparent";
+      wrapper.style.marginBottom = "5px";
+      wrapper.style.borderRadius = "10px";
+
+      const ul = document.createElement("ul");
+      ul.className = "store-list";
+      wrapper.appendChild(ul);
+
+      for (const item of sortItemsForRender(grouped[storeKey])) {
+        const li = document.createElement("li");
+        li.className = "list-item";
+        if (item.done) li.classList.add("done");
+
+        const hasPromo =
+          Number(item.promoPrice) > 0 &&
+          Number(item.price) > 0 &&
+          Number(item.promoPrice) < Number(item.price);
+        const promoPrice = hasPromo ? Number(item.promoPrice) : null;
+
+        li.innerHTML = `
+          <label class="item-check">
+            <input type="checkbox" ${item.done ? "checked" : ""} />
+            <span class="item-full-name">
+              <span class="item-name">${escHtml(item.name)}</span>
+              <span class="item-name-store-price">
+                <span class="list-store store-${storeKey}">${
+          STORE_LABEL[storeKey] || escHtml(item.store)
+        }</span>
+                ${
+                  hasPromo
+                    ? `<span class="promo-pill">KORTING</span>
+                       <span class="list-price old">${formatPrice(
+                         Number(item.price)
+                       )}</span>
+                       <span class="list-price new">${formatPrice(
+                         promoPrice
+                       )}</span>`
+                    : item.price != null
+                    ? `<span class="list-price">${formatPrice(
+                        Number(item.price)
+                      )}</span>`
+                    : ""
+                }
+              </span>
             </span>
-          </span>
-          
-          <div class="item-actions">
-            <div class="qty-controls">
-              <button class="icon-btn minus">−</button>
-              <span class="qty-num">${item.qty}</span>
-              <button class="icon-btn plus">+</button>
+            <div class="item-actions">
+              <div class="qty-controls">
+                <button class="icon-btn minus">−</button>
+                <span class="qty-num">${item.qty}</span>
+                <button class="icon-btn plus">+</button>
+              </div>
+              <button class="icon-btn trash-btn delete">
+                ${trashSvg()}
+              </button>
             </div>
-            <button class="icon-btn trash-btn delete">
-              ${trashSvg()}
-            </button>
-          </div>
-        </label>
-      `;
+          </label>
+        `;
 
-      // Events
-      li.querySelector("input[type=checkbox]").addEventListener(
-        "change",
-        (e) => {
-          item.done = e.target.checked;
+        // events
+        li.querySelector("input[type=checkbox]").addEventListener(
+          "change",
+          (e) => {
+            item.done = e.target.checked;
+            saveList(state);
+            renderCommitted();
+          }
+        );
+        li.querySelector(".plus").addEventListener("click", () =>
+          incItemQtyById(item.id, 1)
+        );
+        li.querySelector(".minus").addEventListener("click", () =>
+          incItemQtyById(item.id, -1)
+        );
+        li.querySelector(".delete").addEventListener("click", () => {
+          const idx = state.findIndex((i) => i.id === item.id);
+          if (idx > -1) state.splice(idx, 1);
           saveList(state);
           renderCommitted();
-        }
-      );
-      li.querySelector(".plus").addEventListener("click", () =>
-        incItemQtyById(item.id, 1)
-      );
-      li.querySelector(".minus").addEventListener("click", () =>
-        incItemQtyById(item.id, -1)
-      );
-      li.querySelector(".delete").addEventListener("click", () => {
-        const idx = state.findIndex((i) => i.id === item.id);
-        if (idx > -1) state.splice(idx, 1);
-        saveList(state);
-        renderCommitted();
-      });
+        });
 
-      ul.appendChild(li);
+        ul.appendChild(li);
+      }
+
+      // alleen toevoegen als er items zijn (voorkomt lege wrappers)
+      if (ul.children.length) listContainer.appendChild(wrapper);
     }
   }
 
   // -------------------------
-  // Input row with autosuggest (PRODUCTS) + modal search (allProducts)
+  // Input row with autosuggest
   // -------------------------
-  function createInputRow(allProducts) {
+  function createInputRow(allProductsLocal) {
     const row = document.createElement("div");
     row.className = "input-row";
     row.innerHTML = `
@@ -179,7 +329,6 @@ export async function renderListPage(mount) {
     const commitBtn = row.querySelector(".commit");
     const sugBox = row.querySelector(".suggestions");
 
-    // Bepaal veilige bron voor suggesties
     const SUG_SOURCE =
       Array.isArray(PRODUCTS) && PRODUCTS.every((x) => typeof x === "string")
         ? PRODUCTS
@@ -196,23 +345,16 @@ export async function renderListPage(mount) {
     function renderSuggestions(q) {
       closeSug();
       if (!q) return;
-
       const ql = q.toLowerCase();
-
-      // Eerst prefix-matches, dan includes, uit PRODUCTS
       const prefix = [];
       const contains = [];
       for (const name of SUG_SOURCE) {
         const nl = name.toLowerCase();
-        if (nl.startsWith(ql)) {
-          prefix.push(name);
-        } else if (nl.includes(ql)) {
-          contains.push(name);
-        }
-        if (prefix.length + contains.length >= 8) break; // max 8 kandidaten
+        if (nl.startsWith(ql)) prefix.push(name);
+        else if (nl.includes(ql)) contains.push(name);
+        if (prefix.length + contains.length >= 8) break;
       }
       const results = [...prefix, ...contains].slice(0, 5);
-
       if (!results.length) return;
 
       for (const name of results) {
@@ -233,10 +375,11 @@ export async function renderListPage(mount) {
       const q = input.value.trim();
       if (!q) return;
 
-      const enabled = getEnabledStores();
-      const filtered = allProducts.filter(
-        (p) => enabled[p.store.toLowerCase()]
+      const enabled = normalizeEnabledMap(getEnabledStores());
+      const filtered = allProductsLocal.filter(
+        (p) => enabled[normalizeStoreKey(p.store)] === true
       );
+
       const results = searchProducts(filtered, q);
       if (!results.length) {
         alert("Geen resultaten gevonden");
@@ -245,13 +388,13 @@ export async function renderListPage(mount) {
 
       showSearchModal(results, (chosen) => {
         addItem({
+          id: chosen.id,
           name: chosen.name,
           cat: chosen.unifiedCategory,
           pack: chosen.unit,
-          store: chosen.store,
+          store: normalizeStoreKey(chosen.store), // ← genormaliseerd
           price: chosen.price,
-          promoPrice: product.promoPrice || null, // 👈 toegevoegd
-          offerPrice: product.offerPrice || null,
+          promoPrice: chosen.promoPrice ?? chosen.offerPrice ?? null,
         });
         input.value = "";
         closeSug();
@@ -268,7 +411,6 @@ export async function renderListPage(mount) {
       }
     });
 
-    // Perf: throttle via rAF
     let rafId = null;
     input.addEventListener("input", () => {
       if (rafId) cancelAnimationFrame(rafId);
@@ -277,33 +419,28 @@ export async function renderListPage(mount) {
     });
 
     input.addEventListener("focus", () => {
-      row.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-      const rect = row.getBoundingClientRect();
-      const absoluteY = window.scrollY + rect.top;
-      window.scrollTo({
-        top: absoluteY - 30,
-        behavior: "smooth",
-      });
-      // Toon (opnieuw) suggesties bij focus als er tekst staat
       if (input.value.trim()) renderSuggestions(input.value.trim());
     });
 
-    // Klik buiten → sluit suggesties
     document.addEventListener("click", (e) => {
-      if (!row.contains(e.target)) {
-        closeSug();
-      }
+      if (!row.contains(e.target)) closeSug();
     });
 
-    inputRows.prepend(row);
+    // maak de globale trigger beschikbaar voor categoryGrid & andere callers
+    window.triggerListSearch = (nameOrProduct) => {
+      const name =
+        typeof nameOrProduct === "string"
+          ? nameOrProduct
+          : nameOrProduct?.name ?? "";
 
-    window.triggerListSearch = (name) => {
+      if (!name) return;
       input.value = name;
+      // optioneel: meteen suggesties sluiten
+      // closeSug();
       handleSearch();
     };
+
+    inputRows.prepend(row);
   }
 
   // -------------------------
@@ -324,7 +461,7 @@ export async function renderListPage(mount) {
     ),
   ]);
 
-  const allProducts = normalizeAll({
+  allProducts = normalizeAll({
     ah: ahRaw,
     dirk: dirkRaw,
     jumbo: jumboRaw,
@@ -332,15 +469,24 @@ export async function renderListPage(mount) {
 
   await initEngine(
     { ah: ahRaw, dirk: dirkRaw, jumbo: jumboRaw },
-    { onReady: () => console.log("CPI engine ready") }
+    { onReady: () => DEBUG && console.log("CPI engine ready") }
   );
+  
+  createInputRow(allProducts);
 
   renderCategoryGrid(catSection, {
-    onSelect: (product) => addItem(product),
+    onSelect: (product) => {
+      if (window.triggerListSearch) {
+        window.triggerListSearch(product.name);
+      } else {
+        // fallback als input-row nog niet bestaat
+        addItem(product);
+      }
+    },
     allProducts,
   });
 
-  createInputRow(allProducts);
+
   renderCommitted();
 }
 

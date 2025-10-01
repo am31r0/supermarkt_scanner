@@ -14,7 +14,7 @@ export const ACCENTS = [
 const DEFAULTS = {
   theme: "light", // altijd "light" standaard
   accent: ACCENTS[0],
-  fontSizeFactor: 1, // 1 of 1.3
+  fontSizeFactor: 0.9, // 0.9 of 1.2
   accessibilityFont: "default", // "default" | "dyslexic"
 };
 
@@ -114,7 +114,7 @@ export function setAccent(color) {
 }
 
 export function setFontSizeFactor(factor) {
-  state.fontSizeFactor = factor; // 1 of 1.3
+  state.fontSizeFactor = factor; // 0.9 of 1.2
   applyFontSizeFactor(state.fontSizeFactor);
   save();
   broadcast();
