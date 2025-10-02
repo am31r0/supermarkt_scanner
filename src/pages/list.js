@@ -420,6 +420,27 @@ export async function renderListPage(mount) {
     };
 
     inputRows.prepend(row);
+
+    input.addEventListener("focus", () => {
+      // Smooth scroll input net boven toetsenbord
+      row.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+      // Extra marge (bijv. 30px)
+      const rect = row.getBoundingClientRect();
+      const absoluteY = window.scrollY + rect.top;
+      window.scrollTo({
+        top: absoluteY - 50,
+        behavior: "smooth",
+      });
+
+      // Toon (opnieuw) suggesties als er al tekst staat
+      if (input.value.trim()) {
+        renderSuggestions(input.value.trim());
+      }
+    });
   }
 
   // -------------------------
