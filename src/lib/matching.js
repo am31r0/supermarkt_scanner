@@ -95,115 +95,119 @@ export function parseUnit(str) {
 /* =======================
    Normalizers
    ======================= */
-export function normalizeDirk(p) {
-  const unitInfo = parseUnit(p.packaging);
-  const price = p.normalPrice;
-  const amount = unitInfo?.amount || 1;
-  const base = "https://d3r3h30p75xj6a.cloudfront.net/";
-  const postfix = "?width=120";
+   export function normalizeDirk(p) {
+     const unitInfo = parseUnit(p.packaging);
+     const price = p.normalPrice;
+     const amount = unitInfo?.amount || 1;
+     const base = "https://d3r3h30p75xj6a.cloudfront.net/";
+     const postfix = "?width=120";
 
-  let image = null;
-  if (p.image) {
-    image = base + p.image;
-    if (!image.includes("?")) {
-      image += postfix;
-    }
-  }
+     let image = null;
+     if (p.image) {
+       image = base + p.image;
+       if (!image.includes("?")) {
+         image += postfix;
+       }
+     }
 
-  return {
-    store: "dirk",
-    id: p.productId,
-    name: p.name,
-    brand: p.brand,
-    rawCategory: p.categoryLabel,
-    unifiedCategory: unifyCategory("Dirk", p.categoryLabel),
-    price,
-    promoPrice: p.offerPrice || null,
-    unit: unitInfo?.unit || "st",
-    amount,
-    pricePerUnit: amount ? price / amount : price,
-    image,
-    link: null,
-  };
-}
+     return {
+       store: "dirk",
+       id: p.productId,
+       name: p.name,
+       brand: p.brand,
+       rawCategory: p.categoryLabel,
+       unifiedCategory: unifyCategory("Dirk", p.categoryLabel),
+       price,
+       promoPrice: p.offerPrice || null,
+       offerEnd: p.offerEnd || null, // ✅ einddatum Dirk
+       unit: unitInfo?.unit || "st",
+       amount,
+       pricePerUnit: amount ? price / amount : price,
+       image,
+       link: null,
+     };
+   }
 
-export function normalizeAH(p) {
-  const price = p.price;
-  const unit = p.unit ? p.unit.toLowerCase() : "st";
-  let amount = null;
+   export function normalizeAH(p) {
+     const price = p.price;
+     const unit = p.unit ? p.unit.toLowerCase() : "st";
+     let amount = null;
 
-  if (p.price && p.price_per_unit) {
-    amount = price / p.price_per_unit;
-  }
+     if (p.price && p.price_per_unit) {
+       amount = price / p.price_per_unit;
+     }
 
-  return {
-    store: "ah",
-    id: p.id,
-    name: p.title,
-    brand: p.title.split(" ")[0],
-    rawCategory: p.category,
-    unifiedCategory: unifyCategory("AH", p.category),
-    price,
-    promoPrice: p.promoPrice,
-    unit,
-    amount: amount || 1,
-    pricePerUnit: p.price_per_unit || (amount ? price / amount : price),
-    image: p.image,
-    link: p.link,
-  };
-}
+     return {
+       store: "ah",
+       id: p.id,
+       name: p.title,
+       brand: p.title.split(" ")[0],
+       rawCategory: p.category,
+       unifiedCategory: unifyCategory("AH", p.category),
+       price,
+       promoPrice: p.promoPrice,
+       promoEnd: p.promoEnd || null, // ✅ einddatum AH
+       unit,
+       amount: amount || 1,
+       pricePerUnit: p.price_per_unit || (amount ? price / amount : price),
+       image: p.image,
+       link: p.link,
+     };
+   }
 
-export function normalizeJumbo(p) {
-  let unit = null,
-    amount = null,
-    ppu = null;
+   export function normalizeJumbo(p) {
+     let unit = null,
+       amount = null,
+       ppu = null;
 
-  const unitInfo = parseUnit(p.title);
-  if (unitInfo) {
-    unit = unitInfo.unit;
-    amount = unitInfo.amount;
-    ppu = amount > 0 ? p.price / amount : null;
-  }
+     const unitInfo = parseUnit(p.title);
+     if (unitInfo) {
+       unit = unitInfo.unit;
+       amount = unitInfo.amount;
+       ppu = amount > 0 ? p.price / amount : null;
+     }
 
-  if (!ppu && p.pricePerUnit) {
-    const parts = p.pricePerUnit.split(" ");
-    if (parts.length === 2) {
-      const val = parseFloat(parts[0].replace(",", "."));
-      unit = parts[1].toLowerCase();
-      ppu = val;
-      if (val > 0) {
-        amount = p.price / val;
-      }
-    }
-  }
+     if (!ppu && p.pricePerUnit) {
+       const parts = p.pricePerUnit.split(" ");
+       if (parts.length === 2) {
+         const val = parseFloat(parts[0].replace(",", "."));
+         unit = parts[1].toLowerCase();
+         ppu = val;
+         if (val > 0) {
+           amount = p.price / val;
+         }
+       }
+     }
 
-  if (!ppu) {
-    unit = unit || "st";
-    amount = amount || 1;
-    ppu = p.price / amount;
-  }
+     if (!ppu) {
+       unit = unit || "st";
+       amount = amount || 1;
+       ppu = p.price / amount;
+     }
 
-  let image = null;
-  if (p.image) {
-    image = p.image.replace(/fit-in\/\d+x\d+\//, "fit-in/120x120/");
-  }
+     let image = null;
+     if (p.image) {
+       image = p.image.replace(/fit-in\/\d+x\d+\//, "fit-in/120x120/");
+     }
 
-  return {
-    store: "jumbo",
-    id: p.id,
-    name: p.title,
-    brand: p.title.split(" ")[0],
-    rawCategory: p.category,
-    unifiedCategory: unifyCategory("Jumbo", p.category),
-    price: p.price,
-    promoPrice: p.promoPrice,
-    unit,
-    amount,
-    pricePerUnit: ppu,
-    image,
-    link: null,
-  };
-}
+     return {
+       store: "jumbo",
+       id: p.id,
+       name: p.title,
+       brand: p.title.split(" ")[0],
+       rawCategory: p.category,
+       unifiedCategory: unifyCategory("Jumbo", p.category),
+       price: p.price,
+       promoPrice: p.promoPrice,
+       promoUntil: p.promoUntil || null, // ✅ einddatum Jumbo
+       unit,
+       amount,
+       pricePerUnit: ppu,
+       image,
+       link: null,
+     };
+   }
+  
 
 export function normalizeAll({ ah = [], dirk = [], jumbo = [] }) {
   return [

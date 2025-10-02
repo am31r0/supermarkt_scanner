@@ -55,3 +55,35 @@ export function parseUnit(str) {
 
   return null;
 }
+
+/* POPUP - TOEGEVOEGD AAN MIJN LIJST */
+
+export function showToast(message) {
+  // container maken als die nog niet bestaat
+  let container = document.querySelector(".toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.className = "toast-container";
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = message;
+
+  container.appendChild(toast);
+
+  // trigger animatie
+  requestAnimationFrame(() => {
+    toast.classList.add("visible");
+  });
+
+  // verwijderen na 3 sec
+  setTimeout(() => {
+    toast.classList.remove("visible");
+    toast.addEventListener("transitionend", () => toast.remove(), {
+      once: true,
+    });
+  }, 3000);
+}
+

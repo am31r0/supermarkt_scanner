@@ -5,7 +5,7 @@
     --surface: #1e1e1e;
     --ink: #ffffff;
     --muted: #b3b3b3;
-    --accent: #3f7540;
+    --accent: linear-gradient(to top, #11998e, #26b85e);
     --radius: 16px;
     --btnradius: 50px;
     --transition: 0.25s ease;
@@ -16,8 +16,8 @@
 }
 
 html[data-theme="light"] {
-    --buttonbg: #f0f0f0;
-    --bg: #dededede;
+    --buttonbg: #fff;
+    --bg: #efefef;
     --surface: #fff;
     --mini-surface: #efefef;
     --ink: #161616;
@@ -52,7 +52,10 @@ body::-webkit-scrollbar {
     /*display: none;*/
 }
 
-h1,
+h1{
+    font-family: "Clash Display";
+    color:var(--surface)
+}
 h2,
 h3,
 h4,
@@ -84,16 +87,41 @@ a:hover {
     background: var(--accent);
     color: #fff;
     font-weight: 500;
-    transition: background var(--transition);
+    /*transition: background var(--transition);*/
     border: none;
     cursor: pointer;
 }
 
 .btn--primary {
     background: var(--accent);
-    color: var(--ink);
+    color: #fff;
 }
 
 .btn--primary:hover {
     background: var(--accent);
+}
+
+.page {
+    padding: 0 0% 0 0%;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.page-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 10px;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    border-radius: 0 0 25px 25px;
+    background: linear-gradient(to top, #11998e, #38ef7d);
+    color: #fff;
+}
+
+.page-header h1 {
+    font-size: calc(1.5rem * var(--font-size-factor));
+    letter-spacing: 0.03rem;
+    text-align: center;
 }

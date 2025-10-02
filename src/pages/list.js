@@ -5,37 +5,19 @@ import { renderCategoryGrid } from "../lib/categoryGrid.js";
 import { loadJSONOncePerDay } from "../lib/cache.js";
 import { normalizeAll, searchProducts } from "../lib/matching.js";
 import { showSearchModal } from "../lib/modal.js";
-import { escHtml, uid, formatPrice } from "../lib/utils.js";
+import { escHtml, uid, formatPrice, showToast } from "../lib/utils.js";
 import { renderStoreSelector } from "../lib/storeSelector.js";
 import { getEnabledStores } from "../lib/settings.js";
+import {
+  CATEGORY_ORDER,
+  CATEGORY_LABELS,
+  STORE_COLORS,
+  STORE_LABEL,
+} from "../lib/constants.js";
 
 const LS_KEY = "sms_list";
 const DEBUG = false;
 
-const CATEGORY_ORDER = [
-  "produce",
-  "dairy",
-  "meat_fish_veg",
-  "bakery",
-  "frozen",
-  "snacks",
-  "pantry",
-  "other",
-];
-
-// Kleur per winkel (lichte tinten)
-const STORE_COLORS = {
-  ah: "#6bdcff35",
-  jumbo: "#ffd00011",
-  dirk: "#e3061511",
-};
-
-const STORE_LABEL = {
-  ah: "AH",
-  jumbo: "Jumbo",
-  dirk: "Dirk",
-  other: "Overig",
-};
 
 const STORE_ORDER = ["ah", "jumbo", "dirk", "other"];
 
@@ -48,7 +30,6 @@ function normalizeStoreKey(s) {
   if (["jumbo"].includes(v)) return "jumbo";
   if (["dirk", "dirk van den broek", "dirk v d broek"].includes(v))
     return "dirk";
-  // als de key al exact onze code is, laat staan:
   if (["ah", "jumbo", "dirk", "other"].includes(v)) return v;
   return "other";
 }
@@ -84,7 +65,7 @@ export async function renderListPage(mount) {
 
   mount.innerHTML = `
     <section class="list-page">
-      <header class="list-header">
+      <header class="page-header">
         <h1>Mijn boodschappenlijst</h1>
       </header>
 
@@ -97,11 +78,16 @@ export async function renderListPage(mount) {
     </section>
   `;
 
+  const listPage = mount.querySelector(".list-page"); // ✅ eerst pakken
   const listContainer = mount.querySelector(".list-items");
   const inputRows = mount.querySelector(".input-rows");
   const catSection = mount.querySelector(".categories-section");
+
   const selectorMount = document.createElement("div");
-  mount.querySelector(".list-page").insertBefore(selectorMount, catSection);
+  if (listPage && catSection) {
+    listPage.insertBefore(selectorMount, catSection);
+  }
+
   renderStoreSelector(selectorMount);
 
   let allProducts = [];
@@ -158,6 +144,8 @@ export async function renderListPage(mount) {
     state.push(item);
     saveList(state);
     renderCommitted();
+    showToast(`Product toegevoegd aan Mijn Lijst`);
+
   }
 
   function incItemQtyById(id, delta = 1) {
@@ -193,12 +181,15 @@ export async function renderListPage(mount) {
     const enabled = normalizeEnabledMap(enabledRaw);
 
     const grouped = {};
+    const visibleItems = []; // ✅ alleen enabled stores
+
     for (const item of state) {
       const storeKey = normalizeStoreKey(item.store);
       if (enabled[storeKey] !== true) continue;
       if (!grouped[storeKey]) grouped[storeKey] = [];
       item.store = storeKey;
       grouped[storeKey].push(item);
+      visibleItems.push(item);
     }
 
     const keys = STORE_ORDER.filter((k) => grouped[k]?.length).concat(
@@ -210,10 +201,12 @@ export async function renderListPage(mount) {
 
       const wrapper = document.createElement("div");
       wrapper.className = `store-block`;
-      wrapper.style.background = STORE_COLORS[storeKey] || "transparent";
+      wrapper.style.borderColor = STORE_COLORS[storeKey] || "transparent";
       wrapper.style.marginBottom = "5px";
       wrapper.style.borderRadius = "10px";
       wrapper.style.overflow = "clip";
+      wrapper.style.borderWidth = "1px";
+      wrapper.style.borderStyle = "solid";
 
       const ul = document.createElement("ul");
       ul.className = "store-list";
@@ -296,9 +289,9 @@ export async function renderListPage(mount) {
       if (ul.children.length) listContainer.appendChild(wrapper);
     }
 
-    // --- totals onderaan ---
-    if (state.length) {
-      renderTotals(listContainer, state);
+    // ✅ totals alleen voor zichtbare items
+    if (visibleItems.length) {
+      renderTotals(listContainer, visibleItems);
     }
   }
 

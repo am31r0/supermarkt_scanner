@@ -5,33 +5,14 @@
     color: #fff !important;
 }
 
-.list-page {
-    padding: 0 2% 0 2%;
-    max-width: 500px;
-    margin: 0 auto;
-}
 
-.list-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px 0;
-    gap: 12px;
-    margin-bottom: 16px;
-    border-radius: 0 0 var(--radius) var(--radius);
-    background: var(--accent);
-    color: #fff;
-}
-
-.list-header h1 {
-    font-family: var(--font-family-accessibilty);
-    font-size: calc(1.1rem * var(--font-size-factor));
-}
 
 .list-container {
     background: var(--surface);
     border-radius: var(--radius);
     padding: 16px;
+    max-width: 96%;
+    margin: 0 auto;
 }
 
 .list-store {
@@ -45,8 +26,7 @@
 .store-jumbo {
     background-color: #ffd200;
     /* Jumbo geel */
-    color: #fff;
-    text-shadow: 1px 1px 1px #000000ff;
+    color: #000;
     /* zwart tekst want geel bg */
 }
 
@@ -211,12 +191,13 @@ span.item-full-name {
     border-radius: var(--btnradius);
     background: var(--accent);
     color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    /*border: 1px solid rgba(255, 255, 255, 0.12);*/
     cursor: pointer;
 }
 
 .btn.small:hover {
-    background: #181818;
+    background: var(--accent), #555;
+    background-blend-mode:overlay;
 }
 
 

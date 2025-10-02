@@ -1,3 +1,4 @@
+
 // src/lib/modal.js
 import { escHtml, escAttr, formatPrice } from "./utils.js";
 
@@ -63,24 +64,108 @@ export function showSearchModal(results, onSelect) {
   let currentSort = "ppu";
   let currentCat = "";
   let promoOnly = false;
-  let filterMode = ""; // "", "promoFirst", "huismerk", "amerk", "bio"
+  let filterMode = "";
 
+  // ----------------- helpers: promo einddatum -----------------
+  const maandMap = {
+    jan: 0,
+    februari: 1,
+    feb: 1,
+    mrt: 2,
+    maart: 2,
+    apr: 3,
+    mei: 4,
+    jun: 5,
+    juni: 5,
+    jul: 6,
+    juli: 6,
+    aug: 7,
+    sep: 8,
+    september: 8,
+    okt: 9,
+    nov: 10,
+    dec: 11,
+  };
+
+  function formatNLDate(d) {
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  }
+
+  function parseJumboString(s) {
+    const m = s.toLowerCase().match(/(\d{1,2})\s+([a-z]+)/i);
+    if (!m) return null;
+    const dd = parseInt(m[1], 10);
+    const maand = maandMap[m[2]] ?? null;
+    if (maand === null) return null;
+
+    // jaar bepalen
+    const now = new Date();
+    let yyyy = now.getFullYear();
+    let candidate = new Date(yyyy, maand, dd);
+    if (candidate < now) {
+      yyyy += 1; // als datum al voorbij dit jaar → volgend jaar
+      candidate = new Date(yyyy, maand, dd);
+    }
+    return candidate;
+  }
+
+  function getPromoEnd(p) {
+    console.log("Check promo date for:", p.name, {
+      promoEnd: p.promoEnd,
+      offerEnd: p.offerEnd,
+      promoUntil: p.promoUntil,
+    });
+
+    if (p.promoEnd) {
+      return new Date(p.promoEnd); // AH
+    }
+    if (p.offerEnd) {
+      return new Date(p.offerEnd); // Dirk
+    }
+    if (p.promoUntil) {
+      return parseJumboString(p.promoUntil); // Jumbo
+    }
+    return null;
+  }
+
+  function isValidPromo(p){
+    const promo = p.promoPrice || p.offerPrice;
+    if(!promo) return false;
+    const base = p.price || 0;
+    if(promo >= base) return false;
+    const end = getPromoEnd(p);
+    if(!end || isNaN(end)) return false;
+    const now = new Date();
+    const max = new Date(); max.setFullYear(now.getFullYear()+2);
+    if(end > max) return false;
+    if(end.getFullYear() > 2100) return false;
+    return true;
+  }
+
+  // filtering
+  function getFilteredSorted(){
+    let arr = baseResults;
+    if (promoOnly) {
+      arr = arr.filter((p)=>isValidPromo(p));
+    }
+  }
+
+  // ----------------- filtering/sort -----------------
   function getFilteredSorted() {
     let arr = baseResults;
 
-    // category filter
     if (currentCat) {
       arr = arr.filter(
         (p) => (p.unifiedCategory || p.rawCategory) === currentCat
       );
     }
-
-    // promoOnly (via select)
     if (promoOnly) {
       arr = arr.filter((p) => !!(p.promoPrice || p.offerPrice));
     }
 
-    // extra filter modes
     if (filterMode === "huismerk") {
       arr = arr.filter((p) => {
         const name = (p.name || "").toLowerCase();
@@ -116,9 +201,7 @@ export function showSearchModal(results, onSelect) {
     }
 
     const sorted = arr.slice();
-
     if (filterMode === "promoFirst") {
-      // promoties eerst, daarna ppu sort
       sorted.sort((a, b) => {
         const aPromo = !!(a.promoPrice || a.offerPrice);
         const bPromo = !!(b.promoPrice || b.offerPrice);
@@ -128,7 +211,6 @@ export function showSearchModal(results, onSelect) {
       return sorted;
     }
 
-    // default sorters
     if (currentSort === "price") {
       sorted.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
     } else if (currentSort === "alpha") {
@@ -143,6 +225,7 @@ export function showSearchModal(results, onSelect) {
     return sorted;
   }
 
+  // ----------------- render -----------------
   function renderResults() {
     const data = getFilteredSorted();
 
@@ -152,37 +235,55 @@ export function showSearchModal(results, onSelect) {
             const hasPromo = !!(p.promoPrice || p.offerPrice);
             const promoPrice = p.promoPrice || p.offerPrice || null;
 
+            let promoEndHtml = "";
+            if (hasPromo) {
+              const endDate = getPromoEnd(p);
+              if (endDate && !isNaN(endDate)) {
+                promoEndHtml = `<div class="promo-end">Geldig t/m ${formatNLDate(
+                  endDate
+                )}</div>`;
+              } else if (p.promoEnd || p.offerEnd || p.promoUntil) {
+                // fallback raw tonen
+                promoEndHtml = `<div class="promo-end">Geldig t/m ${
+                  p.promoEnd || p.offerEnd || p.promoUntil
+                }</div>`;
+              }
+            }
+
             return `
-              <div class="result-row ${hasPromo ? "promo" : ""}" data-id="${
+            <div class="result-row ${hasPromo ? "promo" : ""}" data-id="${
               p.id
             }" data-store="${p.store}">
               <div class="meta">
-              <span class="list-store store-${(p.store || "").toLowerCase()}">
-                ${escHtml(p.store || "")}
-              </span>
-              <div class="price-group">${
-                hasPromo
-                  ? `<span class="price old">${formatPrice(p.price)}</span>
-                     <span class="price new">${formatPrice(promoPrice)}</span>`
-                  : `<span class="price">${formatPrice(p.price)}</span>`
-              }
-              <span class="ppu">${(p.pricePerUnit ?? 0).toFixed(2)} / ${
+                <span class="list-store store-${(p.store || "").toLowerCase()}">
+                  ${escHtml(p.store || "")}
+                </span>
+                <div class="price-group">${
+                  hasPromo
+                    ? `<span class="price old">${formatPrice(p.price)}</span>
+                       <span class="price new">${formatPrice(
+                         promoPrice
+                       )}</span>`
+                    : `<span class="price">${formatPrice(p.price)}</span>`
+                }
+                <span class="ppu">${(p.pricePerUnit ?? 0).toFixed(2)} / ${
               p.unit
             }</span></div>
-            </div>
-                ${hasPromo ? `<span class="promo-badge">Aanbieding</span>` : ""}
-                <img loading="lazy" src="${
-                  p.image
-                    ? p.store === "dirk" && !p.image.includes("?width=")
-                      ? p.image + "?width=190"
-                      : p.image
-                    : ""
-                }" alt="${escAttr(p.name)}"/>
-                <div class="info">
-                  <div class="name">${escHtml(p.name)}</div>
-                </div>
               </div>
-            `;
+              ${hasPromo ? `<span class="promo-badge">Aanbieding</span>` : ""}
+              <img loading="lazy" src="${
+                p.image
+                  ? p.store === "dirk" && !p.image.includes("?width=")
+                    ? p.image + "?width=190"
+                    : p.image
+                  : ""
+              }" alt="${escAttr(p.name)}"/>
+              <div class="info">
+                <div class="name">${escHtml(p.name)}</div>
+                ${promoEndHtml}
+              </div>
+            </div>
+          `;
           })
           .join("")
       : `<div class="empty">Geen resultaten gevonden.</div>`;
@@ -207,11 +308,9 @@ export function showSearchModal(results, onSelect) {
     document.removeEventListener("keydown", onKeyDown);
     document.removeEventListener("pointerdown", onDocPointerDown, true);
   }
-
   function onKeyDown(e) {
     if (e.key === "Escape") closeModal();
   }
-
   function onDocPointerDown(e) {
     if (panel.contains(e.target)) return;
     closeModal();

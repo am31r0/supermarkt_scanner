@@ -12,6 +12,7 @@ export function renderSettingsPage(mount) {
   const s = getSettings();
 
   mount.innerHTML = `
+  <div class="page-header"><h1>Instellingen</h1></div>
     <section class="settings">
       <div class="card">
         <h2>App-thema</h2>

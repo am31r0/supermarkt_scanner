@@ -1,145 +1,36 @@
-/* ====== Mobile-first Winner + Alternatives Layout ====== */
-
-.comparison {
-    max-width: 95%;
-    margin: 0 auto;
-    padding: 10px;
+.hero {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+   
+    background: url('https://biowish.vn/wp-content/uploads/2019/02/med-food-hero.jpg');
+    background-size: cover;
+    background-position: center;
+    border-radius: 30px;
+    margin: 2rem auto;
+    max-width: 92%;
+    container-name: home-hero;
+    container-type: inline-size;
     overflow: hidden;
 }
 
-.product-row {
-    display: flex;
-    flex-direction: row;
-    gap: 10px;
-    margin-bottom: 16px;
+section.hero__content{
+    padding: 4rem 2rem;
+    width:100%;
+    backdrop-filter: blur(4px);
+    background: linear-gradient(to top,#ffffff22,#00000055);
+    
 }
 
-/* Winner card */
-.winner-card {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    border-radius: var(--radius);
-    padding: 12px;
-    position: relative;
-    flex: 1.8;
+@container home-hero (min-width:0px){
+.hero__content h1 {
+    font-size: 7cqw;
+}
 }
 
-.shop-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.shop-header .logo {
-    width: 32px;
-    height: auto;
-}
-
-.shop-header .shop-name {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
-    display: none;
-}
-
-.badge {
-    margin-left: auto;
-    font-size: 0.75rem;
-    font-weight: 700;
-    background: rgba(255, 255, 255, 0.25);
-    padding: 2px 6px;
-    border-radius: 999px;
-}
-
-.product-img {
-    width: 100px;
-    height: auto;
-    margin: 4px 0;
-    border-radius: 6px;
-    display: block;
-}
-
-.product-info .name {
-    margin: 4px 0 0;
-    font-size: 0.9rem;
-    font-weight: 500;
-    line-height: 1.2;
-}
-
-.product-info .price {
-    margin: 4px 0 0;
-    font-size: 1.25rem;
-    font-weight: 800;
-}
-
-.product-info .ppu {
-    margin: 0;
-    font-size: 0.8rem;
-    opacity: 0.85;
-}
-
-/* Alternatives below winner */
-.alts-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex: 1;
-}
-
-.alt-card {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    border-radius: var(--radius);
-    padding: 10px;
-    text-align: center;
-}
-
-.alt-card .product-img.tiny {
-    width: 60px;
-    height: auto;
-    margin: 2px auto 0;
-    border-radius: 4px;
-}
-
-.alt-card .price {
-    font-size: 1rem;
-    font-weight: 700;
-    margin: 2px 0 0;
-}
-
-.alt-card .ppu {
-    font-size: 0.75rem;
-    margin: 0;
-    opacity: 0.85;
-}
-
-/* ====== Supermarkt kleuren ====== */
-.shop-card.ah {
-    background: #009fe3;
-    color: #fff;
-}
-
-.shop-card.jumbo {
-    background: #444;
-    color: #ffd200;
-}
-
-.shop-card.dirk {
-    background: #e30613;
-    color: #fff;
-}
-
-.pack-badge {
-    display: inline-block;
-    margin-top: 4px;
-    padding: 2px 6px;
-    font-size: calc(0.75rem * var(--font-size-factor));
-    border-radius: 999px;
-    background: var(--mini-surface);
-    /* neutrale bg */
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: var(--ink);
-    white-space: nowrap;
+.hero__content p {
+    font-size: calc(0.7rem * var(--font-size-factor));
+    color: #bcffc3;
+    margin-bottom: 2rem;
 }

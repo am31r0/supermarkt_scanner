@@ -3,6 +3,7 @@ import { renderHomePage } from "../pages/home.js";
 import { renderListPage } from "../pages/list.js";
 import { renderSettingsPage } from "../pages/settings.js";
 import { initSettings } from "../lib/settings.js";
+import { renderDealsPage } from "../pages/deals.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   // Settings (thema/accents) vóór eerste paint
@@ -14,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "#/home": renderHomePage,
     "#/list": renderListPage,
     "#/settings": renderSettingsPage,
+    "#/deals": renderDealsPage,
   };
 
   const router = createRouter({ routes, mountEl: app, defaultHash: "#/home" });

@@ -12,6 +12,8 @@
 .categories-grid-wrapper {
     position: relative;
     overflow: hidden;
+    max-width: 96%;
+    margin: 0 auto;
     transition: max-height 0.3s ease;
 }
 
@@ -95,7 +97,7 @@
 
 .category-card:hover {
     transform: translateY(-1px);
-    background: var(--mini-surface);
+    background: var(--surface);
     border-color: rgba(255, 255, 255, 0.14);
 }
 
@@ -205,17 +207,17 @@
 }
 
 .modal-list::-webkit-scrollbar-track {
-    background-color: var(--surface);
+    background: var(--surface);
 }
 
 .modal-list::-webkit-scrollbar {
     width: 20px;
-    background-color: transparent;
+    background: transparent;
 }
 
 .modal-list::-webkit-scrollbar-thumb {
     border-left: 10px solid var(--surface);
-    background-color: var(--accent);
+    background: var(--accent);
 }
 
 .modal-item-row {

@@ -2,13 +2,13 @@
 const LS_KEY = "sms_settings";
 
 export const ACCENTS = [
-  "#3f7540", // groen (default)
-  "#0070f3", // blauw
+  "linear-gradient(to top, #11998e, #26b85e)", /*/ groen (default)
+  "#0070f3", // blauw 
   "#ff4d4f", // rood
   "#ff8c00", // oranje
   "#8a2be2", // paars
   "#00b894", // teal
-  "#ff2d55", // pink
+  "#ff2d55", // pink*/
 ];
 
 const DEFAULTS = {
