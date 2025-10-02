@@ -37,5 +37,13 @@ section.hero__content{
 
 }
 
+.page-header.header-logo h1{
+    font-style: italic;
+    font-size: 3rem;
+}
+.page-header.header-logo{
+    padding:1rem 0.5rem;
+}
+
 .nav-link svg{
 }

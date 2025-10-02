@@ -6,7 +6,7 @@
     justify-content: center;
     flex-direction: row;
     align-items: center;
-    padding: 0.8rem 1rem;
+    padding: 0.8rem 0.4rem;
     background: var(--surface);
     border-radius: 0;
     position: fixed;
@@ -111,4 +111,19 @@
         transition: none !important;
         transform: none !important;
     }
+}
+
+.nav-link.nav-logo{
+    background: var(--accent);
+        padding: 13px 10px;
+        width: auto;
+        height: 100%;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+        color:#fff;
+        font-family: 'Clash Display';
+        font-weight: 600;
+        font-style: italic;
+        letter-spacing: 0.03rem;
+        align-self: flex-start;
 }

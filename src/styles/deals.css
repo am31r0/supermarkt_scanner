@@ -75,7 +75,12 @@ font-size: 0.6rem;
     font-family: 'Satoshi';
     position: relative;
     overflow: clip;
+    font-size: 1rem;
 }
+.store-header h1{
+    font-size: 1rem;
+}
+
 .store-header::before{
     position: absolute;
     content: '';
