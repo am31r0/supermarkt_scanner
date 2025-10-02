@@ -69,6 +69,20 @@
     flex-shrink: 1;
     width: 100%;
     margin-top: 10px;
+    max-height: 55dvh;
+    overflow-y: auto;
+    padding-bottom: 100px;
+    scroll-behavior: smooth;
+}
+.search-results-deals{
+    display: grid;
+    grid-template-columns: repeat(2, 48%);
+    gap: 5px;
+    justify-content: flex-end;
+    row-gap: 10px;
+    flex-shrink: 1;
+    width: 100%;
+    margin-top: 10px;
     max-height: 70dvh;
     overflow-y: auto;
     padding-bottom: 100px;
@@ -78,7 +92,7 @@
 .search-results::after {
     position: fixed;
     content: '';
-    height: 25%;
+    height: 10%;
     width: 100%;
     left: 0;
     bottom: 0;

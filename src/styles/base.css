@@ -16,7 +16,7 @@
 }
 
 html[data-theme="light"] {
-    --buttonbg: #fff;
+    --buttonbg: #dfdfdf;
     --bg: #efefef;
     --surface: #fff;
     --mini-surface: #efefef;
@@ -95,6 +95,7 @@ a:hover {
 .btn--primary {
     background: var(--accent);
     color: #fff;
+    font-size:0.8rem;
 }
 
 .btn--primary:hover {
@@ -108,6 +109,7 @@ a:hover {
 }
 
 .page-header {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -118,6 +120,7 @@ a:hover {
     border-radius: 0 0 25px 25px;
     background: linear-gradient(to top, #11998e, #38ef7d);
     color: #fff;
+    z-index:3;
 }
 
 .page-header h1 {

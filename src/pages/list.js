@@ -144,7 +144,7 @@ export async function renderListPage(mount) {
     state.push(item);
     saveList(state);
     renderCommitted();
-    showToast(`Product toegevoegd aan Mijn Lijst`);
+    showToast(`Toegevoegd aan Mijn Lijst`);
 
   }
 

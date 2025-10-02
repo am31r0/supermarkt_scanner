@@ -3,15 +3,15 @@ export async function renderHomePage(mount) {
 
   mount.innerHTML = `
 
-    <div class="page-header"><h1>Slim Boodschappen</h1><h3 style="font-size:0.6rem">Alpha Build 0.3.251002.1</h3></div>
+    <div class="page-header" style=""><h1>Slim Boodschappen</h1><h3 style="font-size:0.6rem">Alpha Build 0.3.251002.2</h3></div>
 
-    <main class="hero">
+    <div class="hero">
       <section class="hero__content">
         <h1>Vind altijd de beste prijs</h1>
         <p>Vergelijk supermarkten en bespaar geld op je boodschappenlijst.</p>
-        <a href="#/search" class="btn btn--primary">Start zoeken</a>
+        <a href="#/list" class="btn btn--primary">Start zoeken</a>
       </section>
-    </main>
+    </div>
 
 
     <footer class="footer">

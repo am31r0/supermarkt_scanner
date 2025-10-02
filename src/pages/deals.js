@@ -46,7 +46,7 @@ function addItem(product) {
   state.push(item);
   saveList(state);
   document.dispatchEvent(new Event("list:changed"));
-  showToast(`"${product.name}" toegevoegd aan Mijn Lijst`);
+  showToast(`Toegevoegd aan Mijn Lijst`);
 
 }
 
@@ -179,7 +179,7 @@ function showDealsModal(store, products) {
         } aanbiedingen</h2>
         <button class="search-modal-close" aria-label="Sluiten">✕</button> 
       </div>
-      <div class="search-results"></div>
+      <div class="search-results-deals"></div>
     </div>
   `;
   document.body.appendChild(modal);
@@ -187,7 +187,7 @@ function showDealsModal(store, products) {
   const panel = modal.querySelector(".search-modal-panel");
   const backdrop = modal.querySelector(".search-modal-backdrop");
   const btnClose = modal.querySelector(".search-modal-close");
-  const resultsBox = modal.querySelector(".search-results");
+  const resultsBox = modal.querySelector(".search-results-deals");
 
   // 💡 Belangrijk: voorkom dat een bestaande flex/grid op .search-results roet in ’t eten gooit
   resultsBox.style.display = "block"; // hard reset

@@ -99,7 +99,7 @@ input:checked+.slider:before {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    border: 2px solid var(--border-line-muted);
+    border: 1px solid var(--border-line-muted);
     cursor: pointer;
     outline: none;
 }
