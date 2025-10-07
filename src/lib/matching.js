@@ -32,7 +32,7 @@ const CATEGORY_MAPPING = {
     Diepvries: "frozen",
     Bakkerij: "bakery",
   },
-  Jumbo: {
+  JUMBO: {
     "Aardappelen, groente en fruit": "produce",
     "Vleeswaren, kaas en tapas": "meat_fish_veg",
     "Verse maaltijden en gemak": "produce",
@@ -43,7 +43,7 @@ const CATEGORY_MAPPING = {
     Diepvries: "frozen",
     "Brood en gebak": "bakery",
   },
-  Dirk: {
+  DIRK: {
     "Aardappelen, groente & fruit": "produce",
     "Vlees & Vis": "meat_fish_veg",
     "Verse maaltijden": "produce",
@@ -58,156 +58,310 @@ const CATEGORY_MAPPING = {
 };
 
 function unifyCategory(store, rawCategory) {
-  const mapping = CATEGORY_MAPPING[store.toUpperCase()] || {};
+  const key = (store || "").toUpperCase();
+  const mapping = CATEGORY_MAPPING[key] || {};
   return mapping[rawCategory] || "other";
 }
 
 /* =======================
-   Unit parser
+   Helpers: numbers & units
    ======================= */
-export function parseUnit(str) {
-  if (!str) return null;
-  const lower = str.toLowerCase().trim();
+function toFloatEU(s) {
+  if (typeof s === "number") return s;
+  if (!s) return NaN;
+  const clean = String(s)
+    .replace(/[^\d.,-]/g, "")
+    .trim();
+  if (/,\d{1,2}$/.test(clean)) {
+    return parseFloat(clean.replace(/\./g, "").replace(",", "."));
+  }
+  return parseFloat(clean.replace(/,/g, ""));
+}
 
-  // Gewicht
-  let m = lower.match(/([\d.,]+)\s*(kg|g)/);
+function normUnitKey(u) {
+  if (!u) return null;
+  const s = String(u).toLowerCase().trim();
+  if (["kg", "kilo", "kilogram"].includes(s)) return "kg";
+  if (["g", "gram", "grams"].includes(s)) return "g";
+  if (["l", "lt", "liter", "litre", "liters"].includes(s)) return "L";
+  if (["ml", "milliliter"].includes(s)) return "ml";
+  if (["cl", "centiliter"].includes(s)) return "cl";
+  if (["st", "stuk", "stuks", "stuk(s)", "pieces", "piece"].includes(s))
+    return "st";
+  return s;
+}
+
+function toBaseAmount(value, unit) {
+  const u = normUnitKey(unit);
+  if (u === "kg") return { unit: "kg", amount: value };
+  if (u === "g") return { unit: "kg", amount: value / 1000 };
+  if (u === "L") return { unit: "L", amount: value };
+  if (u === "ml") return { unit: "L", amount: value / 1000 };
+  if (u === "cl") return { unit: "L", amount: value / 100 };
+  if (u === "st") return { unit: "st", amount: value };
+  return { unit: "st", amount: value };
+}
+
+function labelForUnit(unit) {
+  if (unit === "kg") return "€/kg";
+  if (unit === "L") return "€/L";
+  return "€/st";
+}
+
+function addBaseAmounts(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  if (a.unit !== b.unit) return a;
+  return { unit: a.unit, amount: (a.amount || 0) + (b.amount || 0) };
+}
+
+/* =======================
+   Packaging / unit parser
+   ======================= */
+export function parseUnit(text) {
+  if (!text) return null;
+  const lower = String(text).toLowerCase();
+
+  const countWords =
+    "st|stuk|stuks|stukken|rollen|tabletten|tabs|capsules|sachets|zakjes|blikjes|flessen|pak|pakken|doos|dozen|rol|tablet|capsule|sachet|blikje|fles";
+
+  // multipack: 6x33cl, 12 x 1.5L, etc.
+  let m =
+    lower.match(/(\d+)\s*[x×]\s*([\d.,]+)\s*(kg|g|l|ml|cl)\b/) ||
+    lower.match(/([\d.,]+)\s*(kg|g|l|ml|cl)\s*[x×]\s*(\d+)/);
   if (m) {
-    let value = parseFloat(m[1].replace(",", "."));
-    if (m[2] === "g") value /= 1000;
-    return { unit: "kg", amount: value };
+    let count, amount, unit;
+    if (m.length === 4 && /[x×]/.test(m[0])) {
+      count = toFloatEU(m[1]);
+      amount = toFloatEU(m[2]);
+      unit = m[3];
+    } else {
+      count = toFloatEU(m[3]);
+      amount = toFloatEU(m[1]);
+      unit = m[2];
+    }
+    const base = toBaseAmount(amount, unit);
+    return { unit: base.unit, amount: (count || 1) * base.amount };
   }
 
-  // Volume
-  m = lower.match(/([\d.,]+)\s*(l|ml)/);
-  if (m) {
-    let value = parseFloat(m[1].replace(",", "."));
-    if (m[2] === "ml") value /= 1000;
-    return { unit: "L", amount: value };
+  // enkel gewicht/volume
+  let best = null;
+  const volRegex = /([\d.,]+)\s*(kg|g|l|ml|cl)\b/g;
+  while ((m = volRegex.exec(lower))) {
+    const val = toFloatEU(m[1]);
+    const base = toBaseAmount(val, m[2]);
+    best = addBaseAmounts(best, base);
   }
+  if (best && best.amount) return best;
 
-  // Stuks
-  m = lower.match(/(\d+)\s*st/);
-  if (m) return { unit: "st", amount: parseInt(m[1]) };
+  // aantal stuks
+  m = lower.match(new RegExp(`(\\d+)\\s*(?:${countWords})\\b`));
+  if (m) {
+    const pcs = toFloatEU(m[1]);
+    return { unit: "st", amount: pcs };
+  }
 
   return null;
 }
 
 /* =======================
+   PPU string parser
+   ======================= */
+function parsePPUString(str) {
+  if (!str) return null;
+  const s = String(str).trim().toLowerCase().replace(",", ".");
+
+  // patroon A: "€ 1.59 / 100 g"
+  let m = s.match(
+    /([\d.]+)\s*(?:€)?\s*(?:\/|\bper\b)\s*(\d+)?\s*(kg|g|l|ml|cl|st|stuk|stuks|pieces?|liter|kilo)\b/
+  );
+  if (m) {
+    const value = parseFloat(m[1]);
+    const qty = m[2] ? parseFloat(m[2]) : 1;
+    let u = normUnitKey(m[3]);
+    if (u === "g") return { unit: "kg", value: value / (qty / 1000) };
+    if (u === "ml") return { unit: "L", value: value / (qty / 1000) };
+    if (u === "cl") return { unit: "L", value: value / (qty / 100) };
+    if (u === "kg") return { unit: "kg", value: value / qty };
+    if (u === "L") return { unit: "L", value: value / qty };
+    if (u === "st") return { unit: "st", value: value / qty };
+    return { unit: "st", value };
+  }
+
+  // patroon B: "2.64 l", "0.13 pieces"
+  m = s.match(/([\d.]+)\s*(kg|g|l|ml|cl|st|stuk|stuks|pieces?|liter|kilo)\b/);
+  if (m) {
+    const value = parseFloat(m[1]);
+    let u = normUnitKey(m[2]);
+    if (u === "g") return { unit: "kg", value: value * 1000 };
+    if (u === "ml") return { unit: "L", value: value * 1000 };
+    if (u === "cl") return { unit: "L", value: value * 100 };
+    if (u === "liter") u = "L";
+    if (u === "kilo") u = "kg";
+    if (u === "pieces") u = "st";
+    return { unit: u, value };
+  }
+
+  return null;
+}
+
+/* =======================
+   Price helpers
+   ======================= */
+function effectivePrice(normal, promo) {
+  const pv = typeof promo === "number" && promo > 0 ? promo : null;
+  return pv ?? (typeof normal === "number" ? normal : null);
+}
+
+/* =======================
    Normalizers
    ======================= */
-   export function normalizeDirk(p) {
-     const unitInfo = parseUnit(p.packaging);
-     const price = p.normalPrice;
-     const amount = unitInfo?.amount || 1;
-     const base = "https://d3r3h30p75xj6a.cloudfront.net/";
-     const postfix = "?width=120";
+export function normalizeDirk(p) {
+  const price = p.normalPrice;
+  const promoPrice = p.offerPrice && p.offerPrice > 0 ? p.offerPrice : null;
+  const eff = effectivePrice(price, promoPrice);
 
-     let image = null;
-     if (p.image) {
-       image = base + p.image;
-       if (!image.includes("?")) {
-         image += postfix;
-       }
-     }
+  const amt = parseUnit(p.packaging) || parseUnit(p.name) || null;
+  const unit = amt?.unit || "st";
+  const amount = amt?.amount || 1;
+  const pricePerUnit = eff / amount;
+  const ppuLabel = labelForUnit(unit);
 
-     return {
-       store: "dirk",
-       id: p.productId,
-       name: p.name,
-       brand: p.brand,
-       rawCategory: p.categoryLabel,
-       unifiedCategory: unifyCategory("Dirk", p.categoryLabel),
-       price,
-       promoPrice: p.offerPrice || null,
-       offerEnd: p.offerEnd || null, // ✅ einddatum Dirk
-       unit: unitInfo?.unit || "st",
-       amount,
-       pricePerUnit: amount ? price / amount : price,
-       image,
-       link: null,
-     };
-   }
+  let image = null;
+  if (p.image) {
+    image = "https://d3r3h30p75xj6a.cloudfront.net/" + p.image;
+    if (!image.includes("?")) image += "?width=120";
+  }
 
-   export function normalizeAH(p) {
-     const price = p.price;
-     const unit = p.unit ? p.unit.toLowerCase() : "st";
-     let amount = null;
+  return {
+    store: "dirk",
+    id: p.productId,
+    name: p.name,
+    brand: p.brand || (p.name ? p.name.split(" ")[0] : null),
+    rawCategory: p.categoryLabel,
+    unifiedCategory: unifyCategory("DIRK", p.categoryLabel),
+    price,
+    promoPrice,
+    offerEnd: p.offerEnd || null,
+    unit,
+    amount,
+    pricePerUnit,
+    ppuLabel,
+    image,
+    link: null,
+  };
+}
 
-     if (p.price && p.price_per_unit) {
-       amount = price / p.price_per_unit;
-     }
+export function normalizeAH(p) {
+  const price = p.price;
+  const promoPrice = typeof p.promoPrice === "number" ? p.promoPrice : null;
+  const eff = effectivePrice(price, promoPrice);
 
-     return {
-       store: "ah",
-       id: p.id,
-       name: p.title,
-       brand: p.title.split(" ")[0],
-       rawCategory: p.category,
-       unifiedCategory: unifyCategory("AH", p.category),
-       price,
-       promoPrice: p.promoPrice,
-       promoEnd: p.promoEnd || null, // ✅ einddatum AH
-       unit,
-       amount: amount || 1,
-       pricePerUnit: p.price_per_unit || (amount ? price / amount : price),
-       image: p.image,
-       link: p.link,
-     };
-   }
+  let unit = "st";
+  let amount = 1;
+  let pricePerUnit = eff;
+  let ppuLabel = "€/st";
 
-   export function normalizeJumbo(p) {
-     let unit = null,
-       amount = null,
-       ppu = null;
+  if (p.price_per_unit && p.unit) {
+    const val = toFloatEU(p.price_per_unit);
+    const u = normUnitKey(p.unit);
+    if (u === "g") {
+      unit = "kg";
+      pricePerUnit = val * 1000;
+    } else if (u === "ml") {
+      unit = "L";
+      pricePerUnit = val * 1000;
+    } else if (u === "cl") {
+      unit = "L";
+      pricePerUnit = val * 100;
+    } else if (u === "kg") {
+      unit = "kg";
+      pricePerUnit = val;
+    } else if (u === "L") {
+      unit = "L";
+      pricePerUnit = val;
+    } else {
+      unit = "st";
+      pricePerUnit = val;
+    }
+    ppuLabel = labelForUnit(unit);
+  } else {
+    const amt = parseUnit(p.packaging) || parseUnit(p.title);
+    if (amt) {
+      unit = amt.unit;
+      amount = amt.amount;
+      pricePerUnit = eff / amount;
+      ppuLabel = labelForUnit(unit);
+    }
+  }
 
-     const unitInfo = parseUnit(p.title);
-     if (unitInfo) {
-       unit = unitInfo.unit;
-       amount = unitInfo.amount;
-       ppu = amount > 0 ? p.price / amount : null;
-     }
+  return {
+    store: "ah",
+    id: p.id,
+    name: p.title,
+    brand: p.brand || p.title.split(" ")[0],
+    rawCategory: p.category,
+    unifiedCategory: unifyCategory("AH", p.category),
+    price,
+    promoPrice,
+    promoEnd: p.promoEnd || null,
+    unit,
+    amount,
+    pricePerUnit,
+    ppuLabel,
+    image: p.image,
+    link: p.link,
+  };
+}
 
-     if (!ppu && p.pricePerUnit) {
-       const parts = p.pricePerUnit.split(" ");
-       if (parts.length === 2) {
-         const val = parseFloat(parts[0].replace(",", "."));
-         unit = parts[1].toLowerCase();
-         ppu = val;
-         if (val > 0) {
-           amount = p.price / val;
-         }
-       }
-     }
+export function normalizeJumbo(p) {
+  const price = p.price;
+  const promoPrice = typeof p.promoPrice === "number" ? p.promoPrice : null;
+  const eff = effectivePrice(price, promoPrice);
 
-     if (!ppu) {
-       unit = unit || "st";
-       amount = amount || 1;
-       ppu = p.price / amount;
-     }
+  let unit = "st";
+  let amount = 1;
+  let pricePerUnit = eff;
+  let ppuLabel = "€/st";
 
-     let image = null;
-     if (p.image) {
-       image = p.image.replace(/fit-in\/\d+x\d+\//, "fit-in/120x120/");
-     }
+  if (typeof p.pricePerUnit === "string") {
+    const parsed = parsePPUString(p.pricePerUnit);
+    if (parsed) {
+      unit = parsed.unit;
+      pricePerUnit = parsed.value;
+      ppuLabel = labelForUnit(unit);
+    }
+  } else {
+    const amt = parseUnit(p.packaging) || parseUnit(p.title);
+    if (amt) {
+      unit = amt.unit;
+      amount = amt.amount;
+      pricePerUnit = eff / amount;
+      ppuLabel = labelForUnit(unit);
+    }
+  }
 
-     return {
-       store: "jumbo",
-       id: p.id,
-       name: p.title,
-       brand: p.title.split(" ")[0],
-       rawCategory: p.category,
-       unifiedCategory: unifyCategory("Jumbo", p.category),
-       price: p.price,
-       promoPrice: p.promoPrice,
-       promoUntil: p.promoUntil || null, // ✅ einddatum Jumbo
-       unit,
-       amount,
-       pricePerUnit: ppu,
-       image,
-       link: null,
-     };
-   }
-  
+  let image = null;
+  if (p.image) image = p.image.replace(/fit-in\/\d+x\d+\//, "fit-in/120x120/");
+
+  return {
+    store: "jumbo",
+    id: p.id,
+    name: p.title,
+    brand: p.brand || p.title.split(" ")[0],
+    rawCategory: p.category,
+    unifiedCategory: unifyCategory("JUMBO", p.category),
+    price,
+    promoPrice,
+    promoUntil: p.promoUntil || null,
+    unit,
+    amount,
+    pricePerUnit,
+    ppuLabel,
+    image,
+    link: null,
+  };
+}
 
 export function normalizeAll({ ah = [], dirk = [], jumbo = [] }) {
   return [
@@ -218,7 +372,7 @@ export function normalizeAll({ ah = [], dirk = [], jumbo = [] }) {
 }
 
 /* =======================
-   Fuzzy helpers
+   Fuzzy matching
    ======================= */
 function levenshtein(a, b) {
   const matrix = Array.from({ length: b.length + 1 }, (_, i) => [i]);
@@ -290,11 +444,9 @@ function scoreMatch(query, productName) {
 
   const qWords = tokenize(q);
   const nWords = tokenize(n);
-
   if (qWords.length === 0 || nWords.length === 0) return 0.0;
 
   const perWord = qWords.map((qw) => bestWordScore(qw, nWords));
-
   for (let i = 0; i < qWords.length; i++) {
     const need = dynThresh(qWords[i].length);
     if (perWord[i].score < need) return 0.0;
@@ -302,12 +454,9 @@ function scoreMatch(query, productName) {
 
   let avg =
     perWord.reduce((acc, x) => acc + x.score, 0) / Math.max(1, perWord.length);
-
   if (n.includes(q)) avg = Math.min(1, avg + 0.05);
-  if (perWord.some((x) => x.why.startsWith("prefix:"))) {
+  if (perWord.some((x) => x.why.startsWith("prefix")))
     avg = Math.min(1, avg + 0.03);
-  }
-
   return avg;
 }
 
@@ -337,7 +486,18 @@ const QUERY_FILTERS = {
     mustCats: ["frisdrank"],
   },
   melk: {
-    bannedWords: ["poeder", "tablet", "groente", "rijst", "brood", "brioches" , "biscuits" , "reep" ,"chocolade", "wafel"],
+    bannedWords: [
+      "poeder",
+      "tablet",
+      "groente",
+      "rijst",
+      "brood",
+      "brioches",
+      "biscuits",
+      "reep",
+      "chocolade",
+      "wafel",
+    ],
     mustCats: ["zuivel", "melk", "dairy"],
   },
   kaas: { bannedWords: ["schaaf", "rasp"], mustCats: ["zuivel", "kaas"] },
@@ -374,7 +534,7 @@ const QUERY_FILTERS = {
   taart: { bannedWords: ["taartvorm"], mustCats: ["bakery"] },
   koffie: { bannedWords: ["koffiemok"], mustCats: ["pantry"] },
   thee: { bannedWords: ["theedoek"], mustCats: ["pantry"] },
-  boter: { bannedWords: ["boterhamzak","worst"], mustCats: ["dairy"] },
+  boter: { bannedWords: ["boterhamzak", "worst"], mustCats: ["dairy"] },
   margarine: { bannedWords: [], mustCats: ["dairy"] },
   ei: { bannedWords: ["eivorm"], mustCats: ["dairy"] },
   saus: { bannedWords: ["schoensaus"], mustCats: ["pantry"] },
@@ -388,23 +548,17 @@ function semanticFilter(query, product) {
   const q = query.toLowerCase();
   const rules = QUERY_FILTERS[q];
   if (!rules) return 1;
-
   const name = product.name.toLowerCase();
   const cat = (
     product.rawCategory ||
     product.unifiedCategory ||
     ""
   ).toLowerCase();
-
   for (const bad of rules.bannedWords) {
     if (name.includes(bad)) return 0;
   }
-
-  if (rules.mustCats.some((c) => cat.includes(c))) {
-    return 1.1;
-  } else {
-    return 0.7;
-  }
+  if (rules.mustCats.some((c) => cat.includes(c))) return 1.1;
+  return 0.7;
 }
 
 /* =======================

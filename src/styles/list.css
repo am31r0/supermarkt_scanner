@@ -343,3 +343,45 @@ span.item-full-name {
     color: #ff6a00;
     /* roodachtig voor korting */
 }
+
+/* Acties onder totalen */
+.list-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+/* Rating */
+.rating-bar {
+    text-align: center;
+    margin: 24px 0 8px;
+}
+
+.rating-bar h3 {
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+}
+
+.emoji-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.emoji-btn {
+    font-size: 1.8rem;
+    line-height: 1;
+    padding: 6px 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: transform 0.15s, background-color 0.15s;
+}
+
+.emoji-btn:hover,
+.emoji-btn:focus {
+    transform: scale(1.08);
+    background: var(--muted, #f2f2f2);
+}

@@ -36,9 +36,13 @@
     color: var(--ink);
 }
 
-.settings .btn[aria-checked="true"] {
+.settings .btn[aria-checked="true"], .btn.tutorial-settings {
     background: var(--accent);
     color: #fff;
+}
+
+.btn.tutorial-settings{
+    font-size: 0.8rem;
 }
 
 
@@ -89,6 +93,10 @@ input:checked+.slider:before {
 }
 
 /* Accent swatches */
+.settings 
+.card:nth-child(2){
+    display: none;
+}
 .swatches {
     display: flex;
     gap: .5rem;
@@ -99,7 +107,7 @@ input:checked+.slider:before {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    border: 1px solid var(--border-line-muted);
+    border:none;
     cursor: pointer;
     outline: none;
 }

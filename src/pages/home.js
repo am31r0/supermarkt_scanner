@@ -3,7 +3,7 @@ export async function renderHomePage(mount) {
 
   mount.innerHTML = `
 
-    <div class="page-header header-logo" style=""><h1 class="logo">Schappie</h1><h3 style="font-size:0.6rem">Alpha Build 0.3.251002.2</h3></div>
+    <div class="page-header header-logo" style=""><h1 class="logo">Schappie</h1><h3 style="font-size:0.6rem">Alpha Build 0.3.251007.1</h3></div>
 
     <div class="hero">
       <section class="hero__content">

@@ -87,3 +87,50 @@ export function showToast(message) {
   }, 3000);
 }
 
+// src/lib/ui.js
+// =============================================
+// UI helper functies — navigatie, modals, loading, etc.
+// =============================================
+
+/**
+ * Toon of verberg de hoofd-navigatiebalk.
+ * @param {boolean} show - standaard true
+ */
+export function showNav(show = true) {
+  const nav = document.querySelector(".navbar");
+  if (!nav) return;
+  nav.style.display = show ? "" : "none";
+}
+
+/**
+ * Voeg of verwijder een 'no-scroll' toestand op <body>
+ * Handig voor fullscreen modals of tutorial overlays
+ */
+export function toggleBodyScroll(lock = true) {
+  document.body.style.overflow = lock ? "hidden" : "";
+}
+
+/**
+ * Toon een tijdelijke toast melding (bijv. "Product toegevoegd")
+ * @param {string} message - tekst van de melding
+ * @param {number} duration - tijd in ms (standaard 2000)
+ */
+
+/**
+ * Zet een eenvoudige loading overlay aan of uit
+ * @param {boolean} show
+ */
+export function showLoading(show = true) {
+  let overlay = document.querySelector(".loading-overlay");
+  if (show) {
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.className = "loading-overlay";
+      overlay.innerHTML = `<div class="spinner"></div>`;
+      document.body.appendChild(overlay);
+    }
+  } else if (overlay) {
+    overlay.remove();
+  }
+}
+

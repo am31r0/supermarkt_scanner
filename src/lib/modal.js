@@ -1,6 +1,7 @@
 
 // src/lib/modal.js
 import { escHtml, escAttr, formatPrice } from "./utils.js";
+import { registerClick } from "../lib/adSystem.js";
 
 export function closeAllModals() {
   document.querySelectorAll(".search-modal").forEach((el) => el.remove());
@@ -297,6 +298,7 @@ export function showSearchModal(results, onSelect) {
         );
         if (chosen) onSelect(chosen);
         closeModal();
+        registerClick();
       });
     });
   }
@@ -307,6 +309,7 @@ export function showSearchModal(results, onSelect) {
     modal.remove();
     document.removeEventListener("keydown", onKeyDown);
     document.removeEventListener("pointerdown", onDocPointerDown, true);
+    registerClick();
   }
   function onKeyDown(e) {
     if (e.key === "Escape") closeModal();
@@ -333,11 +336,13 @@ export function showSearchModal(results, onSelect) {
     filterMode = "";
     extraBtns.forEach((b) => b.classList.remove("active"));
     renderResults();
+    registerClick();
   });
 
   catSelect.addEventListener("change", (e) => {
     currentCat = e.target.value || "";
     renderResults();
+    registerClick();
   });
 
   extraBtns.forEach((btn) => {
@@ -351,6 +356,7 @@ export function showSearchModal(results, onSelect) {
         btn.classList.add("active");
       }
       renderResults();
+      registerClick();
     });
   });
 }

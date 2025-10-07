@@ -1,0 +1,174 @@
+/* ===========================
+   PRO PAGE — Geschiedeniskaart
+   =========================== */
+
+.pro {
+    max-width: 500px;
+    margin: 0 auto;
+}
+.pro .card{
+    max-width:90%;
+    margin: auto;
+}
+
+.history-card-block {
+    display: block;
+    background: var(--card-bg, #fff);
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    padding: 1.2rem 1.4rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    color: var(--text-color, #111);
+}
+
+.card-header h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.8rem;
+    color: var(--text-color, #111);
+}
+
+.history-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+/* ===========================
+   INDIVIDUELE HISTORIE RIJEN
+   =========================== */
+
+.history-row {
+    display: flex;
+    align-content: center;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-start;
+    background: #fafafa;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    transition: background 0.2s ease;
+}
+
+.history-row:hover {
+    background: #f0f0f0;
+}
+
+.history-row-main {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.history-row-main strong {
+    font-weight: 600;
+}
+
+.history-row-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.history-row .btn {
+    margin-top:0.5rem;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
+}
+
+.history-row .btn.small.danger {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.history-row .btn.small.view-btn {
+    color: #fff;
+}
+
+.rating {
+    color: #f5b301;
+    margin-left: 0.3rem;
+}
+
+/* ===========================
+   LEGE-STATUS
+   =========================== */
+
+.empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* ===========================
+   MODAL
+   =========================== */
+
+.history-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
+}
+
+.history-modal .modal-inner {
+    background: #fff;
+    border-radius: 16px;
+    padding: 1.6rem;
+    width: 90%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.history-modal .close-btn {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.8rem;
+    font-size: 1.5rem;
+    background: none;
+    border: none;
+    color: #333;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.history-modal .close-btn:hover {
+    opacity: 0.6;
+}
+
+.history-modal h3 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.history-modal .history-items {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.2rem 0;
+}
+
+.history-modal .history-items li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-size: 0.9rem;
+}
+
+.history-modal .store-label {
+    display: inline-block;
+    min-width: 32px;
+    padding: 0.2rem 0.5rem;
+    border-radius:99px;
+}

@@ -1,7 +1,7 @@
 /*AddItem toast popup*/
 .toast-container {
     position: fixed;
-    bottom: 100px;
+    top: 20px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 9999;
@@ -21,7 +21,8 @@
     transform: translateY(20px);
     transition: opacity 0.3s, transform 0.3s;
     box-shadow: 0 0 10px #00000066;
-    width:min(300px,80vw);
+    width:max-content;
+    text-align: center;
 }
 
 .toast.visible {

@@ -7,17 +7,12 @@ import { normalizeAll, searchProducts } from "../lib/matching.js";
 import { showSearchModal } from "../lib/modal.js";
 import { escHtml, uid, formatPrice, showToast } from "../lib/utils.js";
 import { renderStoreSelector } from "../lib/storeSelector.js";
+import { saveToHistory } from "../lib/history.js";
 import { getEnabledStores } from "../lib/settings.js";
-import {
-  CATEGORY_ORDER,
-  CATEGORY_LABELS,
-  STORE_COLORS,
-  STORE_LABEL,
-} from "../lib/constants.js";
+import { CATEGORY_ORDER, STORE_COLORS, STORE_LABEL } from "../lib/constants.js";
 
 const LS_KEY = "sms_list";
 const DEBUG = false;
-
 
 const STORE_ORDER = ["ah", "jumbo", "dirk", "other"];
 
@@ -78,7 +73,7 @@ export async function renderListPage(mount) {
     </section>
   `;
 
-  const listPage = mount.querySelector(".list-page"); // ✅ eerst pakken
+  const listPage = mount.querySelector(".list-page");
   const listContainer = mount.querySelector(".list-items");
   const inputRows = mount.querySelector(".input-rows");
   const catSection = mount.querySelector(".categories-section");
@@ -145,7 +140,6 @@ export async function renderListPage(mount) {
     saveList(state);
     renderCommitted();
     showToast(`Toegevoegd aan Mijn Lijst`);
-
   }
 
   function incItemQtyById(id, delta = 1) {
@@ -172,6 +166,69 @@ export async function renderListPage(mount) {
   }
 
   // -------------------------
+  // History & Rating helpers
+  // -------------------------
+  function clearListLocal() {
+    state.length = 0;
+    saveList(state);
+    renderCommitted();
+    showToast("Lijst is geleegd");
+  }
+
+  function renderRatingPrompt() {
+    listContainer.innerHTML = `
+      <div class="rating-bar">
+        <h3>Hoe was je ervaring met deze lijst?</h3>
+        <div class="emoji-row">
+          <button class="emoji-btn" data-score="1" aria-label="Zeer slecht">😡</button>
+          <button class="emoji-btn" data-score="2" aria-label="Slecht">😕</button>
+          <button class="emoji-btn" data-score="3" aria-label="Gemiddeld">😐</button>
+          <button class="emoji-btn" data-score="4" aria-label="Goed">🙂</button>
+          <button class="emoji-btn" data-score="5" aria-label="Uitstekend">🤩</button>
+        </div>
+      </div>
+    `;
+
+    listContainer.querySelectorAll(".emoji-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const score = Number(btn.dataset.score);
+        const history = JSON.parse(localStorage.getItem("sms_history") || "[]");
+        if (history.length) {
+          history[0].rating = score;
+          localStorage.setItem("sms_history", JSON.stringify(history));
+        }
+        showToast("Bedankt voor je feedback!");
+        renderCommitted();
+      });
+    });
+  }
+
+  function completeListFlow(itemsToSave) {
+    if (!itemsToSave || !itemsToSave.length) {
+      showToast("Lijst is leeg");
+      return;
+    }
+
+    console.log("💾 Opslaan in geschiedenis:", itemsToSave);
+
+    // 1) Eerst geschiedenis opslaan
+    saveToHistory([...itemsToSave]); // maak kopie voor zekerheid
+
+    // 2) Even wachten zodat localStorage klaar is
+    setTimeout(() => {
+      // 3) Lijst leegmaken
+      state.length = 0;
+      saveList(state);
+
+      // 4) Rating tonen
+      renderRatingPrompt();
+
+      // 5) Feedback
+      showToast("Lijst opgeslagen in geschiedenis");
+    }, 100);
+  }
+  
+  // -------------------------
   // Render committed list
   // -------------------------
   function renderCommitted() {
@@ -181,7 +238,7 @@ export async function renderListPage(mount) {
     const enabled = normalizeEnabledMap(enabledRaw);
 
     const grouped = {};
-    const visibleItems = []; // ✅ alleen enabled stores
+    const visibleItems = [];
 
     for (const item of state) {
       const storeKey = normalizeStoreKey(item.store);
@@ -289,10 +346,23 @@ export async function renderListPage(mount) {
       if (ul.children.length) listContainer.appendChild(wrapper);
     }
 
-    // ✅ totals alleen voor zichtbare items
     if (visibleItems.length) {
       renderTotals(listContainer, visibleItems);
+
+      const actions = document.createElement("div");
+      actions.className = "list-actions";
+      actions.innerHTML = `
+        <button class="btn small success done-btn">✅ Klaar</button>
+      `;
+      listContainer.appendChild(actions);
+
+      const doneBtn = actions.querySelector(".done-btn");
+      doneBtn.addEventListener("click", () => {
+        console.log("✅ Klaar clicked");
+        completeListFlow(visibleItems);
+      });
     }
+    
   }
 
   // -------------------------
@@ -420,27 +490,6 @@ export async function renderListPage(mount) {
     };
 
     inputRows.prepend(row);
-
-    input.addEventListener("focus", () => {
-      // Smooth scroll input net boven toetsenbord
-      row.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-
-      // Extra marge (bijv. 30px)
-      const rect = row.getBoundingClientRect();
-      const absoluteY = window.scrollY + rect.top;
-      window.scrollTo({
-        top: absoluteY - 50,
-        behavior: "smooth",
-      });
-
-      // Toon (opnieuw) suggesties als er al tekst staat
-      if (input.value.trim()) {
-        renderSuggestions(input.value.trim());
-      }
-    });
   }
 
   // -------------------------

@@ -8,6 +8,9 @@ import {
   setAccessibilityFont,
 } from "../lib/settings.js";
 
+import { renderTutorialPage } from "../pages/tutorial.js"; // nieuw
+import { markTutorialShown } from "../lib/tutorialPopup.js"; // optioneel, om datum te resetten
+
 export function renderSettingsPage(mount) {
   const s = getSettings();
 
@@ -66,7 +69,14 @@ export function renderSettingsPage(mount) {
           }">Dyslexic</button>
         </div>
       </div>
-    </section>
+
+
+      <div class="card">
+        <h2>Tutorial</h2>
+        <a class="btn small tutorial-settings" href="#/tutorial">Bekijk tutorial opnieuw</a>
+      </div>
+
+      </section>
   `;
 
   // Thema

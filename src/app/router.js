@@ -1,4 +1,5 @@
 // Animated hash router met default route + active nav
+
 export function createRouter({ routes, mountEl, defaultHash = "#/home" }) {
   let first = true;
   const reduceMotion =
@@ -81,4 +82,13 @@ export function createRouter({ routes, mountEl, defaultHash = "#/home" }) {
   }
 
   return { start, navigate, destroy };
+
+
+  
+
+  // Bij opstart: toon tutorial 1x per dag
+  if (shouldShowTutorialToday()) {
+    window.location.hash = "#/tutorial";
+  }
 }
+

@@ -128,3 +128,7 @@ a:hover {
     letter-spacing: 0.03rem;
     text-align: center;
 }
+
+img{
+    -webkit-user-drag: none;
+}
