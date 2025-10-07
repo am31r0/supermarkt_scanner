@@ -23,9 +23,9 @@ export function renderTutorialPage(mount) {
             <h2>Zo werkt het</h2>
             <p>
               <br>Selecteer jouw winkels<br>
-              <img src="../public/images/tutorial_storeSelector.webp" class="tutorial-img tutorial-selector">
+              <img src="./public/images/tutorial_storeSelector.webp" class="tutorial-img tutorial-selector">
               <br>Kies uit de lijst<br>of typ jouw product in de zoekbalk<br>
-              <img src="../public/images/tutorial_zoekbalk.webp" class="tutorial-img tutorial-zoekbalk">
+              <img src="./public/images/tutorial_zoekbalk.webp" class="tutorial-img tutorial-zoekbalk">
               <br>
             </p>
             <button class="tutorial-next btn small hidden">Volgende →</button>
@@ -35,7 +35,7 @@ export function renderTutorialPage(mount) {
             <h2>Zo werkt het</h2>
             <p>
               Gebruik filters<br>om jouw producten sneller te vinden<br>
-              <img src="../public/images/tutorial_modalfilter.webp" class="tutorial-img tutorial-modalfilter">
+              <img src="./public/images/tutorial_modalfilter.webp" class="tutorial-img tutorial-modalfilter">
             </p>
             <button class="tutorial-next btn small hidden">Volgende →</button>
           </div>
