@@ -3,10 +3,12 @@ import {
   loadHistory,
   deleteHistoryItem,
   renderHistoryModal,
+  refreshItemsWithCurrentPrices, // exporteren we vanuit history.js
 } from "../lib/history.js";
+import { showToast } from "../lib/utils.js";
 
 export function renderProPage(mount) {
-  console.log("🔵 renderProPage start"); // ← check dat dit logt in console
+  console.log("🔵 renderProPage start");
 
   // Bouw basispagina
   mount.innerHTML = `
@@ -44,7 +46,7 @@ export function renderProPage(mount) {
       container.innerHTML = `
         <p class="empty" style="opacity:0.7;">
           Nog geen opgeslagen lijsten.<br>
-          <small>Ga naar <strong>Mijn Lijst</strong> en klik op “✅ Klaar”.</small>
+          <small>Ga naar <strong>Mijn Lijst</strong> en klik op “Klaar ✓”.</small>
         </p>
       `;
       return;
@@ -56,10 +58,6 @@ export function renderProPage(mount) {
         month: "2-digit",
         year: "numeric",
       });
-      const rating = Number(entry.rating) || 0;
-      const ratingHtml = rating
-        ? `<span class="rating">${"⭐".repeat(rating)}</span>`
-        : `<span class="no-rating" style="opacity:0.6;">–</span>`;
 
       const row = document.createElement("div");
       row.className = "history-row";
@@ -67,13 +65,26 @@ export function renderProPage(mount) {
         <div class="history-row-main">
           <strong>${dateStr}</strong>
           <span class="muted"> • ${entry.items?.length ?? 0} producten</span>
-          ${ratingHtml}
         </div>
         <div class="history-row-actions">
+          <button class="btn small reuse-btn" style="background:#44aaff" >Hergebruiken</button>
           <button class="btn small view-btn">Bekijken</button>
           <button class="btn small danger del-btn">Verwijderen</button>
         </div>
       `;
+
+      // --- hergebruiken-knop
+      row.querySelector(".reuse-btn").addEventListener("click", async () => {
+        try {
+          const fresh = await refreshItemsWithCurrentPrices(entry.items);
+          localStorage.setItem("sms_list", JSON.stringify(fresh));
+          showTopBanner("✅ Lijst hergebruikt met actuele prijzen");
+          window.dispatchEvent(new Event("storage"));
+        } catch (err) {
+          console.error("❌ Fout bij hergebruiken:", err);
+          showToast("Kon prijzen niet vernieuwen");
+        }
+      });
 
       // --- bekijkknop
       row.querySelector(".view-btn").addEventListener("click", () => {
@@ -83,16 +94,13 @@ export function renderProPage(mount) {
       });
 
       // --- verwijderknop
-      // verwijder-knop (met directe refresh)
       row.querySelector(".del-btn").addEventListener("click", () => {
         console.log("🗑️ Delete clicked for:", entry.id);
-
-
         try {
-          deleteHistoryItem(String(entry.id)); // forceer string-id
-          const updated = loadHistory(); // opnieuw laden
+          deleteHistoryItem(String(entry.id));
+          const updated = loadHistory();
           console.log("📦 Na verwijderen:", updated);
-          renderList(); // hertekenen
+          renderList();
         } catch (err) {
           console.error("❌ Fout bij verwijderen:", err);
         }
@@ -104,4 +112,33 @@ export function renderProPage(mount) {
 
   // Eerste render
   renderList();
+}
+
+// -------------------------
+// Groene bevestigingsbanner bovenaan
+// -------------------------
+function showTopBanner(message) {
+  const banner = document.createElement("div");
+  banner.textContent = message;
+  banner.className = "top-banner";
+  Object.assign(banner.style, {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "100%",
+    background: "#2ecc71",
+    color: "#fff",
+    padding: "10px",
+    textAlign: "center",
+    fontWeight: "600",
+    zIndex: "9999",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+    transition: "transform 0.3s ease",
+  });
+
+  document.body.appendChild(banner);
+  setTimeout(() => {
+    banner.style.transform = "translateY(-100%)";
+    setTimeout(() => banner.remove(), 300);
+  }, 3000);
 }

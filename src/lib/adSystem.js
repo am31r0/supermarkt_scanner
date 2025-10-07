@@ -1,10 +1,9 @@
 // src/lib/adSystem.js
+import { showNav } from "./utils.js"; // zelfde als in tutorial.js
 
-import { showNav } from "./utils.js"; // <-- belangrijk: zelfde als in tutorial.js
-
-const MIN_CLICKS = 6; // aantal interacties voordat advertentie mogelijk is
-const MIN_INTERVAL = 1 * 60 * 1000; // 3 minuten
-const AD_DISPLAY_TIME = 5000; // 5 seconden zichtbaar
+const MIN_CLICKS = 7; // aantal interacties voordat advertentie mogelijk is
+const MIN_INTERVAL = 1 * 60 * 1000; // 1 minuut
+const AD_DISPLAY_TIME = 4500; // 5 seconden zichtbaar
 const DEV_MODE = true; // zet op false in productie
 
 function getClicks() {
@@ -28,7 +27,6 @@ export function registerClick() {
   const now = Date.now();
   const sinceLast = now - getLastAdTime();
 
-  // Toon advertentie alleen als beide voorwaarden voldaan zijn
   if (clicks >= MIN_CLICKS && sinceLast >= MIN_INTERVAL) {
     showAdOverlay();
     setLastAdTime(now);
@@ -39,7 +37,6 @@ export function registerClick() {
 export function showAdOverlay() {
   if (document.querySelector(".ad-overlay")) return;
 
-  // Nav verbergen
   showNav(false);
 
   const overlay = document.createElement("div");
@@ -48,19 +45,31 @@ export function showAdOverlay() {
     <div class="ad-box">
       <h2>Hier komt een advertentie</h2>
       <p>Zo kunnen we onze basisfuncties gratis houden voor iedereen!</p>
-      <button class="ad-close" disabled>&times;</button>
-         </div>
+      <div class="ad-countdown">5</div>
+      <button class="ad-close" disabled style="display:none;">&times;</button>
+    </div>
   `;
-
   document.body.appendChild(overlay);
 
   const closeBtn = overlay.querySelector(".ad-close");
+  const countdownEl = overlay.querySelector(".ad-countdown");
 
-  // Activeer sluitknop na 5 seconden
-  const timer = setTimeout(() => {
-    closeBtn.disabled = false;
-    closeBtn.classList.add("active");
-  }, AD_DISPLAY_TIME);
+  // Countdown van 5 naar 0
+  let remaining = 5;
+  countdownEl.textContent = remaining;
+
+  const interval = setInterval(() => {
+    remaining--;
+    if (remaining > 0) {
+      countdownEl.textContent = remaining;
+    } else {
+      clearInterval(interval);
+      countdownEl.remove();
+      closeBtn.style.display = "block";
+      closeBtn.disabled = false;
+      closeBtn.classList.add("active");
+    }
+  }, 1000);
 
   // Developer shortcut
   function handleKey(e) {
@@ -72,11 +81,10 @@ export function showAdOverlay() {
   document.addEventListener("keydown", handleKey);
   closeBtn.addEventListener("click", cleanup);
 
-  // Cleanup (sluiten + nav herstellen)
   function cleanup() {
     overlay.remove();
-    clearTimeout(timer);
+    clearInterval(interval);
     document.removeEventListener("keydown", handleKey);
-    showNav(true); // nav weer tonen
+    showNav(true);
   }
 }

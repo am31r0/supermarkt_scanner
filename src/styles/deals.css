@@ -167,3 +167,24 @@ font-size: 0.6rem;
     /* roodachtig bij promo */
     font-weight: 500;
 }
+
+.category-nav {
+    display: flex;
+    flex-wrap: wrap;
+    position: sticky;
+    top:0;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #ddd;
+    background: #fafafa;
+    top: 0;
+    z-index: 5;
+}
+
+
+
+.cat-nav-inner {
+    display: flex;
+    gap:0.4rem;
+    flex-wrap: wrap;
+}

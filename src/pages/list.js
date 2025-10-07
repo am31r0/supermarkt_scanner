@@ -204,29 +204,30 @@ export async function renderListPage(mount) {
   }
 
   function completeListFlow(itemsToSave) {
-    if (!itemsToSave || !itemsToSave.length) {
-      showToast("Lijst is leeg");
+    // 1️⃣ Filter alleen de afgevinkte producten
+    const doneItems = (itemsToSave || []).filter((i) => i.done === true);
+
+    if (!doneItems.length) {
+      showToast("Geen afgestreepte producten om op te slaan");
       return;
     }
 
-    console.log("💾 Opslaan in geschiedenis:", itemsToSave);
+    // 2️⃣ Sla alleen die items op in de geschiedenis
+    saveToHistory(doneItems);
 
-    // 1) Eerst geschiedenis opslaan
-    saveToHistory([...itemsToSave]); // maak kopie voor zekerheid
+    // 3️⃣ Verwijder alleen de afgestreepte producten uit de huidige lijst
+    const remaining = state.filter((i) => !i.done);
+    saveList(remaining);
+    state.splice(0, state.length, ...remaining); // vervang state-inhoud
 
-    // 2) Even wachten zodat localStorage klaar is
-    setTimeout(() => {
-      // 3) Lijst leegmaken
-      state.length = 0;
-      saveList(state);
+    // 4️⃣ Toon de rating prompt (en laat niet-afgestreepte items zichtbaar)
+    renderRatingPrompt();
 
-      // 4) Rating tonen
-      renderRatingPrompt();
-
-      // 5) Feedback
-      showToast("Lijst opgeslagen in geschiedenis");
-    }, 100);
+    // 5️⃣ Feedback melding
+    showToast(`${doneItems.length} producten opgeslagen in geschiedenis`);
   }
+  
+  
   
   // -------------------------
   // Render committed list
@@ -352,7 +353,7 @@ export async function renderListPage(mount) {
       const actions = document.createElement("div");
       actions.className = "list-actions";
       actions.innerHTML = `
-        <button class="btn small success done-btn">✅ Klaar</button>
+        <button class="btn small success done-btn">Klaar ✓</button>
       `;
       listContainer.appendChild(actions);
 

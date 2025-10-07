@@ -179,6 +179,7 @@ function showDealsModal(store, products) {
         } aanbiedingen</h2>
         <button class="search-modal-close" aria-label="Sluiten">✕</button> 
       </div>
+      <div class="category-nav"></div>
       <div class="search-results-deals"></div>
     </div>
   `;
@@ -188,31 +189,39 @@ function showDealsModal(store, products) {
   const backdrop = modal.querySelector(".search-modal-backdrop");
   const btnClose = modal.querySelector(".search-modal-close");
   const resultsBox = modal.querySelector(".search-results-deals");
+  const navBox = modal.querySelector(".category-nav");
 
-  // 💡 Belangrijk: voorkom dat een bestaande flex/grid op .search-results roet in ’t eten gooit
-  resultsBox.style.display = "block"; // hard reset
-  resultsBox.style.flexWrap = "unset"; // just in case
+  resultsBox.style.display = "block";
+  resultsBox.style.flexWrap = "unset";
 
-  // groepeer per categorie
+  // --- groepeer per categorie ---
   const grouped = {};
   for (const p of products) {
     const cat = p.unifiedCategory || p.rawCategory || "other";
     (grouped[cat] ||= []).push(p);
   }
 
-  // render: titel bovenaan, daaronder 2-koloms grid, per categorie onder elkaar
+  // --- maak de navigatieknoppen ---
+  let navHtml = "";
+  for (const cat of CATEGORY_ORDER) {
+    if (!grouped[cat]) continue;
+    const label = CATEGORY_LABELS[cat] || cat;
+    navHtml += `<button class="cat-nav-btn filter-btn" data-target="cat-${cat}">${label}</button>`;
+  }
+  navBox.innerHTML = `<div class="cat-nav-inner">${navHtml}</div>`;
+
+  // --- render categorieblokken ---
   let html = "";
   for (const cat of CATEGORY_ORDER) {
     const list = grouped[cat];
     if (!list) continue;
 
     html += `
-      <div class="category-block">
+      <div class="category-block" id="cat-${cat}">
         <h3 class="category-header">${CATEGORY_LABELS[cat] || cat}</h3>
         <div class="category-grid">
           ${list
             .map((p) => {
-              // zelfde image rule als zoekmodal (Dirk width)
               const img = p.image
                 ? p.store === "dirk" && !p.image.includes("?width=")
                   ? `${p.image}?width=190`
@@ -228,7 +237,7 @@ function showDealsModal(store, products) {
   }
   resultsBox.innerHTML = html;
 
-  // events
+  // --- click events op add-buttons ---
   resultsBox.querySelectorAll(".deal-card").forEach((card) => {
     card.addEventListener("click", (e) => {
       if (e.target.closest(".add-btn")) return;
@@ -250,6 +259,18 @@ function showDealsModal(store, products) {
     });
   });
 
+  // --- smooth scroll functionaliteit ---
+  navBox.querySelectorAll(".cat-nav-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const targetId = e.target.dataset.target;
+      const targetEl = resultsBox.querySelector(`#${targetId}`);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+
+  // --- sluitlogica ---
   function closeModal() {
     modal.remove();
     document.removeEventListener("keydown", onKeyDown);
@@ -268,6 +289,7 @@ function showDealsModal(store, products) {
   document.addEventListener("keydown", onKeyDown);
   document.addEventListener("pointerdown", onDocPointerDown, true);
 }
+
 
 
 // -------------------------
