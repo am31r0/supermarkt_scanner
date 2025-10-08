@@ -353,16 +353,76 @@ export async function renderListPage(mount) {
       const actions = document.createElement("div");
       actions.className = "list-actions";
       actions.innerHTML = `
-        <button class="btn small success done-btn">Klaar ✓</button>
+        <button class="btn small danger clear-btn">Lijst legen</button>
+        <button class="btn small success done-btn pro-gradient">Klaar ✓ (Pro-functie)</button>
       `;
       listContainer.appendChild(actions);
 
       const doneBtn = actions.querySelector(".done-btn");
+      const clearBtn = actions.querySelector(".clear-btn");
+
+      // ✅ Klaar
       doneBtn.addEventListener("click", () => {
         console.log("✅ Klaar clicked");
         completeListFlow(visibleItems);
       });
+
+      // 🗑️ Lijst legen → toon popup
+      clearBtn.addEventListener("click", () => {
+        // voorkom dubbele popup
+        if (document.querySelector(".confirm-clear-overlay")) return;
+
+        const overlay = document.createElement("div");
+        overlay.className = "confirm-clear-overlay";
+        Object.assign(overlay.style, {
+          position: "fixed",
+          top: "0",
+          left: "0",
+          width: "100%",
+          height: "100%",
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: "998",
+          backdropFilter: "blur(5px)",
+        });
+
+        const box = document.createElement("div");
+        box.className = "confirm-clear-box card";
+        Object.assign(box.style, {
+          background: "#fff",
+          padding: "1.5rem",
+          borderRadius: "12px",
+          textAlign: "center",
+          boxShadow: "0 5px 20px rgba(0,0,0,0.3)",
+          maxWidth: "90%",
+          width: "320px",
+        });
+
+        box.innerHTML = `
+          <h3 style="margin-bottom:0.5rem;">Lijst legen</h3>
+          <p style="margin-bottom:1.5rem;font-size:0.8rem;">Weet je zeker dat je jouw lijst wil legen?</p>
+          <div style="display:flex;gap:0.5rem;justify-content:center;">
+            <button class="btn small danger yes-btn">Ja, leegmaken</button>
+            <button class="btn small cancel-btn">Annuleren</button>
+          </div>
+        `;
+
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        // acties
+        box.querySelector(".yes-btn").addEventListener("click", () => {
+          clearListLocal();
+          overlay.remove();
+        });
+        box.querySelector(".cancel-btn").addEventListener("click", () => {
+          overlay.remove();
+        });
+      });
     }
+
     
   }
 

@@ -6,6 +6,11 @@
     max-width: 500px;
     margin: 0 auto;
 }
+
+.pro-gradient{
+    background: linear-gradient(190deg, #FC466B 0%, #3F5EFB 100%)!important;
+}
+
 .pro .card{
     max-width:90%;
     margin: auto;

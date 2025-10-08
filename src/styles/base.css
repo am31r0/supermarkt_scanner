@@ -13,6 +13,7 @@
     --border-line-muted: #444444;
     --font-size-factor:0.9;
     --font-family-accessibility: Inter;
+    --danger-btn: linear-gradient(to bottom, red, #b00000) !important;
 }
 
 html[data-theme="light"] {
@@ -23,6 +24,7 @@ html[data-theme="light"] {
     --ink: #161616;
     --muted: #5a5a5a;
     --border-line-muted: #e5e5e5;
+    --danger-btn: linear-gradient(to bottom, red, #b00000) !important;
     /* accent blijft overschrijfbaar; komt uit settings */
 }
 
@@ -131,4 +133,8 @@ a:hover {
 
 img{
     -webkit-user-drag: none;
+}
+
+.danger{
+    background:var(--danger-btn)!important;
 }

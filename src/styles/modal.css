@@ -65,7 +65,7 @@
     grid-template-columns: repeat(2, 48%);
     gap: 5px;
     justify-content: flex-end;
-    row-gap: 10px;
+    row-gap: 7px;
     flex-shrink: 1;
     width: 100%;
     margin-top: 10px;

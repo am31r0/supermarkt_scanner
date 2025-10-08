@@ -46,3 +46,8 @@ document.addEventListener("click", (e) => {
   }
 });
 
+//anti-hover voor mobile
+document.addEventListener("touchend", () => {
+  document.activeElement?.blur();
+});
+

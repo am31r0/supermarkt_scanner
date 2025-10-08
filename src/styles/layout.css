@@ -48,6 +48,10 @@
     color: #fff;
 }
 
+.nav-link.active.danger svg {
+    background: var(--danger-btn);
+}
+
 .nav-link.active:hover {
     color: var(--ink);
 }
