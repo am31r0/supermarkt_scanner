@@ -132,12 +132,12 @@
 
 .category-modal .modal-content {
     position: sticky;
-    top: 10vh;
+    top: 5vh;
     left: 50%;
     transform: translateX(-2.5%);
     width: min(480px, calc(100% - 24px));
     max-width: 480px;
-    max-height: 80dvh;
+    max-height: calc(95dvh - 100px);
     overflow: auto;
     background: var(--surface);
     border: 1px solid rgba(255, 255, 255, 0.12);

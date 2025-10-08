@@ -47,3 +47,71 @@ section.hero__content{
 
 .nav-link svg{
 }
+
+
+.home-deals {
+    max-width:95%;
+    margin:auto;
+    margin-top: 0.6rem;
+}
+
+.home-deals-title {
+    margin-bottom: 0.8rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.home-deals-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.3rem;
+}
+
+.home-deal-card {
+    background: var(--card-bg, #fff);
+    border-radius: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    padding: 0.3rem!important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.home-deal-card:hover {
+    transform: translateY(-3px);
+}
+
+.home-deal-img {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    margin-bottom: 0.5rem;
+}
+
+.home-deal-info {
+    width: 100%;
+}
+
+
+.home-deal-name {
+    font-size: 0.6rem!important;
+    font-weight: 500;
+    margin: 0.3rem 0;
+}
+
+.home-deal-prices {
+    font-size: 0.9rem;
+}
+
+.home-old-price {
+    text-decoration: line-through;
+    color: #888;
+    margin-right: 0.4rem;
+}
+
+.home-new-price {
+    font-weight: 700;
+    color: #1a8b00;
+}

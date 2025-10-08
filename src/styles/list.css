@@ -319,11 +319,11 @@ span.item-full-name {
 
 .totals-bar {
     position:sticky;
-    bottom:100px;
+    bottom:90px;
     border: 1px solid #aaaaaa33;
     border-radius: 10px;
     padding: 10px;
-    margin-top: 10px;
+    margin-top: 0px;
     font-family: inherit;
     background: var(--mini-surface);
 }

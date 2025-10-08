@@ -89,7 +89,7 @@ const PRODUCE = [
     tags: ["fruit", "appel"],
   },
   {
-    name: "Appel Jonagold",
+    name: "Appels",
     cat: "produce",
     units: ["stuk", "per kg"],
     packs: ["1 kg", "6 st"],
@@ -213,9 +213,87 @@ const PRODUCE = [
   { name: "Koriander vers", cat: "produce", units: ["bos"] },
   { name: "Peterselie vers", cat: "produce", units: ["bos"] },
   { name: "Basilicum vers", cat: "produce", units: ["potje", "bos"] },
+
+  // extra produce
+  {
+    name: "Aardappel vastkokend",
+    cat: "produce",
+    units: ["zak", "per kg"],
+    packs: ["2.5 kg", "5 kg"],
+  },
+  {
+    name: "Aardappel kruimig",
+    cat: "produce",
+    units: ["zak", "per kg"],
+    packs: ["2.5 kg", "5 kg"],
+  },
+  {
+    name: "Zoete aardappel",
+    cat: "produce",
+    units: ["stuk", "zak"],
+    packs: ["1 kg"],
+  },
+  { name: "Pastinaak", cat: "produce", units: ["stuk", "per kg"] },
+  { name: "Knolselderij", cat: "produce", units: ["stuk", "per kg"] },
+  { name: "Bleekselderij", cat: "produce", units: ["stronk", "bundel"] },
+  {
+    name: "Witlof",
+    cat: "produce",
+    units: ["stronk", "pak"],
+    packs: ["3 st", "6 st"],
+  },
+  { name: "Rode kool", cat: "produce", units: ["stuk"] },
+  { name: "Witte kool", cat: "produce", units: ["stuk"] },
+  { name: "Spitskool", cat: "produce", units: ["stuk"] },
+  { name: "Savooiekool", cat: "produce", units: ["stuk"] },
+  { name: "Rode biet", cat: "produce", units: ["stuk", "bos", "per kg"] },
+  { name: "Wortelpeterselie", cat: "produce", units: ["stuk", "bos"] },
+  { name: "Knolraap", cat: "produce", units: ["stuk"] },
+  { name: "Paksoi", cat: "produce", units: ["stronk"] },
+  { name: "Chicorei", cat: "produce", units: ["stronk"] },
+  {
+    name: "Rucola mini",
+    cat: "produce",
+    units: ["zak"],
+    packs: ["50 g", "100 g"],
+  },
+  {
+    name: "Babysla mix",
+    cat: "produce",
+    units: ["zak"],
+    packs: ["100 g", "150 g"],
+  },
+  { name: "Koolrabi", cat: "produce", units: ["stuk"] },
+  { name: "Courgette geel", cat: "produce", units: ["stuk"] },
+  { name: "Pastasaus tomaat & basilicum", cat: "produce", units: ["stuk"] },
+  { name: "Meloen galia", cat: "produce", units: ["stuk"] },
+  { name: "Meloen cantaloupe", cat: "produce", units: ["stuk"] },
+  { name: "Mango ataulfo", cat: "produce", units: ["stuk"] },
+  { name: "Papaya", cat: "produce", units: ["stuk"] },
+  { name: "Kaki", cat: "produce", units: ["stuk"] },
+  { name: "Lychee", cat: "produce", units: ["zak"], packs: ["250 g"] },
+  { name: "Physalis", cat: "produce", units: ["doos"], packs: ["125 g"] },
+  { name: "Sterfruit", cat: "produce", units: ["stuk"] },
+  { name: "Granaatappel", cat: "produce", units: ["stuk"] },
+  { name: "Kiwibes", cat: "produce", units: ["doos"], packs: ["125 g"] },
+  { name: "Guave", cat: "produce", units: ["stuk"] },
+  { name: "Passievrucht", cat: "produce", units: ["stuk"] },
+  { name: "Rabarber", cat: "produce", units: ["stengel", "per kg"] },
+  { name: "Grapefruit", cat: "produce", units: ["stuk", "per kg"] },
+  {
+    name: "Clementine",
+    cat: "produce",
+    units: ["net"],
+    packs: ["1 kg", "2 kg"],
+  },
+  {
+    name: "Snoeptomaat",
+    cat: "produce",
+    units: ["bak"],
+    packs: ["250 g", "500 g"],
+  },
 ];
 
-// Zuivel & Eieren
 const DAIRY = [
   {
     name: "Halfvolle melk",
@@ -306,9 +384,75 @@ const DAIRY = [
     units: ["doos"],
     packs: ["6 st", "10 st"],
   },
+
+  // extra dairy
+  { name: "Karnemelk", cat: "dairy", units: ["pak"], packs: ["1L"] },
+  {
+    name: "Yoghurt vruchten",
+    cat: "dairy",
+    units: ["beker"],
+    packs: ["500 g"],
+  },
+  { name: "Yoghurt perzik", cat: "dairy", units: ["pak"], packs: ["1L"] },
+  { name: "Yoghurt aardbei", cat: "dairy", units: ["pak"], packs: ["1L"] },
+  { name: "Yoghurt bosvruchten", cat: "dairy", units: ["pak"], packs: ["1L"] },
+  { name: "Yoghurt drink", cat: "dairy", units: ["fles"], packs: ["500 ml"] },
+  { name: "Skyr naturel", cat: "dairy", units: ["beker"], packs: ["450 g"] },
+  {
+    name: "Skyr bosvruchten",
+    cat: "dairy",
+    units: ["beker"],
+    packs: ["450 g"],
+  },
+  {
+    name: "Plantaardige melk sojadrink",
+    cat: "dairy",
+    units: ["pak"],
+    packs: ["1L"],
+  },
+  {
+    name: "Plantaardige melk rijstd",
+    cat: "dairy",
+    units: ["pak"],
+    packs: ["1L"],
+  },
+  {
+    name: "Plantaardige melk kokosdrink",
+    cat: "dairy",
+    units: ["pak"],
+    packs: ["1L"],
+  },
+  {
+    name: "Plantaardige melk haver-amandel",
+    cat: "dairy",
+    units: ["pak"],
+    packs: ["1L"],
+  },
+  {
+    name: "Crème fraîche",
+    cat: "dairy",
+    units: ["bak"],
+    packs: ["200 g", "300 g"],
+  },
+  { name: "Sour cream", cat: "dairy", units: ["bak"], packs: ["200 g"] },
+  { name: "Mascarpone", cat: "dairy", units: ["bak"], packs: ["250 g"] },
+  { name: "Zure room", cat: "dairy", units: ["bak"], packs: ["200 g"] },
+  { name: "Kokosyoghurt", cat: "dairy", units: ["beker"], packs: ["400 g"] },
+  { name: "Amandelyoghurt", cat: "dairy", units: ["beker"], packs: ["400 g"] },
+  {
+    name: "Eieren scharrelei",
+    cat: "dairy",
+    units: ["doos"],
+    packs: ["6 st", "10 st"],
+  },
+  {
+    name: "Eieren biologisch groot",
+    cat: "dairy",
+    units: ["doos"],
+    packs: ["6 st", "10 st"],
+  },
 ];
 
-// Brood & Ontbijt
 const BAKERY = [
   {
     name: "Volkoren brood",
@@ -360,9 +504,38 @@ const BAKERY = [
     packs: ["400 g", "600 g"],
   },
   { name: "Beschuit", cat: "bakery", units: ["rol"], packs: ["13 st"] },
+
+  // extra bakery
+  {
+    name: "Speltbrood",
+    cat: "bakery",
+    units: ["stuk"],
+    packs: ["heel", "half"],
+  },
+  { name: "Roggebrood", cat: "bakery", units: ["pak", "stuk"] },
+  { name: "Maisbrood", cat: "bakery", units: ["stuk"] },
+  { name: "Ciabatta", cat: "bakery", units: ["stuk", "pak"] },
+  { name: "Focaccia", cat: "bakery", units: ["stuk"] },
+  { name: "Turks brood", cat: "bakery", units: ["stuk"] },
+  { name: "Bagel", cat: "bakery", units: ["stuk", "6-pack"] },
+  { name: "Wrap volkoren", cat: "bakery", units: ["pak"], packs: ["6 st"] },
+  { name: "Pancakes mix", cat: "bakery", units: ["pak"] },
+  { name: "Kokosrasp", cat: "bakery", units: ["zak"], packs: ["200 g"] },
+  { name: "Chiazaad", cat: "bakery", units: ["zak"], packs: ["300 g"] },
+  {
+    name: "Lijnzaad",
+    cat: "bakery",
+    units: ["zak"],
+    packs: ["250 g", "500 g"],
+  },
+  { name: "Havermeel", cat: "bakery", units: ["zak"], packs: ["1 kg"] },
+  { name: "Quinoa", cat: "bakery", units: ["zak"], packs: ["500 g", "1 kg"] },
+  { name: "Gierst", cat: "bakery", units: ["zak"], packs: ["500 g"] },
+  { name: "Huttentut boterbroodjes", cat: "bakery", units: ["pak"] },
+  { name: "Stokbrood", cat: "bakery", units: ["stuk"] },
+  { name: "Ciabatta tomaat", cat: "bakery", units: ["stuk"] },
 ];
 
-// Vlees, Vis & Vega
 const MEAT_FISH_VEG = [
   {
     name: "Kipfilet",
@@ -427,9 +600,57 @@ const MEAT_FISH_VEG = [
   },
   { name: "Tempeh", cat: "meat_fish_veg", units: ["pak"], packs: ["250 g"] },
   { name: "Ei-salade", cat: "meat_fish_veg", units: ["bak"], packs: ["175 g"] },
+
+  // extra meat / fish / vega
+  {
+    name: "Kip drumsticks",
+    cat: "meat_fish_veg",
+    units: ["pak"],
+    packs: ["600 g"],
+  },
+  {
+    name: "Kip vleugels",
+    cat: "meat_fish_veg",
+    units: ["pak"],
+    packs: ["500 g"],
+  },
+  { name: "Kipgehakt", cat: "meat_fish_veg", units: ["pak"], packs: ["400 g"] },
+  {
+    name: "Kalkoenfilet",
+    cat: "meat_fish_veg",
+    units: ["pak"],
+    packs: ["300 g"],
+  },
+  {
+    name: "Kalkoengehakt",
+    cat: "meat_fish_veg",
+    units: ["pak"],
+    packs: ["400 g"],
+  },
+  { name: "Rundersteak", cat: "meat_fish_veg", units: ["stuk", "pak"] },
+  { name: "Biefstuk", cat: "meat_fish_veg", units: ["stuk"] },
+  { name: "Rosbief", cat: "meat_fish_veg", units: ["pak"] },
+  { name: "Spekreepjes", cat: "meat_fish_veg", units: ["pak"] },
+  { name: "Gehakt gemengd", cat: "meat_fish_veg", units: ["pak"] },
+  { name: "Hamburger rund", cat: "meat_fish_veg", units: ["pak"] },
+  { name: "Hamburger kip", cat: "meat_fish_veg", units: ["pak"] },
+  { name: "Spareribs", cat: "meat_fish_veg", units: ["pak"] },
+  { name: "Varkensfilet", cat: "meat_fish_veg", units: ["stuk", "pak"] },
+  { name: "Varkenshaas", cat: "meat_fish_veg", units: ["stuk"] },
+  { name: "Kalfsschnitzel", cat: "meat_fish_veg", units: ["stuk"] },
+  { name: "Gamba’s gepeld", cat: "meat_fish_veg", units: ["zak"] },
+  { name: "Mosselen vers", cat: "meat_fish_veg", units: ["bak"] },
+  { name: "Zeevruchtenmix diepvries", cat: "meat_fish_veg", units: ["zak"] },
+  { name: "Forel filets", cat: "meat_fish_veg", units: ["pak"] },
+  { name: "Sardines in blik", cat: "meat_fish_veg", units: ["blik"] },
+  { name: "Makreel gerookt", cat: "meat_fish_veg", units: ["stuk", "pak"] },
+  { name: "Tofu gerookt", cat: "meat_fish_veg", units: ["pak"] },
+  { name: "Tempeh gemarineerd", cat: "meat_fish_veg", units: ["pak"] },
+  { name: "Seitan", cat: "meat_fish_veg", units: ["pak"] },
+  { name: "Vega worst", cat: "meat_fish_veg", units: ["pak"] },
+  { name: "Vega kipstukjes", cat: "meat_fish_veg", units: ["pak"] },
 ];
 
-// Dranken (non-alcohol)
 const DRINKS = [
   {
     name: "Mineraalwater plat",
@@ -506,9 +727,76 @@ const DRINKS = [
   },
   { name: "Haverdrink", cat: "drinks", units: ["pak"], packs: ["1L"] },
   { name: "Amandeldrink", cat: "drinks", units: ["pak"], packs: ["1L"] },
+
+  // extra drinks
+  {
+    name: "Cola light",
+    cat: "drinks",
+    units: ["stuk", "6-pack"],
+    packs: ["330 ml", "1.5L"],
+  },
+  {
+    name: "Cola zero sugar",
+    cat: "drinks",
+    units: ["stuk", "6-pack"],
+    packs: ["330 ml"],
+  },
+  { name: "Ice tea green", cat: "drinks", units: ["stuk"], packs: ["500 ml"] },
+  { name: "Ice tea peach", cat: "drinks", units: ["stuk"], packs: ["500 ml"] },
+  {
+    name: "Sprite",
+    cat: "drinks",
+    units: ["stuk", "6-pack"],
+    packs: ["330 ml", "1.5L"],
+  },
+  {
+    name: "Fanta",
+    cat: "drinks",
+    units: ["stuk", "6-pack"],
+    packs: ["330 ml", "1.5L"],
+  },
+  {
+    name: "Spa blauw",
+    cat: "drinks",
+    units: ["stuk", "6-pack"],
+    packs: ["500 ml", "1.5L"],
+  },
+  {
+    name: "Spa rood",
+    cat: "drinks",
+    units: ["stuk", "6-pack"],
+    packs: ["500 ml", "1.5L"],
+  },
+  { name: "Fristi", cat: "drinks", units: ["fles"], packs: ["500 ml"] },
+  { name: "Chocomel", cat: "drinks", units: ["pak"], packs: ["1L"] },
+  {
+    name: "Frisdrank perzik",
+    cat: "drinks",
+    units: ["stuk"],
+    packs: ["330 ml"],
+  },
+  { name: "Sinas zero", cat: "drinks", units: ["stuk"], packs: ["330 ml"] },
+  { name: "Energiedrank", cat: "drinks", units: ["blik"], packs: ["250 ml"] },
+  {
+    name: "Energiedrank sugarfree",
+    cat: "drinks",
+    units: ["blik"],
+    packs: ["250 ml"],
+  },
+  {
+    name: "Smoothie fruit mix",
+    cat: "drinks",
+    units: ["fles"],
+    packs: ["250 ml", "500 ml"],
+  },
+  {
+    name: "Smoothie groente",
+    cat: "drinks",
+    units: ["fles"],
+    packs: ["250 ml"],
+  },
 ];
 
-// Alcohol
 const ALCOHOL = [
   {
     name: "Pils 6-pack blik",
@@ -544,9 +832,34 @@ const ALCOHOL = [
   },
   { name: "Vodka", cat: "alcohol", units: ["fles"], packs: ["700 ml", "1L"] },
   { name: "Rum", cat: "alcohol", units: ["fles"], packs: ["700 ml", "1L"] },
+
+  // extra alcohol
+  { name: "Lager pils", cat: "alcohol", units: ["krat"], packs: ["24x330 ml"] },
+  { name: "IPA", cat: "alcohol", units: ["stuk", "4-pack"], packs: ["330 ml"] },
+  {
+    name: "Witbier",
+    cat: "alcohol",
+    units: ["stuk", "4-pack"],
+    packs: ["330 ml"],
+  },
+  { name: "Tripel", cat: "alcohol", units: ["stuk"], packs: ["330 ml"] },
+  { name: "Stout", cat: "alcohol", units: ["stuk"], packs: ["330 ml"] },
+  {
+    name: "Rosé mousserend",
+    cat: "alcohol",
+    units: ["fles"],
+    packs: ["750 ml"],
+  },
+  { name: "Cava", cat: "alcohol", units: ["fles"], packs: ["750 ml"] },
+  {
+    name: "Champagne brut",
+    cat: "alcohol",
+    units: ["fles"],
+    packs: ["750 ml"],
+  },
+  { name: "Port", cat: "alcohol", units: ["fles"], packs: ["750 ml"] },
 ];
 
-// Kruidenierswaren & Houdbaar
 const PANTRY = [
   {
     name: "Rijst basmati",
@@ -704,9 +1017,104 @@ const PANTRY = [
     units: ["zak"],
     packs: ["185 g", "300 g"],
   },
+
+  // extra pantry
+  { name: "Pasta fusilli", cat: "pantry", units: ["pak"], packs: ["500 g"] },
+  {
+    name: "Pasta tagliatelle",
+    cat: "pantry",
+    units: ["pak"],
+    packs: ["250 g", "500 g"],
+  },
+  { name: "Mie noedels", cat: "pantry", units: ["zak"], packs: ["250 g"] },
+  { name: "Ramen noodles", cat: "pantry", units: ["pak"], packs: ["4x85 g"] },
+  {
+    name: "Spaghettisaus tomaat",
+    cat: "pantry",
+    units: ["pot"],
+    packs: ["400 g"],
+  },
+  {
+    name: "Pastasaus arrabiata",
+    cat: "pantry",
+    units: ["pot"],
+    packs: ["400 g"],
+  },
+  { name: "Pastasaus pesto", cat: "pantry", units: ["pot"], packs: ["190 g"] },
+  {
+    name: "Tomatensaus basilicum",
+    cat: "pantry",
+    units: ["fles"],
+    packs: ["500 ml"],
+  },
+  {
+    name: "Tomatensaus spicy",
+    cat: "pantry",
+    units: ["fles"],
+    packs: ["500 ml"],
+  },
+  { name: "Gerst", cat: "pantry", units: ["zak"], packs: ["500 g"] },
+  { name: "Couscous", cat: "pantry", units: ["zak"], packs: ["500 g"] },
+  { name: "Bulghur", cat: "pantry", units: ["zak"], packs: ["500 g"] },
+  { name: "Linzensoep mix", cat: "pantry", units: ["pak"] },
+  { name: "Erwtensoep mix", cat: "pantry", units: ["pak"] },
+  { name: "Soep tomaat", cat: "pantry", units: ["blik"], packs: ["400 g"] },
+  { name: "Soep groente", cat: "pantry", units: ["blik"], packs: ["400 g"] },
+  { name: "Soep kip", cat: "pantry", units: ["blik"], packs: ["400 g"] },
+  {
+    name: "Conserven spinazie",
+    cat: "pantry",
+    units: ["blik"],
+    packs: ["400 g"],
+  },
+  {
+    name: "Tomatenpuree dubbel geconcentreerd",
+    cat: "pantry",
+    units: ["blik"],
+    packs: ["140 g"],
+  },
+  {
+    name: "Rode linzen gedroogd",
+    cat: "pantry",
+    units: ["zak"],
+    packs: ["500 g"],
+  },
+  {
+    name: "Groene linzen gedroogd",
+    cat: "pantry",
+    units: ["zak"],
+    packs: ["500 g"],
+  },
+  {
+    name: "Kikkererwten gedroogd",
+    cat: "pantry",
+    units: ["zak"],
+    packs: ["500 g"],
+  },
+  {
+    name: "Zwarte bonen gedroogd",
+    cat: "pantry",
+    units: ["zak"],
+    packs: ["500 g"],
+  },
+  {
+    name: "Kidneybonen gedroogd",
+    cat: "pantry",
+    units: ["zak"],
+    packs: ["500 g"],
+  },
+  {
+    name: "Rijst zilvervlies",
+    cat: "pantry",
+    units: ["zak"],
+    packs: ["1 kg", "5 kg"],
+  },
+  { name: "Wilde rijst", cat: "pantry", units: ["zak"], packs: ["500 g"] },
+  { name: "Parboiled rijst", cat: "pantry", units: ["zak"], packs: ["1 kg"] },
+  { name: "Panko broodkruim", cat: "pantry", units: ["zak"], packs: ["200 g"] },
+  { name: "Paneermeel", cat: "pantry", units: ["zak"], packs: ["200 g"] },
 ];
 
-// Diepvries
 const FROZEN = [
   {
     name: "Diepvries spinazie blokjes",
@@ -756,9 +1164,78 @@ const FROZEN = [
     units: ["doos"],
     packs: ["4 st", "8 st"],
   },
+
+  // extra frozen
+  {
+    name: "Groentemix wokdiepvries",
+    cat: "frozen",
+    units: ["zak"],
+    packs: ["750 g"],
+  },
+  {
+    name: "Bessenmix diepvries",
+    cat: "frozen",
+    units: ["zak"],
+    packs: ["300 g"],
+  },
+  {
+    name: "Frambozen diepvries",
+    cat: "frozen",
+    units: ["zak"],
+    packs: ["300 g"],
+  },
+  {
+    name: "Aardbeien diepvries",
+    cat: "frozen",
+    units: ["zak"],
+    packs: ["400 g"],
+  },
+  {
+    name: "Spinazie blad diepvries",
+    cat: "frozen",
+    units: ["zak"],
+    packs: ["450 g"],
+  },
+  {
+    name: "Groene asperges diepvries",
+    cat: "frozen",
+    units: ["zak"],
+    packs: ["500 g"],
+  },
+  {
+    name: "Prei stukken diepvries",
+    cat: "frozen",
+    units: ["zak"],
+    packs: ["400 g"],
+  },
+  {
+    name: "Courgetteschijfjes diepvries",
+    cat: "frozen",
+    units: ["zak"],
+    packs: ["400 g"],
+  },
+  {
+    name: "Vissticks diepvries",
+    cat: "frozen",
+    units: ["doos"],
+    packs: ["10 st"],
+  },
+  {
+    name: "Kipnuggets diepvries",
+    cat: "frozen",
+    units: ["doos"],
+    packs: ["12 st"],
+  },
+  {
+    name: "Gehaktballen diepvries",
+    cat: "frozen",
+    units: ["doos"],
+    packs: ["8 st"],
+  },
+  { name: "Ravioli diepvries", cat: "frozen", units: ["doos"] },
+  { name: "Lasagne diepvries", cat: "frozen", units: ["stuk"] },
 ];
 
-// Snacks & Snoep
 const SNACKS = [
   {
     name: "Chips paprika",
@@ -803,9 +1280,38 @@ const SNACKS = [
     units: ["zak"],
     packs: ["200 g", "400 g"],
   },
+
+  // extra snacks
+  { name: "Nacho chips", cat: "snacks", units: ["zak"], packs: ["200 g"] },
+  {
+    name: "Tortilla chips nacho",
+    cat: "snacks",
+    units: ["zak"],
+    packs: ["185 g", "300 g"],
+  },
+  { name: "Pretzels zout", cat: "snacks", units: ["zak"], packs: ["150 g"] },
+  { name: "Popcorn zoet", cat: "snacks", units: ["zak"], packs: ["100 g"] },
+  { name: "Popcorn zout", cat: "snacks", units: ["zak"], packs: ["100 g"] },
+  {
+    name: "Chocolade hazelnoot",
+    cat: "snacks",
+    units: ["reep"],
+    packs: ["100 g"],
+  },
+  { name: "Truffel chips", cat: "snacks", units: ["zak"], packs: ["175 g"] },
+  { name: "Stroopwafels", cat: "snacks", units: ["pak"], packs: ["8 st"] },
+  {
+    name: "Koekjes bitterkoekjes",
+    cat: "snacks",
+    units: ["pak"],
+    packs: ["150 g"],
+  },
+  { name: "Snoepjes drop", cat: "snacks", units: ["zak"], packs: ["200 g"] },
+  { name: "Snoepjes gemengd", cat: "snacks", units: ["zak"], packs: ["200 g"] },
+  { name: "M&M's melk", cat: "snacks", units: ["zak"], packs: ["200 g"] },
+  { name: "Chips paprika hot", cat: "snacks", units: ["zak"] },
 ];
 
-// Baby & Peuters
 const BABY = [
   {
     name: "Luiers maat 3",
@@ -838,9 +1344,44 @@ const BABY = [
     units: ["potje"],
     packs: ["200 g"],
   },
+
+  // extra baby
+  {
+    name: "Luiers maat 5",
+    cat: "baby",
+    units: ["pak"],
+    packs: ["48 st", "58 st"],
+  },
+  {
+    name: "Luiers maat 6",
+    cat: "baby",
+    units: ["pak"],
+    packs: ["44 st", "54 st"],
+  },
+  {
+    name: "Babydoekjes sensitive",
+    cat: "baby",
+    units: ["pak"],
+    packs: ["56 st"],
+  },
+  {
+    name: "Babydoekjes extra soft",
+    cat: "baby",
+    units: ["pak"],
+    packs: ["64 st"],
+  },
+  { name: "Flesvoeding 2", cat: "baby", units: ["blik"], packs: ["800 g"] },
+  { name: "Flesvoeding 3", cat: "baby", units: ["blik"], packs: ["800 g"] },
+  { name: "Babydrank fruit", cat: "baby", units: ["fles"], packs: ["200 ml"] },
+  {
+    name: "Babydrank groente",
+    cat: "baby",
+    units: ["fles"],
+    packs: ["200 ml"],
+  },
+  { name: "Pap fles voeding", cat: "baby", units: ["pak"], packs: ["500 g"] },
 ];
 
-// Dieren
 const PETS = [
   {
     name: "Hondenbrokken",
@@ -867,9 +1408,16 @@ const PETS = [
     packs: ["85 g"],
   },
   { name: "Kattengrind", cat: "pets", units: ["zak"], packs: ["10 L", "15 L"] },
+
+  // extra pets
+  { name: "Hondenworstjes", cat: "pets", units: ["pak"], packs: ["4 st"] },
+  { name: "Hondensnacks kip", cat: "pets", units: ["zak"], packs: ["200 g"] },
+  { name: "Katten snoepjes", cat: "pets", units: ["zak"], packs: ["50 g"] },
+  { name: "Kattenmilky", cat: "pets", units: ["pak"], packs: ["4 x 50 g"] },
+  { name: "Vogelpindakaas", cat: "pets", units: ["pot"], packs: ["200 g"] },
+  { name: "Knaagdier hooi", cat: "pets", units: ["zak"], packs: ["1 kg"] },
 ];
 
-// Huishoudelijk
 const HOUSEHOLD = [
   {
     name: "WC-papier",
@@ -936,9 +1484,38 @@ const HOUSEHOLD = [
     units: ["rol"],
     packs: ["10 st"],
   },
+
+  // extra household
+  {
+    name: "Vuilniszakken 100L",
+    cat: "household",
+    units: ["rol"],
+    packs: ["10 st"],
+  },
+  {
+    name: "Vuilniszakken 120L",
+    cat: "household",
+    units: ["rol"],
+    packs: ["10 st"],
+  },
+  { name: "Dweil", cat: "household", units: ["stuk"] },
+  {
+    name: "Spons schuurspons",
+    cat: "household",
+    units: ["pak"],
+    packs: ["5 st"],
+  },
+  {
+    name: "Microvezeldoeken",
+    cat: "household",
+    units: ["pak"],
+    packs: ["3 st"],
+  },
+  { name: "Afwasborstel", cat: "household", units: ["stuk"] },
+  { name: "Schuurspons", cat: "household", units: ["stuk"] },
+  { name: "Plafondreiniger", cat: "household", units: ["fles"] },
 ];
 
-// Verzorging
 const CARE = [
   {
     name: "Shampoo",
@@ -995,7 +1572,41 @@ const CARE = [
     units: ["tube", "spray"],
     packs: ["200 ml"],
   },
+
+  // extra care
+  {
+    name: "Shampoo droog haar",
+    cat: "care",
+    units: ["fles"],
+    packs: ["300 ml"],
+  },
+  { name: "Shampoo vet haar", cat: "care", units: ["fles"], packs: ["300 ml"] },
+  {
+    name: "Conditioner droog haar",
+    cat: "care",
+    units: ["fles"],
+    packs: ["300 ml"],
+  },
+  { name: "Masker haar", cat: "care", units: ["pot"], packs: ["200 g"] },
+  {
+    name: "Lichaamsolie",
+    cat: "care",
+    units: ["fles"],
+    packs: ["100 ml", "200 ml"],
+  },
+  {
+    name: "Gezichtsreiniger",
+    cat: "care",
+    units: ["tube", "fles"],
+    packs: ["150 ml"],
+  },
+  { name: "Gezichtstoner", cat: "care", units: ["fles"], packs: ["200 ml"] },
+  { name: "Dagcrème SPF", cat: "care", units: ["potje"], packs: ["50 ml"] },
+  { name: "Nachtcrème", cat: "care", units: ["potje"], packs: ["50 ml"] },
+  { name: "Handcrème", cat: "care", units: ["tube"], packs: ["50 ml"] },
+  { name: "Scheerschuim", cat: "care", units: ["bus"], packs: ["200 ml"] },
 ];
+
 
 // Verzamel alles
 export const PRODUCTS = [

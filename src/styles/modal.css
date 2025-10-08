@@ -27,10 +27,10 @@
     max-width: 96%;
     width: 100%;
     margin: 0 auto;
-    top: calc(10vh + env(safe-area-inset-top));
+    top: calc(5vh + env(safe-area-inset-top));
     left: 50%;
     transform: translateX(-50%);
-    max-height: 75dvh;
+    max-height: calc(95dvh - 100px);
     overflow-y: hidden;
     overflow-x: hidden;
     box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.25);
