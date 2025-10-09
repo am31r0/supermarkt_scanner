@@ -175,7 +175,7 @@ export async function renderListPage(mount) {
     showToast("Lijst is geleegd");
   }
 
-  function renderRatingPrompt() {
+  /*function renderRatingPrompt() {
     listContainer.innerHTML = `
       <div class="rating-bar">
         <h3>Hoe was je ervaring met deze lijst?</h3>
@@ -201,31 +201,35 @@ export async function renderListPage(mount) {
         renderCommitted();
       });
     });
-  }
+  }*/
 
-  function completeListFlow(itemsToSave) {
-    // 1️⃣ Filter alleen de afgevinkte producten
-    const doneItems = (itemsToSave || []).filter((i) => i.done === true);
+    function completeListFlow(itemsToSave) {
+      // 1) Alleen afgevinkte producten opslaan
+      const doneItems = (itemsToSave || []).filter((i) => i.done === true);
+      if (!doneItems.length) {
+        showToast("Geen afgestreepte producten om op te slaan");
+        return;
+      }
+      saveToHistory(doneItems);
 
-    if (!doneItems.length) {
-      showToast("Geen afgestreepte producten om op te slaan");
-      return;
+      // 2) Reset alle done-statussen in de huidige lijst
+      state.forEach((item) => {
+        item.done = false;
+      });
+      saveList(state);
+
+      // 3) Herteken de lijst zodat checkboxes/strepen verdwijnen
+      renderCommitted();
+
+      // 4) Toon ratingbalk bovenaan (niet-destructief)
+      //renderRatingPrompt();
+
+      // 5) Feedback
+      showToast(`${doneItems.length} producten opgeslagen in geschiedenis`);
     }
-
-    // 2️⃣ Sla alleen die items op in de geschiedenis
-    saveToHistory(doneItems);
-
-    // 3️⃣ Verwijder alleen de afgestreepte producten uit de huidige lijst
-    const remaining = state.filter((i) => !i.done);
-    saveList(remaining);
-    state.splice(0, state.length, ...remaining); // vervang state-inhoud
-
-    // 4️⃣ Toon de rating prompt (en laat niet-afgestreepte items zichtbaar)
-    renderRatingPrompt();
-
-    // 5️⃣ Feedback melding
-    showToast(`${doneItems.length} producten opgeslagen in geschiedenis`);
-  }
+    
+    
+  
   
   
   

@@ -25,7 +25,7 @@ export async function renderHomePage(mount) {
   mount.innerHTML = `
     <div class="page-header header-logo">
       <h1 class="logo">Schappie</h1>
-      <h3 style="font-size:0.6rem;">Alpha Build 0.3.251008.6</h3>
+      <h3 style="font-size:0.6rem;">Alpha Build 0.3.251008.7</h3>
     </div>
 
     <div class="hero">
@@ -45,6 +45,40 @@ export async function renderHomePage(mount) {
       <div class="home-deals-empty" style="display:none;">Geen deals gevonden 😕</div>
     </section>
 
+    <section class="home-wist-je">
+    <p>Wist je dat je gemiddeld<p class="price new">€14,80</p>per week bespaart met Schappie?<p>
+    </section>
+
+    <div role="figure" aria-label="Review van Steve over Schappie" style="max-width:min(500px,95%);margin:0px auto 0.8rem;padding:16px 18px;border-radius:16px;background:var(--surface);color:var(--ink);box-shadow:0 6px 24px rgba(0,0,0,.1);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;line-height:1.45;border:1px solid var(--mini-surface)">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <div style="width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;letter-spacing:.3px; background:var(--accent)" class="")>S</div>
+      <div>
+        <div style="font-size:14px;opacity:.9">Steve</div>
+        <div style="font-size:18px;font-weight:700;margin-top:2px;color:#df4e7f;">★★★★★
+          <span style="font-size:12px;font-weight:500;opacity:.7;margin-left:6px">(5/5)</span>
+        </div>
+      </div>
+      <div style="margin-left:auto;font-size:12px;opacity:.65">Gebruiker</div>
+    </div>
+  
+    <p style="margin:10px 0 0;font-size:15px;color:var(--ink)">
+      “Snel prijzen vergelijken, duidelijke categorieën en mijn lijstje blijft gewoon bewaard. Scheelt me echt geld bij elke boodschap.”
+    </p>
+  </div>
+
+  <div class="schappie-pro-card pro-gradient">
+  <div class="pro-content">
+    <h2 class="pro-title">💎 Schappie Pro</h2>
+    <p class="pro-subtitle">
+      Ontvang direct een pushmelding zodra jouw favoriete producten in de aanbieding zijn. 
+      Nooit meer te laat voor een deal!
+    </p>
+    <button class="pro-btn">Bekijk alle voordelen →</button>
+  </div>
+</div>
+
+  
+
     <footer class="footer">
       <p>&copy; 2025 Supermarkt Scanner — Alle rechten voorbehouden</p>
     </footer>
@@ -52,7 +86,9 @@ export async function renderHomePage(mount) {
 
   const grid = mount.querySelector(".home-deals-grid");
   const emptyState = mount.querySelector(".home-deals-empty");
-  const refreshBtn = mount.querySelector(".home-refresh");
+
+  let retryCount = 0;
+  const MAX_RETRIES = 40; // 40 * 0.5s = 20 seconden max
 
   async function loadDeals() {
     grid.innerHTML = `<p style="opacity:0.6;text-align:center;">Laden...</p>`;
@@ -74,9 +110,6 @@ export async function renderHomePage(mount) {
           if (store === "jumbo") normalized = arr.map(normalizeJumbo);
           if (store === "dirk") normalized = arr.map(normalizeDirk);
 
-          console.log(
-            `✅ ${store.toUpperCase()}: ${normalized.length} producten geladen`
-          );
           return { store, data: normalized };
         } catch (err) {
           console.warn(`⚠️ ${store} kon niet geladen worden:`, err);
@@ -89,11 +122,7 @@ export async function renderHomePage(mount) {
       .map(({ store, data }) => {
         if (!data.length) return null;
 
-        const promos = data.filter(
-          (p) => p.promoPrice && p.price > p.promoPrice
-        );
-        console.log(`🟡 ${store}: ${promos.length} promo’s gevonden`);
-
+        const promos = data.filter((p) => p.promoPrice && p.price > p.promoPrice);
         let best;
         if (promos.length) {
           best = promos.sort(
@@ -115,16 +144,25 @@ export async function renderHomePage(mount) {
       })
       .filter(Boolean);
 
+    // ✅ check of er producten zijn
+    if (!popularDeals.length && retryCount < MAX_RETRIES) {
+      retryCount++;
+      console.log(`🔁 Geen deals gevonden (poging ${retryCount}) — opnieuw proberen...`);
+      setTimeout(loadDeals, 500);
+      return;
+    }
+
+    if (!popularDeals.length) {
+      console.warn("❌ Na meerdere pogingen geen deals gevonden.");
+      emptyState.style.display = "block";
+      grid.innerHTML = "";
+      return;
+    }
+
     renderDeals(popularDeals);
   }
 
   function renderDeals(deals) {
-    if (!deals.length) {
-      grid.innerHTML = "";
-      emptyState.style.display = "block";
-      return;
-    }
-
     grid.innerHTML = deals
       .map((deal) => {
         const color = STORE_COLORS[deal.store] || "#ccc";
@@ -134,7 +172,8 @@ export async function renderHomePage(mount) {
           <div class="home-deal-card deal-card home-${deal.store}" 
                data-store="${deal.store}" 
                data-name="${deal.name}" 
-               data-price="${deal.newPrice}" style="background:var(--surface)">
+               data-price="${deal.newPrice}" 
+               style="background:var(--surface)">
             <div class="home-deal-header">
               <span class="list-store" style="background:${color}; color:#fff;">${label}</span>
             </div>
@@ -145,9 +184,7 @@ export async function renderHomePage(mount) {
             <div class="home-deal-prices">
               ${
                 deal.oldPrice !== deal.newPrice
-                  ? `<span class="price old">${formatPrice(
-                      deal.oldPrice
-                    )}</span>`
+                  ? `<span class="price old">${formatPrice(deal.oldPrice)}</span>`
                   : ""
               }
               <span class="price new">${formatPrice(deal.newPrice)}</span>
@@ -174,6 +211,5 @@ export async function renderHomePage(mount) {
     });
   }
 
-  refreshBtn.addEventListener("click", loadDeals);
   await loadDeals();
 }
