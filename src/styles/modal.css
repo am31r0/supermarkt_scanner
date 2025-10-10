@@ -69,7 +69,7 @@
     flex-shrink: 1;
     width: 100%;
     margin-top: 10px;
-    max-height: 55dvh;
+    max-height: calc(95dvh - 100px);
     overflow-y: auto;
     padding-bottom: 100px;
     scroll-behavior: smooth;
@@ -161,10 +161,9 @@
 }
 
 .result-row .name {
-    font-size: 0.81rem;
     font-weight: 500;
     margin-bottom: 0.2rem;
-    font-size: calc(0.9rem * var(--font-size-factor));
+    font-size: calc(0.8rem * var(--font-size-factor));
     text-align: center;
     justify-content: center;
 }

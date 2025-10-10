@@ -1,20 +1,23 @@
 // src/pages/list.js
 import { PRODUCTS, NAME_TO_CAT } from "../data/products.js";
-import { initEngine } from "../lib/cpi.js";
 import { renderCategoryGrid } from "../lib/categoryGrid.js";
-import { loadJSONOncePerDay } from "../lib/cache.js";
-import { normalizeAll, searchProducts } from "../lib/matching.js";
 import { showSearchModal } from "../lib/modal.js";
 import { escHtml, uid, formatPrice, showToast } from "../lib/utils.js";
 import { renderStoreSelector } from "../lib/storeSelector.js";
 import { saveToHistory } from "../lib/history.js";
 import { getEnabledStores } from "../lib/settings.js";
 import { CATEGORY_ORDER, STORE_COLORS, STORE_LABEL } from "../lib/constants.js";
+import { searchProducts } from "../lib/matching.js";
+import {
+  ensureDataLoaded,
+  ensureEngineReady,
+  getAllProductsSync,
+} from "../lib/dataLoader.js";
 
 const LS_KEY = "sms_list";
 const DEBUG = false;
 
-const STORE_ORDER = ["ah", "jumbo", "dirk", "other"];
+const STORE_ORDER = ["ah", "jumbo", "dirk", "aldi", "other"];
 
 // ---------- Helpers: normaliseer store keys ----------
 function normalizeStoreKey(s) {
@@ -25,7 +28,8 @@ function normalizeStoreKey(s) {
   if (["jumbo"].includes(v)) return "jumbo";
   if (["dirk", "dirk van den broek", "dirk v d broek"].includes(v))
     return "dirk";
-  if (["ah", "jumbo", "dirk", "other"].includes(v)) return v;
+  if (["aldi"].includes(v)) return "aldi";
+  if (["ah", "jumbo", "dirk", "aldi", "other"].includes(v)) return v;
   return "other";
 }
 
@@ -79,21 +83,18 @@ export async function renderListPage(mount) {
   const catSection = mount.querySelector(".categories-section");
 
   const selectorMount = document.createElement("div");
-  if (listPage && catSection) {
-    listPage.insertBefore(selectorMount, catSection);
-  }
-
+  if (listPage && catSection) listPage.insertBefore(selectorMount, catSection);
   renderStoreSelector(selectorMount);
 
-  let allProducts = [];
+  // 🧠 Data & engine via centrale loader
+  await ensureEngineReady();
+  const { allProducts } = await ensureDataLoaded();
 
   // -------------------------
   // Reactiviteit op store selector
   // -------------------------
   function setupStoreFilterReactivity() {
-    const rerender = () => {
-      requestAnimationFrame(renderCommitted);
-    };
+    const rerender = () => requestAnimationFrame(renderCommitted);
     selectorMount.addEventListener("change", rerender);
     selectorMount.addEventListener("input", rerender);
     document.addEventListener("stores:changed", rerender);
@@ -109,16 +110,15 @@ export async function renderListPage(mount) {
     let promo = product?.promoPrice ?? product?.offerPrice ?? null;
 
     if (promo == null && Array.isArray(allProducts) && normStore !== "other") {
-      let match = allProducts.find(
+      const match = allProducts.find(
         (p) =>
           normalizeStoreKey(p.store) === normStore &&
           String(p.name).toLowerCase() === String(product.name).toLowerCase()
       );
       if (match) {
         promo = match.promoPrice ?? match.offerPrice ?? null;
-        if (product.price == null && match.price != null) {
+        if (product.price == null && match.price != null)
           product.price = match.price;
-        }
       }
     }
 
@@ -175,64 +175,19 @@ export async function renderListPage(mount) {
     showToast("Lijst is geleegd");
   }
 
-  /*function renderRatingPrompt() {
-    listContainer.innerHTML = `
-      <div class="rating-bar">
-        <h3>Hoe was je ervaring met deze lijst?</h3>
-        <div class="emoji-row">
-          <button class="emoji-btn" data-score="1" aria-label="Zeer slecht">😡</button>
-          <button class="emoji-btn" data-score="2" aria-label="Slecht">😕</button>
-          <button class="emoji-btn" data-score="3" aria-label="Gemiddeld">😐</button>
-          <button class="emoji-btn" data-score="4" aria-label="Goed">🙂</button>
-          <button class="emoji-btn" data-score="5" aria-label="Uitstekend">🤩</button>
-        </div>
-      </div>
-    `;
-
-    listContainer.querySelectorAll(".emoji-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const score = Number(btn.dataset.score);
-        const history = JSON.parse(localStorage.getItem("sms_history") || "[]");
-        if (history.length) {
-          history[0].rating = score;
-          localStorage.setItem("sms_history", JSON.stringify(history));
-        }
-        showToast("Bedankt voor je feedback!");
-        renderCommitted();
-      });
-    });
-  }*/
-
-    function completeListFlow(itemsToSave) {
-      // 1) Alleen afgevinkte producten opslaan
-      const doneItems = (itemsToSave || []).filter((i) => i.done === true);
-      if (!doneItems.length) {
-        showToast("Geen afgestreepte producten om op te slaan");
-        return;
-      }
-      saveToHistory(doneItems);
-
-      // 2) Reset alle done-statussen in de huidige lijst
-      state.forEach((item) => {
-        item.done = false;
-      });
-      saveList(state);
-
-      // 3) Herteken de lijst zodat checkboxes/strepen verdwijnen
-      renderCommitted();
-
-      // 4) Toon ratingbalk bovenaan (niet-destructief)
-      //renderRatingPrompt();
-
-      // 5) Feedback
-      showToast(`${doneItems.length} producten opgeslagen in geschiedenis`);
+  function completeListFlow(itemsToSave) {
+    const doneItems = (itemsToSave || []).filter((i) => i.done === true);
+    if (!doneItems.length) {
+      showToast("Geen afgestreepte producten om op te slaan");
+      return;
     }
-    
-    
-  
-  
-  
-  
+    saveToHistory(doneItems);
+    state.forEach((item) => (item.done = false));
+    saveList(state);
+    renderCommitted();
+    showToast(`${doneItems.length} producten opgeslagen in geschiedenis`);
+  }
+
   // -------------------------
   // Render committed list
   // -------------------------
@@ -317,9 +272,7 @@ export async function renderListPage(mount) {
                 <span class="qty-num">${item.qty}</span>
                 <button class="icon-btn plus">+</button>
               </div>
-              <button class="icon-btn trash-btn delete">
-                ${trashSvg()}
-              </button>
+              <button class="icon-btn trash-btn delete">${trashSvg()}</button>
             </div>
           </label>
         `;
@@ -365,15 +318,8 @@ export async function renderListPage(mount) {
       const doneBtn = actions.querySelector(".done-btn");
       const clearBtn = actions.querySelector(".clear-btn");
 
-      // ✅ Klaar
-      doneBtn.addEventListener("click", () => {
-        console.log("✅ Klaar clicked");
-        completeListFlow(visibleItems);
-      });
-
-      // 🗑️ Lijst legen → toon popup
+      doneBtn.addEventListener("click", () => completeListFlow(visibleItems));
       clearBtn.addEventListener("click", () => {
-        // voorkom dubbele popup
         if (document.querySelector(".confirm-clear-overlay")) return;
 
         const overlay = document.createElement("div");
@@ -415,23 +361,19 @@ export async function renderListPage(mount) {
 
         overlay.appendChild(box);
         document.body.appendChild(overlay);
-
-        // acties
         box.querySelector(".yes-btn").addEventListener("click", () => {
           clearListLocal();
           overlay.remove();
         });
-        box.querySelector(".cancel-btn").addEventListener("click", () => {
-          overlay.remove();
-        });
+        box
+          .querySelector(".cancel-btn")
+          .addEventListener("click", () => overlay.remove());
       });
     }
-
-    
   }
 
   // -------------------------
-  // Input row with autosuggest
+  // Input row + zoekfunctie
   // -------------------------
   function createInputRow(allProductsLocal) {
     const row = document.createElement("div");
@@ -441,6 +383,7 @@ export async function renderListPage(mount) {
       <button class="btn small commit">Zoeken</button>
       <div class="suggestions" role="listbox"></div>
     `;
+
     const input = row.querySelector(".item-input");
     const commitBtn = row.querySelector(".commit");
     const sugBox = row.querySelector(".suggestions");
@@ -524,9 +467,7 @@ export async function renderListPage(mount) {
         e.preventDefault();
         handleSearch();
         input.blur();
-      } else if (e.key === "Escape") {
-        closeSug();
-      }
+      } else if (e.key === "Escape") closeSug();
     });
 
     let rafId = null;
@@ -558,36 +499,9 @@ export async function renderListPage(mount) {
   }
 
   // -------------------------
-  // Init CPI engine + categories
+  // Render init
   // -------------------------
-  const [ahRaw, dirkRaw, jumboRaw] = await Promise.all([
-    loadJSONOncePerDay(
-      "ah",
-      "https://am31r0.github.io/supermarkt_scanner/dev/store_database/ah.json"
-    ),
-    loadJSONOncePerDay(
-      "dirk",
-      "https://am31r0.github.io/supermarkt_scanner/dev/store_database/dirk.json"
-    ),
-    loadJSONOncePerDay(
-      "jumbo",
-      "https://am31r0.github.io/supermarkt_scanner/dev/store_database/jumbo.json"
-    ),
-  ]);
-
-  allProducts = normalizeAll({
-    ah: ahRaw,
-    dirk: dirkRaw,
-    jumbo: jumboRaw,
-  });
-
-  await initEngine(
-    { ah: ahRaw, dirk: dirkRaw, jumbo: jumboRaw },
-    { onReady: () => DEBUG && console.log("CPI engine ready") }
-  );
-
   createInputRow(allProducts);
-
   renderCategoryGrid(catSection, {
     onSelect: (product) => {
       if (window.triggerListSearch) {
@@ -598,7 +512,6 @@ export async function renderListPage(mount) {
     },
     allProducts,
   });
-
   renderCommitted();
 }
 
@@ -625,7 +538,6 @@ function calculateTotals(items) {
 
 function renderTotals(container, items) {
   const { total, discount } = calculateTotals(items);
-
   const el = document.createElement("div");
   el.className = "totals-bar";
 
@@ -647,9 +559,6 @@ function renderTotals(container, items) {
   container.appendChild(el);
 }
 
-// -------------------------
-// Trash SVG
-// -------------------------
 function trashSvg() {
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"

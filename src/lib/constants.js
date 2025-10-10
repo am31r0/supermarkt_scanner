@@ -35,6 +35,8 @@ export const STORE_COLORS = {
   ah: "#2d9ee1",
   jumbo: "#e7bb33",
   dirk: "#e92a2a",
+  aldi: "#1b3a94", // iets helderder blauw dan #262977, beter zichtbaar op lichte UI
+  other: "#777777",
 };
 
 // -------------------------
@@ -44,10 +46,11 @@ export const STORE_LABEL = {
   ah: "AH",
   jumbo: "Jumbo",
   dirk: "Dirk",
+  aldi: "Aldi",
   other: "Overig",
 };
 
 // -------------------------
 // Stores in vaste volgorde
 // -------------------------
-export const STORE_ORDER = ["ah", "jumbo", "dirk", "other"];
+export const STORE_ORDER = ["ah", "jumbo", "dirk", "aldi", "other"];

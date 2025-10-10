@@ -2,6 +2,7 @@
 // src/lib/modal.js
 import { escHtml, escAttr, formatPrice } from "./utils.js";
 import { registerClick } from "../lib/adSystem.js";
+import { STORE_LABEL } from "./constants.js";
 
 export function closeAllModals() {
   document.querySelectorAll(".search-modal").forEach((el) => el.remove());
@@ -132,25 +133,26 @@ export function showSearchModal(results, onSelect) {
     return null;
   }
 
-  function isValidPromo(p){
+  function isValidPromo(p) {
     const promo = p.promoPrice || p.offerPrice;
-    if(!promo) return false;
+    if (!promo) return false;
     const base = p.price || 0;
-    if(promo >= base) return false;
+    if (promo >= base) return false;
     const end = getPromoEnd(p);
-    if(!end || isNaN(end)) return false;
+    if (!end || isNaN(end)) return false;
     const now = new Date();
-    const max = new Date(); max.setFullYear(now.getFullYear()+2);
-    if(end > max) return false;
-    if(end.getFullYear() > 2100) return false;
+    const max = new Date();
+    max.setFullYear(now.getFullYear() + 2);
+    if (end > max) return false;
+    if (end.getFullYear() > 2100) return false;
     return true;
   }
 
   // filtering
-  function getFilteredSorted(){
+  function getFilteredSorted() {
     let arr = baseResults;
     if (promoOnly) {
-      arr = arr.filter((p)=>isValidPromo(p));
+      arr = arr.filter((p) => isValidPromo(p));
     }
   }
 
@@ -235,7 +237,9 @@ export function showSearchModal(results, onSelect) {
           .map((p) => {
             const hasPromo = !!(p.promoPrice || p.offerPrice);
             const promoPrice = p.promoPrice || p.offerPrice || null;
+            const storeLabel = STORE_LABEL[p.store] || p.store;
 
+            // ✅ Geldig t/m logica hersteld
             let promoEndHtml = "";
             if (hasPromo) {
               const endDate = getPromoEnd(p);
@@ -244,7 +248,6 @@ export function showSearchModal(results, onSelect) {
                   endDate
                 )}</div>`;
               } else if (p.promoEnd || p.offerEnd || p.promoUntil) {
-                // fallback raw tonen
                 promoEndHtml = `<div class="promo-end">Geldig t/m ${
                   p.promoEnd || p.offerEnd || p.promoUntil
                 }</div>`;
@@ -252,39 +255,39 @@ export function showSearchModal(results, onSelect) {
             }
 
             return `
-            <div class="result-row ${hasPromo ? "promo" : ""}" data-id="${
+              <div class="result-row ${hasPromo ? "promo" : ""}" data-id="${
               p.id
             }" data-store="${p.store}">
-              <div class="meta">
-                <span class="list-store store-${(p.store || "").toLowerCase()}">
-                  ${escHtml(p.store || "")}
-                </span>
-                <div class="price-group">${
-                  hasPromo
-                    ? `<span class="price old">${formatPrice(p.price)}</span>
-                       <span class="price new">${formatPrice(
-                         promoPrice
-                       )}</span>`
-                    : `<span class="price">${formatPrice(p.price)}</span>`
-                }
-                <span class="ppu">${(p.pricePerUnit ?? 0).toFixed(2)} / ${
+                <div class="meta">
+                  <span class="list-store store-${p.store}">
+                    ${escHtml(storeLabel)}
+                  </span>
+                  <div class="price-group">
+                    ${
+                      hasPromo
+                        ? `<span class="price old">${formatPrice(
+                            p.price
+                          )}</span>
+                           <span class="price new">${formatPrice(
+                             promoPrice
+                           )}</span>`
+                        : `<span class="price">${formatPrice(p.price)}</span>`
+                    }
+                    <span class="ppu">${(p.pricePerUnit ?? 0).toFixed(2)} / ${
               p.unit
-            }</span></div>
+            }</span>
+                  </div>
+                </div>
+                ${hasPromo ? `<span class="promo-badge">Aanbieding</span>` : ""}
+                <img loading="lazy" src="${p.image || ""}" alt="${escAttr(
+              p.name
+            )}"/>
+                <div class="info">
+                  <div class="name">${escHtml(p.name)}</div>
+                  ${promoEndHtml} <!-- ✅ Geldig t/m toegevoegd -->
+                </div>
               </div>
-              ${hasPromo ? `<span class="promo-badge">Aanbieding</span>` : ""}
-              <img loading="lazy" src="${
-                p.image
-                  ? p.store === "dirk" && !p.image.includes("?width=")
-                    ? p.image + "?width=190"
-                    : p.image
-                  : ""
-              }" alt="${escAttr(p.name)}"/>
-              <div class="info">
-                <div class="name">${escHtml(p.name)}</div>
-                ${promoEndHtml}
-              </div>
-            </div>
-          `;
+            `;
           })
           .join("")
       : `<div class="empty">Geen resultaten gevonden.</div>`;
@@ -302,6 +305,7 @@ export function showSearchModal(results, onSelect) {
       });
     });
   }
+  
 
   renderResults();
 
