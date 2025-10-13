@@ -26,6 +26,11 @@ export function renderStoreSelector(mount) {
         <input type="checkbox" data-store="aldi" />
         <img src="./public/icons/aldi-logo.webp" alt="Aldi" />
       </label>
+
+      <label class="store-option selector-img hoogvliet" title="hoogvliet">
+        <input type="checkbox" data-store="hoogvliet" />
+        <img src="./public/icons/hoogvliet-logo.webp" alt="hoogvliet" />
+      </label>
     </div>
   `;
 

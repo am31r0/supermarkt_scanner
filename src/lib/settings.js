@@ -142,6 +142,8 @@ let enabledStores = {
   ah: true,
   dirk: true,
   jumbo: true,
+  aldi: true,
+  hoogvliet: true,
 };
 
 export function getEnabledStores() {

@@ -1,4 +1,3 @@
-// src/pages/list.js
 import { PRODUCTS, NAME_TO_CAT } from "../data/products.js";
 import { renderCategoryGrid } from "../lib/categoryGrid.js";
 import { showSearchModal } from "../lib/modal.js";
@@ -388,6 +387,48 @@ export async function renderListPage(mount) {
     const commitBtn = row.querySelector(".commit");
     const sugBox = row.querySelector(".suggestions");
 
+    // --- Smooth scroll + tijdelijke hoogte ---
+    let extraSpaceEl = null;
+    function ensureScrollable() {
+      const body = document.body;
+      const html = document.documentElement;
+      const maxScroll = Math.max(body.scrollHeight, html.scrollHeight);
+      const viewHeight = window.innerHeight;
+
+      if (maxScroll - viewHeight < 100 && !extraSpaceEl) {
+        extraSpaceEl = document.createElement("div");
+        extraSpaceEl.style.height = "0";
+        extraSpaceEl.style.transition = "height 0.3s ease-out";
+        extraSpaceEl.style.pointerEvents = "none";
+        document.body.appendChild(extraSpaceEl);
+        requestAnimationFrame(() => {
+          extraSpaceEl.style.height = "50dvh";
+        });
+      }
+    }
+    function removeExtraSpace() {
+      if (extraSpaceEl) {
+        extraSpaceEl.style.height = "0";
+        extraSpaceEl.addEventListener(
+          "transitionend",
+          () => {
+            if (extraSpaceEl) extraSpaceEl.remove();
+            extraSpaceEl = null;
+          },
+          { once: true }
+        );
+      }
+    }
+    function scrollInputIntoView() {
+      ensureScrollable();
+      requestAnimationFrame(() => {
+        const rect = row.getBoundingClientRect();
+        const top = window.scrollY + rect.top - 30;
+        window.scrollTo({ top, behavior: "smooth" });
+      });
+    }
+
+    // --- Suggestie systeem ---
     const SUG_SOURCE =
       Array.isArray(PRODUCTS) && PRODUCTS.every((x) => typeof x === "string")
         ? PRODUCTS
@@ -399,6 +440,7 @@ export async function renderListPage(mount) {
     function closeSug() {
       sugBox.innerHTML = "";
       sugBox.classList.remove("open");
+
     }
 
     function renderSuggestions(q) {
@@ -429,9 +471,11 @@ export async function renderListPage(mount) {
         sugBox.appendChild(opt);
       }
       openSug();
+      
     }
 
     async function handleSearch() {
+      removeExtraSpace(); // <- reset tijdelijke ruimte
       const q = input.value.trim();
       if (!q) return;
 
@@ -441,6 +485,7 @@ export async function renderListPage(mount) {
       );
 
       const results = searchProducts(filtered, q);
+
       if (!results.length) {
         alert("Geen resultaten gevonden");
         return;
@@ -467,7 +512,7 @@ export async function renderListPage(mount) {
         e.preventDefault();
         handleSearch();
         input.blur();
-      } else if (e.key === "Escape") closeSug();
+      } else if (e.key === "Escape") closeSug(), removeExtraSpace();
     });
 
     let rafId = null;
@@ -478,11 +523,12 @@ export async function renderListPage(mount) {
     });
 
     input.addEventListener("focus", () => {
+      scrollInputIntoView();
       if (input.value.trim()) renderSuggestions(input.value.trim());
     });
 
     document.addEventListener("click", (e) => {
-      if (!row.contains(e.target)) closeSug();
+      if (!row.contains(e.target)) closeSug(), removeExtraSpace();
     });
 
     window.triggerListSearch = (nameOrProduct) => {
