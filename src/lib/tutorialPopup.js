@@ -3,16 +3,16 @@
 // Tutorial Popup Logic
 // =============================================
 
-const LS_KEY = "sms_tutorial_last_shown";
+const LS_KEY = "sms_tutorial_seen";
 
-export function shouldShowTutorialToday() {
-  const last = localStorage.getItem(LS_KEY);
-  if (!last) return true;
-  const today = new Date().toDateString();
-  return last !== today;
+export function shouldShowTutorialOnce() {
+  // Toon alleen als de flag nog niet bestaat
+  return !localStorage.getItem(LS_KEY);
 }
 
 export function markTutorialShown() {
-  const today = new Date().toDateString();
-  localStorage.setItem(LS_KEY, today);
+  // Flag zetten zodat het nooit meer getoond wordt
+  localStorage.setItem(LS_KEY, "true");
 }
+
+// Show the tutorial popup if it should be shown

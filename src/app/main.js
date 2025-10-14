@@ -5,8 +5,11 @@ import { renderSettingsPage } from "../pages/settings.js";
 import { initSettings } from "../lib/settings.js";
 import { renderDealsPage } from "../pages/deals.js";
 import { renderProPage} from "../pages/pro.js"
-import { shouldShowTutorialToday } from "../lib/tutorialPopup.js";
 import { renderTutorialPage } from "../pages/tutorial.js";
+import {
+  shouldShowTutorialOnce,
+  markTutorialShown,
+} from "../lib/tutorialPopup.js";
 import { registerClick } from "../lib/adSystem.js";
 import { showNav } from "../lib/utils.js";
 
@@ -34,8 +37,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 // Bij opstart: toon tutorial 1x per dag
-if (shouldShowTutorialToday()) {
-  window.location.hash = "#/tutorial";
+
+
+if (shouldShowTutorialOnce()) {
+  renderTutorialPage();
+  markTutorialShown();
 }
 
 document.addEventListener("click", (e) => {
@@ -50,4 +56,3 @@ document.addEventListener("click", (e) => {
 document.addEventListener("touchend", () => {
   document.activeElement?.blur();
 });
-

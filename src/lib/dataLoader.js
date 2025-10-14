@@ -21,7 +21,7 @@ export async function ensureDataLoaded() {
 
   console.log("[DATA] Laden supermarktdata...");
 
-  const [ahRaw, dirkRaw, jumboRaw, aldiRaw] = await Promise.all([
+  const [ahRaw, dirkRaw, jumboRaw, aldiRaw, hoogvlietRaw] = await Promise.all([
     loadJSONOncePerDay(
       "ah",
       "https://am31r0.github.io/supermarkt_scanner/dev/store_database/ah.json"
@@ -38,6 +38,10 @@ export async function ensureDataLoaded() {
       "aldi",
       "https://am31r0.github.io/supermarkt_scanner/dev/store_database/aldi.json"
     ),
+    loadJSONOncePerDay(
+      "hoogvliet",
+      "https://am31r0.github.io/supermarkt_scanner/dev/store_database/hoogvliet.json"
+    )
   ]);
 
   const allProducts = normalizeAll({
@@ -45,9 +49,10 @@ export async function ensureDataLoaded() {
     dirk: dirkRaw,
     jumbo: jumboRaw,
     aldi: aldiRaw,
+    hoogvliet: hoogvlietRaw,
   });
 
-  loadedData = { ahRaw, dirkRaw, jumboRaw, aldiRaw, allProducts };
+  loadedData = { ahRaw, dirkRaw, jumboRaw, aldiRaw, hoogvlietRaw, allProducts };
 
   console.log(`[DATA] ${allProducts.length} producten geladen`);
   return loadedData;
@@ -59,12 +64,13 @@ export async function ensureDataLoaded() {
 export async function ensureEngineReady() {
   if (engineInitialized) return;
 
-  const { ahRaw, dirkRaw, jumboRaw, aldiRaw } = await ensureDataLoaded();
+  const { ahRaw, dirkRaw, jumboRaw, aldiRaw, hoogvlietRaw } = await ensureDataLoaded();
   await initEngine({
     ah: ahRaw,
     dirk: dirkRaw,
     jumbo: jumboRaw,
     aldi: aldiRaw,
+    hoogvliet: hoogvlietRaw,
   });
 
   engineInitialized = true;

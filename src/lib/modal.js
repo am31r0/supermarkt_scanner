@@ -173,11 +173,14 @@ export function showSearchModal(results, onSelect) {
       arr = arr.filter((p) => {
         const name = (p.name || "").toLowerCase();
         return (
-          name.includes("1 de beste") ||
+          name.includes("1 de beste") || // Dirk
           name.includes("dirk") ||
-          name.includes("ah ") ||
+          name.includes("ah ") || // AH
           name.includes("basic") ||
-          name.includes("jumbo")
+          name.includes("jumbo") ||
+          name.includes("aldi") || // ✅ Aldi toegevoegd
+          name.includes("hoogvliet") || // ✅ Hoogvliet toegevoegd
+          name.includes("g'woon") // ✅ Veel voorkomend Hoogvliet-huismerk
         );
       });
     } else if (filterMode === "amerk") {
@@ -188,7 +191,10 @@ export function showSearchModal(results, onSelect) {
           name.includes("dirk") ||
           name.includes("ah ") ||
           name.includes("basic") ||
-          name.includes("jumbo")
+          name.includes("jumbo") ||
+          name.includes("aldi") ||
+          name.includes("hoogvliet") ||
+          name.includes("g'woon")
         );
       });
     } else if (filterMode === "bio") {

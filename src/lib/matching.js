@@ -292,35 +292,40 @@ export function normalizeAldi(p) {
 /* =======================
    HOOGVLIET Normalizer
    ======================= */
-export function normalizeHoogvliet(p) {
-  const price = p.price;
-  const promoPrice =
-    typeof p.discountedPrice === "number" ? p.discountedPrice : null;
-  const eff = effectivePrice(price, promoPrice);
-
-  const unit = p.baseUnit ? normUnitKey(p.baseUnit) : "st";
-  const amount = 1;
-  const pricePerUnit = eff;
-  const ppuLabel = labelForUnit(unit);
-
-  return {
-    store: "hoogvliet",
-    id: p.id,
-    name: p.title,
-    brand: p.brand || p.title.split(" ")[0],
-    rawCategory: p.categoryHierarchy,
-    unifiedCategory: unifyCategory("HOOGVLIET", p.categoryHierarchy),
-    price,
-    promoPrice,
-    promoEnd: p.promoEnd || null,
-    unit,
-    amount,
-    pricePerUnit,
-    ppuLabel,
-    image: p.image,
-    link: p.link,
-  };
-}
+   export function normalizeHoogvliet(p) {
+    const price = p.price;
+    const promoPrice =
+      typeof p.promoPrice === "number"
+        ? p.promoPrice
+        : typeof p.discountedPrice === "number"
+        ? p.discountedPrice
+        : null;
+    const eff = effectivePrice(price, promoPrice);
+  
+    const unit = p.baseUnit ? normUnitKey(p.baseUnit) : "st";
+    const amount = 1;
+    const pricePerUnit = eff;
+    const ppuLabel = labelForUnit(unit);
+  
+    return {
+      store: "hoogvliet",
+      id: p.id,
+      name: p.title,
+      brand: p.brand || p.title.split(" ")[0],
+      rawCategory: p.categoryHierarchy,
+      unifiedCategory: unifyCategory("HOOGVLIET", p.categoryHierarchy),
+      price,
+      promoPrice,
+      promoEnd: p.promoEnd || null,
+      unit,
+      amount,
+      pricePerUnit,
+      ppuLabel,
+      image: p.image,
+      link: p.link,
+    };
+  }
+  
 
 /* =======================
    Normalize all

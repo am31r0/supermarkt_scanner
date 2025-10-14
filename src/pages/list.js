@@ -1,3 +1,4 @@
+// src/pages/list.js
 import { PRODUCTS, NAME_TO_CAT } from "../data/products.js";
 import { renderCategoryGrid } from "../lib/categoryGrid.js";
 import { showSearchModal } from "../lib/modal.js";
@@ -7,18 +8,16 @@ import { saveToHistory } from "../lib/history.js";
 import { getEnabledStores } from "../lib/settings.js";
 import { CATEGORY_ORDER, STORE_COLORS, STORE_LABEL } from "../lib/constants.js";
 import { searchProducts } from "../lib/matching.js";
-import {
-  ensureDataLoaded,
-  ensureEngineReady,
-  getAllProductsSync,
-} from "../lib/dataLoader.js";
+import { ensureDataLoaded, ensureEngineReady } from "../lib/dataLoader.js";
 
 const LS_KEY = "sms_list";
 const DEBUG = false;
 
 const STORE_ORDER = ["ah", "jumbo", "dirk", "aldi", "other"];
 
-// ---------- Helpers: normaliseer store keys ----------
+/* =======================
+   STORE NORMALIZATION
+   ======================= */
 function normalizeStoreKey(s) {
   if (!s) return "other";
   const v = String(s).trim().toLowerCase();
@@ -41,9 +40,9 @@ function normalizeEnabledMap(map) {
   return out;
 }
 
-// -------------------------
-// Storage helpers
-// -------------------------
+/* =======================
+   STORAGE
+   ======================= */
 function loadList() {
   try {
     return JSON.parse(localStorage.getItem(LS_KEY)) ?? [];
@@ -55,9 +54,9 @@ function saveList(items) {
   localStorage.setItem(LS_KEY, JSON.stringify(items));
 }
 
-// -------------------------
-// Page renderer
-// -------------------------
+/* =======================
+   MAIN PAGE
+   ======================= */
 export async function renderListPage(mount) {
   const state = loadList();
 
@@ -85,13 +84,9 @@ export async function renderListPage(mount) {
   if (listPage && catSection) listPage.insertBefore(selectorMount, catSection);
   renderStoreSelector(selectorMount);
 
-  // 🧠 Data & engine via centrale loader
   await ensureEngineReady();
   const { allProducts } = await ensureDataLoaded();
 
-  // -------------------------
-  // Reactiviteit op store selector
-  // -------------------------
   function setupStoreFilterReactivity() {
     const rerender = () => requestAnimationFrame(renderCommitted);
     selectorMount.addEventListener("change", rerender);
@@ -101,9 +96,9 @@ export async function renderListPage(mount) {
   }
   setupStoreFilterReactivity();
 
-  // -------------------------
-  // State mutators
-  // -------------------------
+  /* =======================
+     STATE MUTATION
+     ======================= */
   function addItem(product) {
     const normStore = normalizeStoreKey(product?.store);
     let promo = product?.promoPrice ?? product?.offerPrice ?? null;
@@ -150,9 +145,9 @@ export async function renderListPage(mount) {
     renderCommitted();
   }
 
-  // -------------------------
-  // Sort helpers
-  // -------------------------
+  /* =======================
+     SORTING
+     ======================= */
   function sortItemsForRender(items) {
     return items.slice().sort((a, b) => {
       const catA = a.cat || "other";
@@ -164,9 +159,9 @@ export async function renderListPage(mount) {
     });
   }
 
-  // -------------------------
-  // History & Rating helpers
-  // -------------------------
+  /* =======================
+     HISTORY & CLEAR
+     ======================= */
   function clearListLocal() {
     state.length = 0;
     saveList(state);
@@ -187,9 +182,9 @@ export async function renderListPage(mount) {
     showToast(`${doneItems.length} producten opgeslagen in geschiedenis`);
   }
 
-  // -------------------------
-  // Render committed list
-  // -------------------------
+  /* =======================
+     RENDER LIST
+     ======================= */
   function renderCommitted() {
     listContainer.innerHTML = "";
 
@@ -245,9 +240,9 @@ export async function renderListPage(mount) {
             <span class="item-full-name">
               <span class="item-name">${escHtml(item.name)}</span>
               <span class="item-name-store-price">
-                <span class="list-store store-${storeKey}">${
-          STORE_LABEL[storeKey] || escHtml(item.store)
-        }</span>
+                <span class="list-store store-${storeKey}">
+                  ${STORE_LABEL[storeKey] || escHtml(item.store)}
+                </span>
                 ${
                   hasPromo
                     ? `<span class="promo-pill">KORTING</span>
@@ -371,9 +366,9 @@ export async function renderListPage(mount) {
     }
   }
 
-  // -------------------------
-  // Input row + zoekfunctie
-  // -------------------------
+  /* =======================
+     SEARCH / INPUT ROW
+     ======================= */
   function createInputRow(allProductsLocal) {
     const row = document.createElement("div");
     row.className = "input-row";
@@ -387,26 +382,29 @@ export async function renderListPage(mount) {
     const commitBtn = row.querySelector(".commit");
     const sugBox = row.querySelector(".suggestions");
 
-    // --- Smooth scroll + tijdelijke hoogte ---
+    // === MOBIEL TOETSENBORD GEDRAG ===
+    // Doel: zoekbalk zichtbaar boven toetsenbord. Werkt met visualViewport;
+    // fallback: tijdelijk extra ruimte + smooth scroll.
     let extraSpaceEl = null;
-    function ensureScrollable() {
-      const body = document.body;
-      const html = document.documentElement;
-      const maxScroll = Math.max(body.scrollHeight, html.scrollHeight);
-      const viewHeight = window.innerHeight;
+    let keyboardActive = false;
+    const viewport = window.visualViewport || null;
 
-      if (maxScroll - viewHeight < 100 && !extraSpaceEl) {
+    // Helper: creëer/vergroot tijdelijke spacer met transition
+    function addTempSpace(targetHeight = "50dvh") {
+      if (!extraSpaceEl) {
         extraSpaceEl = document.createElement("div");
         extraSpaceEl.style.height = "0";
-        extraSpaceEl.style.transition = "height 0.3s ease-out";
+        extraSpaceEl.style.transition = "height 0.25s ease-out";
         extraSpaceEl.style.pointerEvents = "none";
         document.body.appendChild(extraSpaceEl);
-        requestAnimationFrame(() => {
-          extraSpaceEl.style.height = "50dvh";
-        });
       }
+      requestAnimationFrame(() => {
+        extraSpaceEl.style.height = targetHeight;
+      });
     }
-    function removeExtraSpace() {
+
+    function removeTempSpace() {
+      keyboardActive = false;
       if (extraSpaceEl) {
         extraSpaceEl.style.height = "0";
         extraSpaceEl.addEventListener(
@@ -419,16 +417,57 @@ export async function renderListPage(mount) {
         );
       }
     }
-    function scrollInputIntoView() {
-      ensureScrollable();
+
+    // Scroll de input ~30px onder top (of 40px marge bij keyboard)
+    function scrollInputIntoView(offset = 30) {
       requestAnimationFrame(() => {
         const rect = row.getBoundingClientRect();
-        const top = window.scrollY + rect.top - 30;
+        const top = window.scrollY + rect.top - offset;
         window.scrollTo({ top, behavior: "smooth" });
       });
     }
 
-    // --- Suggestie systeem ---
+    // visualViewport-based keyboard detectie (iOS/Android)
+    function ensureAboveKeyboard() {
+      if (!viewport) return false;
+      const remaining = viewport.height;
+      const full = window.innerHeight;
+
+      // Keyboard actief als viewport significant kleiner is
+      if (remaining < full - 100 && !keyboardActive) {
+        keyboardActive = true;
+        addTempSpace("50dvh");
+        scrollInputIntoView(40);
+        return true;
+      }
+      return keyboardActive;
+    }
+
+    // Fallback voor browsers zonder visualViewport:
+    // als de pagina niet genoeg hoogte heeft om te scrollen, voeg ruimte toe.
+    function fallbackEnsureScrollable() {
+      const body = document.body;
+      const html = document.documentElement;
+      const maxScroll = Math.max(body.scrollHeight, html.scrollHeight);
+      const viewHeight = window.innerHeight;
+      if (maxScroll - viewHeight < 100) {
+        addTempSpace("50dvh");
+      }
+      scrollInputIntoView(30);
+    }
+
+    // Bind aan visualViewport resize (open/close keyboard)
+    if (viewport) {
+      viewport.addEventListener("resize", () => {
+        if (viewport.height < window.innerHeight - 100) {
+          ensureAboveKeyboard();
+        } else {
+          removeTempSpace();
+        }
+      });
+    }
+
+    // --- Suggesties ---
     const SUG_SOURCE =
       Array.isArray(PRODUCTS) && PRODUCTS.every((x) => typeof x === "string")
         ? PRODUCTS
@@ -440,7 +479,6 @@ export async function renderListPage(mount) {
     function closeSug() {
       sugBox.innerHTML = "";
       sugBox.classList.remove("open");
-
     }
 
     function renderSuggestions(q) {
@@ -471,11 +509,10 @@ export async function renderListPage(mount) {
         sugBox.appendChild(opt);
       }
       openSug();
-      
     }
 
     async function handleSearch() {
-      removeExtraSpace(); // <- reset tijdelijke ruimte
+      removeTempSpace(); // sluit eventuele extra ruimte bij zoekactie
       const q = input.value.trim();
       if (!q) return;
 
@@ -506,13 +543,19 @@ export async function renderListPage(mount) {
       });
     }
 
+    // --- Events ---
     commitBtn.addEventListener("click", handleSearch);
+
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
         handleSearch();
         input.blur();
-      } else if (e.key === "Escape") closeSug(), removeExtraSpace();
+      } else if (e.key === "Escape") {
+        closeSug();
+        removeTempSpace();
+        input.blur();
+      }
     });
 
     let rafId = null;
@@ -523,14 +566,30 @@ export async function renderListPage(mount) {
     });
 
     input.addEventListener("focus", () => {
-      scrollInputIntoView();
+      const handledByViewport = ensureAboveKeyboard();
+      if (!handledByViewport) {
+        // fallback zonder visualViewport
+        fallbackEnsureScrollable();
+      }
       if (input.value.trim()) renderSuggestions(input.value.trim());
     });
 
-    document.addEventListener("click", (e) => {
-      if (!row.contains(e.target)) closeSug(), removeExtraSpace();
+    input.addEventListener("blur", () => {
+      // kleine delay zodat modal events niet ge-cancelled worden
+      setTimeout(removeTempSpace, 250);
     });
 
+    document.addEventListener("click", (e) => {
+      if (!row.contains(e.target)) {
+        closeSug();
+        // Als keyboard wsl dicht is (tap buiten), haal ruimte weg
+        if (!viewport || viewport.height >= window.innerHeight - 50) {
+          removeTempSpace();
+        }
+      }
+    });
+
+    // Extern triggeren vanuit categorie-grid
     window.triggerListSearch = (nameOrProduct) => {
       const name =
         typeof nameOrProduct === "string"
@@ -544,9 +603,9 @@ export async function renderListPage(mount) {
     inputRows.prepend(row);
   }
 
-  // -------------------------
-  // Render init
-  // -------------------------
+  /* =======================
+     INIT
+     ======================= */
   createInputRow(allProducts);
   renderCategoryGrid(catSection, {
     onSelect: (product) => {
@@ -561,9 +620,9 @@ export async function renderListPage(mount) {
   renderCommitted();
 }
 
-// -------------------------
-// Totals
-// -------------------------
+/* =======================
+   TOTALS
+   ======================= */
 function calculateTotals(items) {
   let totalNormal = 0;
   let totalOffer = 0;
@@ -605,6 +664,9 @@ function renderTotals(container, items) {
   container.appendChild(el);
 }
 
+/* =======================
+   ICONS
+   ======================= */
 function trashSvg() {
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
