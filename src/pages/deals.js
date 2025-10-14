@@ -1,7 +1,7 @@
+// src/pages/deals.js
 import { loadJSONOncePerDay } from "../lib/cache.js";
 import { normalizeAll } from "../lib/matching.js";
 import { escHtml, escAttr, formatPrice, uid, showToast } from "../lib/utils.js";
-
 import {
   CATEGORY_ORDER,
   CATEGORY_LABELS,
@@ -25,12 +25,8 @@ function saveList(items) {
   localStorage.setItem(LS_KEY, JSON.stringify(items));
 }
 
-// -------------------------
-// Add to list
-// -------------------------
 function addItem(product) {
   const state = loadList();
-
   const item = {
     id: uid(),
     name: product.name,
@@ -42,18 +38,14 @@ function addItem(product) {
     price: product.price || null,
     promoPrice: product.promoPrice || product.offerPrice || null,
   };
-
   state.push(item);
   saveList(state);
   document.dispatchEvent(new Event("list:changed"));
   showToast(`Toegevoegd aan Mijn Lijst`);
-
 }
 
-
-
 // -------------------------
-// Promo einddatum helpers
+// Promo helpers
 // -------------------------
 const maandMap = {
   jan: 0,
@@ -81,7 +73,7 @@ function formatNLDate(d) {
   return `${dd}-${mm}-${yyyy}`;
 }
 function parseJumboString(s) {
-  const m = s.toLowerCase().match(/(\d{1,2})\s+([a-z]+)/i);
+  const m = s?.toLowerCase().match(/(\d{1,2})\s+([a-z]+)/i);
   if (!m) return null;
   const dd = parseInt(m[1], 10);
   const maand = maandMap[m[2]] ?? null;
@@ -93,35 +85,63 @@ function parseJumboString(s) {
   return new Date(yyyy, maand, dd);
 }
 function getPromoEnd(p) {
-  if (p.promoEnd) return new Date(p.promoEnd); // AH
-  if (p.offerEnd) return new Date(p.offerEnd); // Dirk
-  if (p.promoUntil) return parseJumboString(p.promoUntil); // Jumbo
+  if (p.promoEnd) return new Date(p.promoEnd);
+  if (p.offerEnd) return new Date(p.offerEnd);
+  if (p.promoUntil) return parseJumboString(p.promoUntil);
   return null;
 }
 function isValidPromo(p) {
-  const promo = p.promoPrice || p.offerPrice;
+  const promo =
+    p.promoPrice || p.offerPrice || p.discountedPrice || p.discountPrice;
   if (!promo) return false;
   const base = p.price || 0;
-  if (promo >= base) return false;
-
-  const end = getPromoEnd(p);
-  if (!end || isNaN(end)) return false;
+  if (promo >= base || base === 0) return false;
 
   const now = new Date();
-  const max = new Date();
-  max.setFullYear(now.getFullYear() + 2);
-
-  if (end > max) return false;
-  if (end.getFullYear() > 2100) return false;
-
+  const end = getPromoEnd(p);
+  if (end && !isNaN(end)) {
+    const max = new Date();
+    max.setFullYear(now.getFullYear() + 2);
+    if (end > max) return false;
+    if (end.getFullYear() > 2100) return false;
+  }
   return true;
 }
 
 // -------------------------
-// Render product card
+// Lijstweergave (hoofdpagina)
+// -------------------------
+function renderProductCardList(p) {
+  const promoPrice = p.promoPrice || p.offerPrice || p.discountedPrice || null;
+  const endDate = getPromoEnd(p);
+  const promoEndHtml =
+    endDate && !isNaN(endDate)
+      ? `<div class="promo-end">Geldig t/m ${formatNLDate(endDate)}</div>`
+      : "";
+
+  return `
+    <div class="deal-row" data-id="${p.id}" data-store="${p.store}">
+      <img class="deal-thumb" src="${escAttr(p.image || "")}" alt="${escAttr(
+    p.name
+  )}">
+      <div class="deal-info">
+        <div class="deal-name">${escHtml(p.name)}</div>
+        <div class="deal-prices">
+          <span class="old">${formatPrice(p.price)}</span>
+          <span class="new">${formatPrice(promoPrice)}</span>
+        </div>
+        ${promoEndHtml}
+      </div>
+      <button class="btn small add-btn">+</button>
+    </div>
+  `;
+}
+
+// -------------------------
+// 🔥 Originele modal teruggezet
 // -------------------------
 function renderProductCard(p) {
-  const promoPrice = p.promoPrice || p.offerPrice || null;
+  const promoPrice = p.promoPrice || p.offerPrice || p.discountedPrice || null;
 
   let promoEndHtml = "";
   if (isValidPromo(p)) {
@@ -136,7 +156,7 @@ function renderProductCard(p) {
       )}</div>`;
     }
   }
-    
+
   return `
     <div class="deal-card promo" data-id="${p.id}" data-store="${p.store}">
       <div class="meta">
@@ -160,9 +180,6 @@ function renderProductCard(p) {
   `;
 }
 
-// -------------------------
-// Deals modal
-// -------------------------
 function showDealsModal(store, products) {
   const modal = document.createElement("div");
   modal.className = "search-modal";
@@ -175,9 +192,13 @@ function showDealsModal(store, products) {
             ? "Albert Heijn"
             : store === "dirk"
             ? "Dirk van den Broek"
-            : "Jumbo"
+            : store === "jumbo"
+            ? "Jumbo"
+            : store === "aldi"
+            ? "Aldi"
+            : "Hoogvliet"
         } aanbiedingen</h2>
-        <button class="search-modal-close" aria-label="Sluiten">✕</button> 
+        <button class="search-modal-close" aria-label="Sluiten">✕</button>
       </div>
       <div class="category-nav"></div>
       <div class="search-results-deals"></div>
@@ -201,7 +222,7 @@ function showDealsModal(store, products) {
     (grouped[cat] ||= []).push(p);
   }
 
-  // --- maak de navigatieknoppen ---
+  // --- nav knoppen ---
   let navHtml = "";
   for (const cat of CATEGORY_ORDER) {
     if (!grouped[cat]) continue;
@@ -210,63 +231,31 @@ function showDealsModal(store, products) {
   }
   navBox.innerHTML = `<div class="cat-nav-inner">${navHtml}</div>`;
 
-  // --- render categorieblokken ---
+  // --- categorieblokken renderen ---
   let html = "";
   for (const cat of CATEGORY_ORDER) {
     const list = grouped[cat];
     if (!list) continue;
-
     html += `
       <div class="category-block" id="cat-${cat}">
-        <h3 class="category-header">${CATEGORY_LABELS[cat] || cat}</h3>
+        <h3 class="category-header sticky">${CATEGORY_LABELS[cat] || cat}</h3>
         <div class="category-grid">
-          ${list
-            .map((p) => {
-              const img = p.image
-                ? p.store === "dirk" && !p.image.includes("?width=")
-                  ? `${p.image}?width=190`
-                  : p.image
-                : "";
-              const cardHtml = renderProductCard({ ...p, image: img });
-              return cardHtml;
-            })
-            .join("")}
+          ${list.map((p) => renderProductCard(p)).join("")}
         </div>
       </div>
     `;
   }
   resultsBox.innerHTML = html;
 
-  // --- click events op add-buttons ---
-  resultsBox.querySelectorAll(".deal-card").forEach((card) => {
-    card.addEventListener("click", (e) => {
-      if (e.target.closest(".add-btn")) return;
-      const id = card.dataset.id;
-      const store = card.dataset.store;
-      const chosen = products.find(
-        (r) => String(r.id) === id && String(r.store) === store
-      );
-      if (chosen) addItem(chosen);
-    });
-    card.querySelector(".add-btn").addEventListener("click", (e) => {
-      e.stopPropagation();
-      const id = card.dataset.id;
-      const store = card.dataset.store;
-      const chosen = products.find(
-        (r) => String(r.id) === id && String(r.store) === store
-      );
-      if (chosen) addItem(chosen);
-    });
-  });
+  // --- sticky headers (CSS handled) ---
 
-  // --- smooth scroll functionaliteit ---
+  // --- smooth scroll ---
   navBox.querySelectorAll(".cat-nav-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const targetId = e.target.dataset.target;
       const targetEl = resultsBox.querySelector(`#${targetId}`);
-      if (targetEl) {
+      if (targetEl)
         targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
     });
   });
 
@@ -283,14 +272,11 @@ function showDealsModal(store, products) {
     if (panel.contains(e.target)) return;
     closeModal();
   }
-
   btnClose.addEventListener("click", closeModal);
   backdrop.addEventListener("click", closeModal);
   document.addEventListener("keydown", onKeyDown);
   document.addEventListener("pointerdown", onDocPointerDown, true);
 }
-
-
 
 // -------------------------
 // Main render
@@ -302,10 +288,9 @@ export async function renderDealsPage(mount) {
       <div class="deals-container"></div>
     </section>
   `;
-
   const container = mount.querySelector(".deals-container");
 
-  const [ahRaw, dirkRaw, jumboRaw] = await Promise.all([
+  const [ahRaw, dirkRaw, jumboRaw, aldiRaw, hoogvlietRaw] = await Promise.all([
     loadJSONOncePerDay(
       "ah",
       "https://am31r0.github.io/supermarkt_scanner/dev/store_database/ah.json"
@@ -318,48 +303,72 @@ export async function renderDealsPage(mount) {
       "jumbo",
       "https://am31r0.github.io/supermarkt_scanner/dev/store_database/jumbo.json"
     ),
+    loadJSONOncePerDay(
+      "aldi",
+      "https://am31r0.github.io/supermarkt_scanner/dev/store_database/aldi.json"
+    ),
+    loadJSONOncePerDay(
+      "hoogvliet",
+      "https://am31r0.github.io/supermarkt_scanner/dev/store_database/hoogvliet.json"
+    ),
   ]);
 
-  const all = normalizeAll({ ah: ahRaw, dirk: dirkRaw, jumbo: jumboRaw });
+  const all = normalizeAll({
+    ah: ahRaw,
+    dirk: dirkRaw,
+    jumbo: jumboRaw,
+    aldi: aldiRaw,
+    hoogvliet: hoogvlietRaw,
+  });
+  const stores = ["ah", "jumbo", "dirk", "aldi", "hoogvliet"];
 
-  const stores = ["ah", "jumbo", "dirk"];
   for (const store of stores) {
-    const products = all.filter((p) => p.store === store && isValidPromo(p));
+    let products = all.filter((p) => p.store === store && isValidPromo(p));
     if (!products.length) continue;
 
-    const section = document.createElement("section");
-    section.className = "store-deals";
-    section.innerHTML = `
-    <h1 class="store-header" style="background:${STORE_COLORS[store]}">
-    ${
+    // Sorteer op grootste korting
+    products = products
+      .map((p) => ({
+        ...p,
+        discountPct:
+          ((p.price -
+            (p.promoPrice || p.offerPrice || p.discountedPrice || p.price)) /
+            p.price) *
+          100,
+      }))
+      .sort((a, b) => b.discountPct - a.discountPct);
+
+    const logoSrc =
       store === "ah"
-        ? "Albert Heijn"
+        ? "./public/icons/ah-logo.webp"
+        : store === "jumbo"
+        ? "./public/icons/jumbo-logo-transparent.webp"
         : store === "dirk"
-        ? "Dirk van den Broek"
-        : "Jumbo"
-    }
-  </h1>
-  <div class="deal-grid" style="border:1px solid ${STORE_COLORS[store]}">
-    ${products
-      .slice(0, 4)
-      .map((p) => renderProductCard(p))
-      .join("")}
-        <button class="btn show-all">Alles weergeven</button>
-  </div>
-  
-`;
+        ? "./public/icons/dirk-logo-square.webp"
+        : store === "aldi"
+        ? "./public/icons/aldi-logo.webp"
+        : "./public/icons/hoogvliet-logo.webp";
+
+    const section = document.createElement("section");
+    section.className = "store-deals-list";
+    section.innerHTML = `
+      <div class="store-header-row" style="border-left: 5px solid ${
+        STORE_COLORS[store]
+      }">
+        <img src="${logoSrc}" class="store-logo" alt="${store}">
+        <h2>${STORE_LABEL[store] || store}</h2>
+      </div>
+      <div class="deal-list">
+        ${products.slice(0, 3).map(renderProductCardList).join("")}
+      </div>
+      <button class="btn show-all">Bekijk folder</button>
+    `;
     container.appendChild(section);
 
-    section.querySelectorAll(".deal-card").forEach((card) => {
-      card.addEventListener("click", (e) => {
-        if (e.target.closest(".add-btn")) return;
-        const id = card.dataset.id;
-        const chosen = products.find((r) => String(r.id) === id);
-        if (chosen) addItem(chosen);
-      });
-      card.querySelector(".add-btn").addEventListener("click", (e) => {
+    section.querySelectorAll(".deal-row").forEach((row) => {
+      row.querySelector(".add-btn").addEventListener("click", (e) => {
         e.stopPropagation();
-        const id = card.dataset.id;
+        const id = row.dataset.id;
         const chosen = products.find((r) => String(r.id) === id);
         if (chosen) addItem(chosen);
       });

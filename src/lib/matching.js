@@ -293,38 +293,48 @@ export function normalizeAldi(p) {
    HOOGVLIET Normalizer
    ======================= */
    export function normalizeHoogvliet(p) {
-    const price = p.price;
-    const promoPrice =
-      typeof p.promoPrice === "number"
-        ? p.promoPrice
-        : typeof p.discountedPrice === "number"
-        ? p.discountedPrice
-        : null;
-    const eff = effectivePrice(price, promoPrice);
+     // Pak juiste prijsbronnen
+     const price = toFloatEU(p.listPrice || p.price);
+     const promoPrice = toFloatEU(
+       p.promoPrice || p.discountedPrice || p.discountPrice || null
+     );
+
+     const eff = effectivePrice(price, promoPrice);
+
+     const unit = p.baseUnit ? normUnitKey(p.baseUnit) : "st";
+     const amount = 1;
+     const pricePerUnit = eff;
+     const ppuLabel = labelForUnit(unit);
+
+     // promoEnd ophalen uit promotions
+     let promoEnd = p.promoEnd || null;
+     if (!promoEnd && Array.isArray(p.promotions) && p.promotions.length > 0) {
+       const promo = p.promotions.find((pr) => pr.validUntil);
+       if (promo) promoEnd = promo.validUntil;
+     }
+
+     return {
+       store: "hoogvliet",
+       id: p.id,
+       name: p.title,
+       brand: p.brand || p.title.split(" ")[0],
+       rawCategory: p.categoryHierarchy || p.category,
+       unifiedCategory: unifyCategory(
+         "HOOGVLIET",
+         p.categoryHierarchy || p.category
+       ),
+       price,
+       promoPrice,
+       promoEnd,
+       unit,
+       amount,
+       pricePerUnit,
+       ppuLabel,
+       image: p.image,
+       link: p.link,
+     };
+   }
   
-    const unit = p.baseUnit ? normUnitKey(p.baseUnit) : "st";
-    const amount = 1;
-    const pricePerUnit = eff;
-    const ppuLabel = labelForUnit(unit);
-  
-    return {
-      store: "hoogvliet",
-      id: p.id,
-      name: p.title,
-      brand: p.brand || p.title.split(" ")[0],
-      rawCategory: p.categoryHierarchy,
-      unifiedCategory: unifyCategory("HOOGVLIET", p.categoryHierarchy),
-      price,
-      promoPrice,
-      promoEnd: p.promoEnd || null,
-      unit,
-      amount,
-      pricePerUnit,
-      ppuLabel,
-      image: p.image,
-      link: p.link,
-    };
-  }
   
 
 /* =======================

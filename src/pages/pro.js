@@ -3,14 +3,13 @@ import {
   loadHistory,
   deleteHistoryItem,
   renderHistoryModal,
-  refreshItemsWithCurrentPrices, // exporteren we vanuit history.js
+  refreshItemsWithCurrentPrices,
 } from "../lib/history.js";
 import { showToast } from "../lib/utils.js";
 
 export function renderProPage(mount) {
   console.log("🔵 renderProPage start");
 
-  // Bouw basispagina
   mount.innerHTML = `
     <section class="pro">
       <header class="page-header pro-gradient" style="margin-bottom: 1.6rem;">
@@ -24,35 +23,81 @@ export function renderProPage(mount) {
         </div>
         <div class="card-body">
           <div class="history-container"></div>
+          <div class="pagination-controls" style="text-align:center; margin-top:1rem;"></div>
         </div>
       </div>
     </section>
   `;
 
   const container = mount.querySelector(".history-container");
+  const pagination = mount.querySelector(".pagination-controls");
 
-  // -------------
-  // Herbruikbare renderfunctie
-  // -------------
+  let showAll = false;
+  let currentPage = 1;
+  const PAGE_SIZE = 8;
+
   function renderList() {
-    console.log("🟣 renderList() called");
-
     const history = loadHistory();
-    console.log("📦 Loaded history:", history);
-
     container.innerHTML = "";
+    pagination.innerHTML = "";
 
     if (!Array.isArray(history) || history.length === 0) {
       container.innerHTML = `
         <p class="empty" style="opacity:0.7;">
           Nog geen opgeslagen lijsten.<br>
           <small>Ga naar <strong>Mijn Lijst</strong> en klik op “Klaar ✓”.</small>
-        </p>
-      `;
+        </p>`;
       return;
     }
 
-    history.forEach((entry) => {
+    // ------------- PAGINATION LOGICA -------------
+    let visibleItems = [];
+    if (!showAll && history.length > 3) {
+      visibleItems = history.slice(0, 3);
+    } else {
+      const totalPages = Math.ceil(history.length / PAGE_SIZE);
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+      visibleItems = history.slice(start, end);
+
+      // pagination knoppen (alleen als >8)
+      if (totalPages > 1) {
+        const prevBtn = document.createElement("button");
+        const nextBtn = document.createElement("button");
+        prevBtn.textContent = "← Vorige";
+        nextBtn.textContent = "Volgende →";
+        [prevBtn, nextBtn].forEach((b) => {
+          b.className = "btn small";
+          b.style.margin = "0 0.5rem";
+        });
+
+        if (currentPage > 1) {
+          prevBtn.onclick = () => {
+            currentPage--;
+            renderList();
+          };
+          pagination.appendChild(prevBtn);
+        }
+
+        pagination.appendChild(
+          Object.assign(document.createElement("span"), {
+            textContent: `Pagina ${currentPage} van ${totalPages}`,
+            style: "margin:0 0.5rem; opacity:0.7;",
+          })
+        );
+
+        if (currentPage < totalPages) {
+          nextBtn.onclick = () => {
+            currentPage++;
+            renderList();
+          };
+          pagination.appendChild(nextBtn);
+        }
+      }
+    }
+
+    // ------------- ITEM RENDERING -------------
+    visibleItems.forEach((entry) => {
       const dateStr = new Date(entry.date).toLocaleDateString("nl-NL", {
         day: "2-digit",
         month: "2-digit",
@@ -73,7 +118,6 @@ export function renderProPage(mount) {
         </div>
       `;
 
-      // --- hergebruiken-knop
       row.querySelector(".reuse-btn").addEventListener("click", async () => {
         try {
           const fresh = await refreshItemsWithCurrentPrices(entry.items);
@@ -86,36 +130,39 @@ export function renderProPage(mount) {
         }
       });
 
-      // --- bekijkknop
       row.querySelector(".view-btn").addEventListener("click", () => {
-        const existing = document.querySelector(".history-modal");
-        if (existing) existing.remove();
+        document.querySelector(".history-modal")?.remove();
         renderHistoryModal(entry);
       });
 
-      // --- verwijderknop
       row.querySelector(".del-btn").addEventListener("click", () => {
-        console.log("🗑️ Delete clicked for:", entry.id);
-        try {
-          deleteHistoryItem(String(entry.id));
-          const updated = loadHistory();
-          console.log("📦 Na verwijderen:", updated);
-          renderList();
-        } catch (err) {
-          console.error("❌ Fout bij verwijderen:", err);
-        }
+        deleteHistoryItem(String(entry.id));
+        renderList();
       });
 
       container.appendChild(row);
     });
+
+    // ------------- “MEER WEERGEVEN” KNOP -------------
+    if (!showAll && history.length > 3) {
+      const moreBtn = document.createElement("button");
+      moreBtn.textContent = "Meer weergeven";
+      moreBtn.className = "btn small";
+      moreBtn.style.marginTop = "1rem";
+      moreBtn.onclick = () => {
+        showAll = true;
+        currentPage = 1;
+        renderList();
+      };
+      pagination.appendChild(moreBtn);
+    }
   }
 
-  // Eerste render
   renderList();
 }
 
 // -------------------------
-// Groene bevestigingsbanner bovenaan
+// Groene bevestigingsbanner
 // -------------------------
 function showTopBanner(message) {
   const banner = document.createElement("div");

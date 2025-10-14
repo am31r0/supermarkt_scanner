@@ -17,6 +17,7 @@
 }
 
 html[data-theme="light"] {
+    color-scheme: light;
     --buttonbg: #dfdfdf;
     --bg: #efefef;
     --surface: #fff;

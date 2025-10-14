@@ -1,7 +1,7 @@
 // =============================================
 // Schappie Beta User Info Prompt
 // =============================================
-import { showNav } from "../lib/utils.js";
+import { showNav, showToast } from "../lib/utils.js";
 
 const LS_KEY_USER_INFO = "sms_user_info";
 
@@ -10,7 +10,8 @@ export function shouldAskUserInfo() {
 }
 
 export function showUserInfoPrompt() {
-    showNav(false);
+  showNav(false);
+
   const modal = document.createElement("div");
   modal.className = "user-info-modal";
   modal.innerHTML = `
@@ -23,12 +24,17 @@ export function showUserInfoPrompt() {
       <input id="beta-age" type="number" placeholder="Leeftijd" required />
       <input id="beta-city" type="text" placeholder="Woonplaats" required />
 
+      <div class="gender-group">
+        <label><input type="radio" name="gender" value="man" required /> Man</label>
+        <label><input type="radio" name="gender" value="vrouw" required /> Vrouw</label>
+      </div>
+
       <button id="beta-submit">Verder</button>
     </div>
   `;
   document.body.appendChild(modal);
 
-  // Stijl toevoegen
+  // ===== CSS styling =====
   const style = document.createElement("style");
   style.textContent = `
     .user-info-modal {
@@ -53,14 +59,15 @@ export function showUserInfoPrompt() {
     }
     .user-info-panel h2 {
       margin-bottom: 0.5rem;
-      font-size:1.3rem;
+      font-size: 1.3rem;
     }
     .user-info-panel p {
       font-size: 0.8rem;
       color: #444;
       margin-bottom: 1rem;
     }
-    .user-info-panel input {
+    .user-info-panel input[type="text"],
+    .user-info-panel input[type="number"] {
       width: 100%;
       margin: 0.4rem 0;
       padding: 0.75rem;
@@ -71,38 +78,52 @@ export function showUserInfoPrompt() {
       transition: border 0.2s;
     }
     .user-info-panel input:focus {
-      border-color: green;
+      border-color: var(--accent, green);
+    }
+    .gender-group {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin: 0.8rem 0 0.5rem;
+      font-size: 0.85rem;
+    }
+    .gender-group label {
+      cursor: pointer;
     }
     .user-info-panel button {
       background: var(--accent);
       color: #fff;
       border: none;
-      padding: 0.6rem 1.2rem;
+      padding: 0.6rem 1.4rem;
       border-radius: 99px;
-      margin-top: 0.5rem;
+      margin-top: 0.6rem;
       cursor: pointer;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       transition: background 0.2s;
     }
-
+    .user-info-panel button:hover {
+      filter: brightness(1.1);
+    }
   `;
   document.head.appendChild(style);
 
-  // Submit event
+  // ===== Submit event =====
   document.getElementById("beta-submit").addEventListener("click", async () => {
     const name = document.getElementById("beta-name").value.trim();
     const age = document.getElementById("beta-age").value.trim();
     const city = document.getElementById("beta-city").value.trim();
+    const gender = document.querySelector(
+      'input[name="gender"]:checked'
+    )?.value;
 
-    if (!name || !age || !city) {
-      alert("Vul alle velden in aub!");
+    if (!name || !age || !city || !gender) {
+      showToast("Vul alle velden in aub!");
       return;
     }
 
-    const info = { name, age, city, date: new Date().toISOString() };
+    const info = { name, age, city, gender, date: new Date().toISOString() };
 
     try {
-      // Verstuur naar jouw serverless API
       await fetch("/api/saveUser", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -110,10 +131,15 @@ export function showUserInfoPrompt() {
       });
 
       localStorage.setItem(LS_KEY_USER_INFO, JSON.stringify(info));
-      alert("Bedankt voor je deelname aan de Schappie Beta! 🚀");
       modal.remove();
+      showNav(true);
+
+      // ✨ Mooi Schappie-bericht
+      showToast(
+        "Bedankt voor je deelname aan de Schappie Beta! We wensen je veel bespaarplezier 🛒"
+      );
     } catch (err) {
-      alert("Er ging iets mis bij het opslaan. Probeer opnieuw.");
+      showToast("Er ging iets mis bij het opslaan. Probeer opnieuw.");
       console.error(err);
     }
   });

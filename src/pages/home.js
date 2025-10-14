@@ -25,7 +25,7 @@ export async function renderHomePage(mount) {
   mount.innerHTML = `
     <div class="page-header header-logo">
       <h1 class="logo">Schappie</h1>
-      <h3 style="font-size:0.6rem;">Alpha Build 0.3.251008.7</h3>
+      <h3 style="font-size:0.6rem;">Beta 0.4.251014.3</h3>
     </div>
 
     <div class="hero">
@@ -38,7 +38,7 @@ export async function renderHomePage(mount) {
 
     <section class="home-deals">
       <div class="home-deals-header">
-        <h3 class="home-deals-title">Populaire aanbiedingen</h3>
+        <h3 class="home-deals-title" style="text-align:center">Populaire aanbiedingen</h3>
         <button class="home-refresh btn small" style="display:none;">↻ Herlaad</button>
       </div>
       <div class="home-deals-grid"></div>
