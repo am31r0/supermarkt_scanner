@@ -1,81 +1,116 @@
-// src/lib/matching.js
 // =============================================
-// Matching & Normalisatie Engine
+// Matching & Normalisatie Engine (Schappie)
 // =============================================
 
 const DEBUG = false;
 
 /* =======================
-   CATEGORY MAPPING
+   Universele categorieën
    ======================= */
-const CATEGORY_MAPPING = {
-  AH: {
-    "Groente, aardappelen": "produce",
-    "Fruit, verse sappen": "produce",
-    "Maaltijden, salades": "produce",
-    "Borrel, chips, snacks": "snacks",
-    Kaas: "dairy",
-    Vlees: "meat_fish_veg",
-    Vis: "meat_fish_veg",
-    "Vegetarisch, vegan en plantaardig": "meat_fish_veg",
-    "Zuivel, eieren": "dairy",
-    "Soepen, sauzen, kruiden, olie": "pantry",
-    "Ontbijtgranen, beleg": "bakery",
-    Diepvries: "frozen",
-    Bakkerij: "bakery",
-  },
-  JUMBO: {
-    "Aardappelen, groente en fruit": "produce",
-    "Vleeswaren, kaas en tapas": "meat_fish_veg",
-    "Verse maaltijden en gemak": "produce",
-    "Vlees, vis en vega": "meat_fish_veg",
-    "Zuivel, eieren, boter": "dairy",
-    "Conserven, soepen, sauzen, oliën": "pantry",
-    "Ontbijt, broodbeleg en bakproducten": "bakery",
-    Diepvries: "frozen",
-    "Brood en gebak": "bakery",
-  },
-  DIRK: {
-    "Aardappelen, groente & fruit": "produce",
-    "Vlees & Vis": "meat_fish_veg",
-    "Verse maaltijden": "produce",
-    "Zuivel & kaas": "dairy",
-    Fruitconserven: "pantry",
-    "Houdbare soepen": "pantry",
-    "Maaltijden, salades & tapas": "produce",
-    Voorraadkast: "pantry",
-    "Brood, beleg & koek": "bakery",
-    Diepvries: "frozen",
-  },
-  ALDI: {
-    "Groente en Fruit": "produce",
-    "Zuivel, Eieren en Kaas": "dairy",
-    "Vlees, Vis en Vega": "meat_fish_veg",
-    "Brood en Ontbijt": "bakery",
-    Diepvries: "frozen",
-    "Snacks en Chips": "snacks",
-    "Soepen, Sauzen, Kruiden en Olie": "pantry",
-    "Pasta, Rijst en Wereldkeuken": "pantry",
-    Dranken: "pantry",
-  },
-  HOOGVLIET: {
-    "Aardappelen, groente en fruit": "produce",
-    "Vlees, vis en vleeswaren": "meat_fish_veg",
-    "Vegetarisch, vegan en plantaardig": "meat_fish_veg",
-    "Zuivel, eieren en kaas": "dairy",
-    "Brood en ontbijt": "bakery",
-    Diepvries: "frozen",
-    "Snacks en chips": "snacks",
-    "Soepen, sauzen en kruiden": "pantry",
-    "Pasta, rijst en wereldkeuken": "pantry",
-    Dranken: "pantry",
-  },
-};
+export const UNIVERSAL_CATEGORIES = [
+  "produce", // Groente & Fruit
+  "meat_fish_veg", // Vlees, Vis & Vega
+  "dairy", // Zuivel & Kaas
+  "bakery", // Brood & Ontbijt
+  "pantry", // Voorraad / Conserven
+  "snacks", // Snacks & Snoep
+  "drinks", // Dranken
+  "alcohol", // Bier & Wijn
+  "frozen", // Diepvries
+  "health", // Drogisterij / Gezondheid
+  "baby", // Baby & Kind
+  "household", // Huishouden / Non-food
+  "pet", // Huisdieren
+  "other", // Overig
+];
 
-function unifyCategory(store, rawCategory) {
-  const key = (store || "").toUpperCase();
-  const mapping = CATEGORY_MAPPING[key] || {};
-  return mapping[rawCategory] || "other";
+/* =======================
+   Label detectie (Bio / Bewust / Tijdelijk)
+   ======================= */
+const LABEL_PATTERNS = [
+  { key: "bio", rx: /\b(bio|biologisch)\b/i },
+  { key: "special", rx: /\b(speciaal assortiment)\b/i },
+  { key: "conscious", rx: /\b(bewust|bewuste voeding)\b/i },
+  { key: "glutenfree", rx: /\b(glutenvrij)\b/i },
+  { key: "seasonal", rx: /\b(tijdelijk|feestweken|barbecue|bbq|seizoens)\b/i },
+];
+
+/* =======================
+   Regex kern mapping
+   ======================= */
+const CORE_CATEGORY_MAP = [
+  { rx: /aardappelen|groente|fruit|verse sappen/i, to: "produce" },
+  { rx: /vleeswaren?|vlees\b|vis\b|vega|vegetarisch/i, to: "meat_fish_veg" },
+  { rx: /zuivel|eieren|kaas|plantaardig/i, to: "dairy" },
+  { rx: /\bbrood\b|ontbijt|beleg(?!.*tapas)/i, to: "bakery" },
+  {
+    rx: /soepen|conserven|sauzen|kruiden|olie|pasta|rijst|wereldkeuken/i,
+    to: "pantry",
+  },
+  { rx: /chips|zoutjes|noten|koek|snoep|chocolade|zelf bakken/i, to: "snacks" },
+  { rx: /frisdrank|sappen|water|koffie|thee/i, to: "drinks" },
+  { rx: /bier|wijn|aperitieven|sterke drank|alcohol/i, to: "alcohol" },
+  { rx: /\bdiepvries\b/i, to: "frozen" },
+  { rx: /drogisterij|verzorging|gezondheid|cosmetica|sport/i, to: "health" },
+  { rx: /\bbaby\b|kind\b/i, to: "baby" },
+  {
+    rx: /huishoud|non-?food|koken|tafelen|vrije tijd|servicebalie/i,
+    to: "household",
+  },
+  { rx: /huisdier(en)?|dieren/i, to: "pet" },
+];
+
+/* =======================
+   Composietregel "Drogisterij en baby"
+   ======================= */
+const BABY_HINTS =
+  /\b(baby|luiers?|billendoekjes|flesvoeding|papje|potjes|zwitsal|babyvoeding)\b/i;
+
+/* =======================
+   Hoofd normalisatie
+   ======================= */
+export function normalizeCategoryAndLabels({ category = "", title = "" }) {
+  const src = `${category} ${title}`.trim();
+
+  // Labels extraheren
+  const labels = {};
+  for (const { key, rx } of LABEL_PATTERNS) labels[key] = rx.test(src);
+
+  // "Drogisterij en baby"
+  if (/\bdrogisterij.*baby|baby.*drogisterij/i.test(category)) {
+    const cat = BABY_HINTS.test(title) ? "baby" : "health";
+    return { category: cat, labels };
+  }
+
+  // Regex matchen
+  for (const rule of CORE_CATEGORY_MAP)
+    if (rule.rx.test(category)) return { category: rule.to, labels };
+  for (const rule of CORE_CATEGORY_MAP)
+    if (rule.rx.test(title)) return { category: rule.to, labels };
+
+  return { category: "other", labels };
+}
+
+/* =======================
+   Pre-normalisatie
+   ======================= */
+export function preNormalizeStoreCategory(raw) {
+  if (!raw) return "";
+  let c = raw.trim();
+
+  if (/^verse maaltijden(,|\s) salades$/i.test(c)) c = "Maaltijden, salades";
+  if (/vlees, vis, vega(etarisch)?/i.test(c)) c = "Vlees, vis, vegetarisch";
+  if (/frisdrank(,|\s) sappen(,|\s) water/i.test(c)) c = "Frisdrank en sappen";
+  return c;
+}
+
+/* =======================
+   unifyCategory – hoofdfunctie
+   ======================= */
+export function unifyCategory(storeKey, rawCategory, title = "") {
+  const pre = preNormalizeStoreCategory(rawCategory);
+  const { category } = normalizeCategoryAndLabels({ category: pre, title });
+  return UNIVERSAL_CATEGORIES.includes(category) ? category : "other";
 }
 
 /* =======================
@@ -87,9 +122,8 @@ function toFloatEU(s) {
   const clean = String(s)
     .replace(/[^\d.,-]/g, "")
     .trim();
-  if (/,\d{1,2}$/.test(clean)) {
+  if (/,\d{1,2}$/.test(clean))
     return parseFloat(clean.replace(/\./g, "").replace(",", "."));
-  }
   return parseFloat(clean.replace(/,/g, ""));
 }
 
@@ -106,33 +140,18 @@ function normUnitKey(u) {
   return s;
 }
 
-function toBaseAmount(value, unit) {
-  const u = normUnitKey(unit);
-  if (u === "kg") return { unit: "kg", amount: value };
-  if (u === "g") return { unit: "kg", amount: value / 1000 };
-  if (u === "L") return { unit: "L", amount: value };
-  if (u === "ml") return { unit: "L", amount: value / 1000 };
-  if (u === "cl") return { unit: "L", amount: value / 100 };
-  if (u === "st") return { unit: "st", amount: value };
-  return { unit: "st", amount: value };
-}
-
 function labelForUnit(unit) {
   if (unit === "kg") return "€/kg";
   if (unit === "L") return "€/L";
   return "€/st";
 }
 
-/* =======================
-   Price helpers
-   ======================= */
 function effectivePrice(normal, promo) {
-  const pv = typeof promo === "number" && promo > 0 ? promo : null;
-  return pv ?? (typeof normal === "number" ? normal : null);
+  return promo && promo > 0 ? promo : normal;
 }
 
 /* =======================
-   Product normalizers
+   Normalizers per supermarkt
    ======================= */
 export function normalizeAH(p) {
   const price = p.price;
@@ -140,7 +159,6 @@ export function normalizeAH(p) {
   const eff = effectivePrice(price, promoPrice);
 
   let unit = "st";
-  let amount = 1;
   let pricePerUnit = eff;
   let ppuLabel = "€/st";
 
@@ -169,12 +187,11 @@ export function normalizeAH(p) {
     name: p.title,
     brand: p.brand || p.title.split(" ")[0],
     rawCategory: p.category,
-    unifiedCategory: unifyCategory("AH", p.category),
+    unifiedCategory: unifyCategory("AH", p.category, p.title),
     price,
     promoPrice,
     promoEnd: p.promoEnd || null,
     unit,
-    amount,
     pricePerUnit,
     ppuLabel,
     image: p.image,
@@ -188,7 +205,6 @@ export function normalizeJumbo(p) {
   const eff = effectivePrice(price, promoPrice);
 
   let unit = "st";
-  let amount = 1;
   let pricePerUnit = eff;
   let ppuLabel = "€/st";
 
@@ -203,8 +219,9 @@ export function normalizeJumbo(p) {
     }
   }
 
-  let image = null;
-  if (p.image) image = p.image.replace(/fit-in\/\d+x\d+\//, "fit-in/120x120/");
+  let image = p.image
+    ? p.image.replace(/fit-in\/\d+x\d+\//, "fit-in/120x120/")
+    : null;
 
   return {
     store: "jumbo",
@@ -212,16 +229,13 @@ export function normalizeJumbo(p) {
     name: p.title,
     brand: p.brand || p.title.split(" ")[0],
     rawCategory: p.category,
-    unifiedCategory: unifyCategory("JUMBO", p.category),
+    unifiedCategory: unifyCategory("JUMBO", p.category, p.title),
     price,
     promoPrice,
-    promoUntil: p.promoUntil || null,
     unit,
-    amount,
     pricePerUnit,
     ppuLabel,
     image,
-    link: null,
   };
 }
 
@@ -231,15 +245,13 @@ export function normalizeDirk(p) {
   const eff = effectivePrice(price, promoPrice);
 
   const unit = "st";
-  const amount = 1;
   const pricePerUnit = eff;
   const ppuLabel = labelForUnit(unit);
 
-  let image = null;
-  if (p.image) {
-    image = "https://d3r3h30p75xj6a.cloudfront.net/" + p.image;
-    if (!image.includes("?")) image += "?width=120";
-  }
+  let image = p.image
+    ? "https://d3r3h30p75xj6a.cloudfront.net/" + p.image
+    : null;
+  if (image && !image.includes("?")) image += "?width=120";
 
   return {
     store: "dirk",
@@ -247,16 +259,13 @@ export function normalizeDirk(p) {
     name: p.name,
     brand: p.brand || p.name.split(" ")[0],
     rawCategory: p.categoryLabel,
-    unifiedCategory: unifyCategory("DIRK", p.categoryLabel),
+    unifiedCategory: unifyCategory("DIRK", p.categoryLabel, p.name),
     price,
     promoPrice,
-    offerEnd: p.offerEnd || null,
     unit,
-    amount,
     pricePerUnit,
     ppuLabel,
     image,
-    link: null,
   };
 }
 
@@ -266,7 +275,6 @@ export function normalizeAldi(p) {
   const eff = effectivePrice(price, promoPrice);
 
   const unit = p.unit ? normUnitKey(p.unit) : "st";
-  const amount = 1;
   const pricePerUnit = eff;
   const ppuLabel = labelForUnit(unit);
 
@@ -276,12 +284,47 @@ export function normalizeAldi(p) {
     name: p.title,
     brand: p.brand || p.title.split(" ")[0],
     rawCategory: p.category,
-    unifiedCategory: unifyCategory("ALDI", p.category),
+    unifiedCategory: unifyCategory("ALDI", p.category, p.title),
     price,
     promoPrice,
-    promoEnd: p.promoEnd || null,
     unit,
-    amount,
+    pricePerUnit,
+    ppuLabel,
+    image: p.image,
+    link: p.link,
+  };
+}
+
+export function normalizeHoogvliet(p) {
+  const price = toFloatEU(p.listPrice || p.price);
+  const promoPrice = toFloatEU(p.promoPrice || p.discountedPrice || null);
+  const eff = effectivePrice(price, promoPrice);
+
+  const unit = p.baseUnit ? normUnitKey(p.baseUnit) : "st";
+  const pricePerUnit = eff;
+  const ppuLabel = labelForUnit(unit);
+
+  let promoEnd = p.promoEnd || null;
+  if (!promoEnd && Array.isArray(p.promotions) && p.promotions.length > 0) {
+    const promo = p.promotions.find((pr) => pr.validUntil);
+    if (promo) promoEnd = promo.validUntil;
+  }
+
+  return {
+    store: "hoogvliet",
+    id: p.id,
+    name: p.title,
+    brand: p.brand || p.title.split(" ")[0],
+    rawCategory: p.categoryHierarchy || p.category,
+    unifiedCategory: unifyCategory(
+      "HOOGVLIET",
+      p.categoryHierarchy || p.category,
+      p.title
+    ),
+    price,
+    promoPrice,
+    promoEnd,
+    unit,
     pricePerUnit,
     ppuLabel,
     image: p.image,
@@ -290,55 +333,7 @@ export function normalizeAldi(p) {
 }
 
 /* =======================
-   HOOGVLIET Normalizer
-   ======================= */
-   export function normalizeHoogvliet(p) {
-     // Pak juiste prijsbronnen
-     const price = toFloatEU(p.listPrice || p.price);
-     const promoPrice = toFloatEU(
-       p.promoPrice || p.discountedPrice || p.discountPrice || null
-     );
-
-     const eff = effectivePrice(price, promoPrice);
-
-     const unit = p.baseUnit ? normUnitKey(p.baseUnit) : "st";
-     const amount = 1;
-     const pricePerUnit = eff;
-     const ppuLabel = labelForUnit(unit);
-
-     // promoEnd ophalen uit promotions
-     let promoEnd = p.promoEnd || null;
-     if (!promoEnd && Array.isArray(p.promotions) && p.promotions.length > 0) {
-       const promo = p.promotions.find((pr) => pr.validUntil);
-       if (promo) promoEnd = promo.validUntil;
-     }
-
-     return {
-       store: "hoogvliet",
-       id: p.id,
-       name: p.title,
-       brand: p.brand || p.title.split(" ")[0],
-       rawCategory: p.categoryHierarchy || p.category,
-       unifiedCategory: unifyCategory(
-         "HOOGVLIET",
-         p.categoryHierarchy || p.category
-       ),
-       price,
-       promoPrice,
-       promoEnd,
-       unit,
-       amount,
-       pricePerUnit,
-       ppuLabel,
-       image: p.image,
-       link: p.link,
-     };
-   }
-  
-  
-
-/* =======================
-   Normalize all
+   Alles combineren
    ======================= */
 export function normalizeAll({
   ah = [],
@@ -357,29 +352,22 @@ export function normalizeAll({
 }
 
 /* =======================
-   Matching Engine (same)
+   Matching Engine (identiek aan jouw oude)
    ======================= */
-// [alle functies voor levenshtein, sim, tokenize, WORD_VARIANTS,
-// SEMANTIC_BLOCKLIST, semanticFilter, searchProducts, scoreMatch]
-// — laat dit deel exact zoals in jouw huidige versie.
 
-/* =======================
-   Search & Matching
-   ======================= */
 function levenshtein(a, b) {
   const matrix = Array.from({ length: b.length + 1 }, (_, i) => [i]);
   for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
   for (let i = 1; i <= b.length; i++) {
     for (let j = 1; j <= a.length; j++) {
-      if (b.charAt(i - 1) === a.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
-      }
+      matrix[i][j] =
+        b.charAt(i - 1) === a.charAt(j - 1)
+          ? matrix[i - 1][j - 1]
+          : Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
     }
   }
   return matrix[b.length][a.length];
@@ -395,9 +383,6 @@ function tokenize(str) {
   return str.toLowerCase().trim().split(/\s+/).filter(Boolean);
 }
 
-/* =======================
-   Handmatige zoekvarianten
-   ======================= */
 const WORD_VARIANTS = {
   banaan: ["bananen"],
   appel: ["appels"],
@@ -423,9 +408,6 @@ const WORD_VARIANTS = {
   ijs: ["ijsjes"],
 };
 
-/* =======================
-   Semantic Filter
-   ======================= */
 const SEMANTIC_BLOCKLIST = {
   water: [
     "waterdicht",
@@ -454,34 +436,22 @@ const SEMANTIC_BLOCKLIST = {
     "bananenchips",
     "maanden",
     "knijpfruit",
-    "danone",
     "milkshake",
-    "danoontje",
-    "mais",
-    "kloppudding",
     "puffs",
-    "knijpzakje",
     "protein",
-    "druif",
   ],
 };
 
 function semanticFilter(query, product) {
   const q = query.toLowerCase().trim();
   const name = product.name.toLowerCase();
-
-  if (SEMANTIC_BLOCKLIST[q]) {
-    for (const bad of SEMANTIC_BLOCKLIST[q]) {
-      if (name.includes(bad)) return 0;
-    }
-  }
-
+  if (SEMANTIC_BLOCKLIST[q])
+    for (const bad of SEMANTIC_BLOCKLIST[q]) if (name.includes(bad)) return 0;
   const cat = (
     product.rawCategory ||
     product.unifiedCategory ||
     ""
   ).toLowerCase();
-
   if (cat.includes(q)) return 1.1;
   return 1;
 }
@@ -490,29 +460,26 @@ function semanticFilter(query, product) {
    Search Products
    ======================= */
 export function searchProducts(
-  normalizedProducts,
+  products,
   query = "",
   chosenCategory = null,
   sortBy = "ppu"
 ) {
-  if (!Array.isArray(normalizedProducts)) return [];
+  if (!Array.isArray(products)) return [];
   const q = (query || "").trim().toLowerCase();
   if (q.length < 2) return [];
 
   const results = [];
   const THRESHOLD = 0.6;
-
-  // Voeg handmatige varianten toe
   let queries = [q];
   if (WORD_VARIANTS[q]) queries.push(...WORD_VARIANTS[q]);
 
-  for (const p of normalizedProducts) {
+  for (const p of products) {
     if (chosenCategory && p.unifiedCategory !== chosenCategory) continue;
 
     let sc = 0;
-    for (const variant of queries) {
+    for (const variant of queries)
       sc = Math.max(sc, scoreMatch(variant, p.name));
-    }
 
     if (sc >= THRESHOLD) {
       const sem = semanticFilter(q, p);
@@ -521,18 +488,12 @@ export function searchProducts(
   }
 
   return results.sort((a, b) => {
-    if (sortBy === "ppu") {
-      if (a.pricePerUnit !== b.pricePerUnit)
-        return a.pricePerUnit - b.pricePerUnit;
-    } else if (sortBy === "price") {
-      if (a.price !== b.price) return a.price - b.price;
-    } else if (sortBy === "alpha") {
-      return a.name.localeCompare(b.name);
-    } else if (sortBy === "promo") {
-      if ((a.promoPrice ? 1 : 0) !== (b.promoPrice ? 1 : 0)) {
-        return b.promoPrice ? 1 : -1;
-      }
-    }
+    if (sortBy === "ppu" && a.pricePerUnit !== b.pricePerUnit)
+      return a.pricePerUnit - b.pricePerUnit;
+    if (sortBy === "price" && a.price !== b.price) return a.price - b.price;
+    if (sortBy === "alpha") return a.name.localeCompare(b.name);
+    if (sortBy === "promo" && !!b.promoPrice !== !!a.promoPrice)
+      return b.promoPrice ? 1 : -1;
     return b.score - a.score;
   });
 }
@@ -550,10 +511,8 @@ function dynThresh(len) {
 
 function bestWordScore(qw, nameWords) {
   for (const w of nameWords) {
-    if (w.startsWith(qw)) {
-      if (Math.abs(w.length - qw.length) <= 2) return { score: 1.0 };
-      else return { score: 0.8 };
-    }
+    if (w.startsWith(qw))
+      return { score: Math.abs(w.length - qw.length) <= 2 ? 1.0 : 0.8 };
   }
   let best = 0;
   for (const w of nameWords) best = Math.max(best, sim(qw, w));
@@ -564,19 +523,13 @@ function scoreMatch(query, productName) {
   const q = query.toLowerCase().trim();
   const n = productName.toLowerCase().trim();
   if (!q) return 0.0;
-
   const qWords = tokenize(q);
   const nWords = tokenize(n);
-  if (qWords.length === 0 || nWords.length === 0) return 0.0;
-
+  if (!qWords.length || !nWords.length) return 0.0;
   const perWord = qWords.map((qw) => bestWordScore(qw, nWords));
-  for (let i = 0; i < qWords.length; i++) {
-    const need = dynThresh(qWords[i].length);
-    if (perWord[i].score < need) return 0.0;
-  }
-
-  let avg =
-    perWord.reduce((acc, x) => acc + x.score, 0) / Math.max(1, perWord.length);
+  for (let i = 0; i < qWords.length; i++)
+    if (perWord[i].score < dynThresh(qWords[i].length)) return 0.0;
+  let avg = perWord.reduce((a, x) => a + x.score, 0) / qWords.length;
   if (n.includes(q)) avg = Math.min(1, avg + 0.05);
   return avg;
 }

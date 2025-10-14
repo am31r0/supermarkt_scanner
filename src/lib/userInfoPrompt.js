@@ -1,12 +1,56 @@
 // =============================================
-// Schappie Beta User Info Prompt
+// Schappie Beta User Info Prompt (met cookie fallback)
 // =============================================
 import { showNav, showToast } from "../lib/utils.js";
 
-const LS_KEY_USER_INFO = "sms_user_info";
+const LS_KEY_USER_INFO = "schappie_user_info_v1";
 
+/* -----------------------------
+   Opslaghelpers
+----------------------------- */
+function getCookieValue(name) {
+  const cookie = document.cookie
+    .split("; ")
+    .find((r) => r.startsWith(name + "="));
+  return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
+}
+
+function setCookie(name, value, days = 365) {
+  const maxAge = days * 24 * 60 * 60;
+  document.cookie = `${name}=${encodeURIComponent(
+    value
+  )}; max-age=${maxAge}; path=/`;
+}
+
+function getUserInfo() {
+  try {
+    const data = localStorage.getItem(LS_KEY_USER_INFO);
+    if (data) return JSON.parse(data);
+  } catch (e) {}
+
+  // fallback naar cookie
+  const cookieData = getCookieValue("user_info");
+  if (cookieData) {
+    try {
+      return JSON.parse(cookieData);
+    } catch (e) {}
+  }
+  return null;
+}
+
+function saveUserInfo(data) {
+  const json = JSON.stringify(data);
+  try {
+    localStorage.setItem(LS_KEY_USER_INFO, json);
+  } catch (e) {}
+  setCookie("user_info", json);
+}
+
+/* -----------------------------
+   Exports
+----------------------------- */
 export function shouldAskUserInfo() {
-  return !localStorage.getItem(LS_KEY_USER_INFO);
+  return !getUserInfo();
 }
 
 export function showUserInfoPrompt() {
@@ -34,7 +78,9 @@ export function showUserInfoPrompt() {
   `;
   document.body.appendChild(modal);
 
-  // ===== CSS styling =====
+  // ===============================
+  // STIJL
+  // ===============================
   const style = document.createElement("style");
   style.textContent = `
     .user-info-modal {
@@ -50,24 +96,28 @@ export function showUserInfoPrompt() {
       position: relative;
       background: #fff;
       border-radius: 1rem;
-      padding: 2rem;
+      padding: 1.4rem;
       z-index: 1;
       width: 90%;
       max-width: 380px;
       text-align: center;
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
     .user-info-panel h2 {
       margin-bottom: 0.5rem;
-      font-size: 1.3rem;
+      font-size:1.3rem;
     }
     .user-info-panel p {
       font-size: 0.8rem;
       color: #444;
       margin-bottom: 1rem;
     }
-    .user-info-panel input[type="text"],
-    .user-info-panel input[type="number"] {
+    .user-info-panel input {
       width: 100%;
       margin: 0.4rem 0;
       padding: 0.75rem;
@@ -78,36 +128,31 @@ export function showUserInfoPrompt() {
       transition: border 0.2s;
     }
     .user-info-panel input:focus {
-      border-color: var(--accent, green);
+      border-color: var(--accent, #2ecc71);
     }
     .gender-group {
       display: flex;
       justify-content: center;
-      gap: 1.5rem;
-      margin: 0.8rem 0 0.5rem;
+      gap: 1.2rem;
+      margin: 0.7rem 0 1rem;
       font-size: 0.85rem;
     }
-    .gender-group label {
-      cursor: pointer;
-    }
     .user-info-panel button {
-      background: var(--accent);
+      background: var(--accent, #2ecc71);
       color: #fff;
       border: none;
       padding: 0.6rem 1.4rem;
       border-radius: 99px;
-      margin-top: 0.6rem;
       cursor: pointer;
       font-size: 0.85rem;
-      transition: background 0.2s;
-    }
-    .user-info-panel button:hover {
-      filter: brightness(1.1);
+      transition: background 0.2s, transform 0.2s;
     }
   `;
   document.head.appendChild(style);
 
-  // ===== Submit event =====
+  // ===============================
+  // SUBMIT EVENT
+  // ===============================
   document.getElementById("beta-submit").addEventListener("click", async () => {
     const name = document.getElementById("beta-name").value.trim();
     const age = document.getElementById("beta-age").value.trim();
@@ -130,17 +175,29 @@ export function showUserInfoPrompt() {
         body: JSON.stringify(info),
       });
 
-      localStorage.setItem(LS_KEY_USER_INFO, JSON.stringify(info));
+      // ✅ Bewaar data in localStorage + cookie
+      saveUserInfo(info);
+
       modal.remove();
       showNav(true);
 
-      // ✨ Mooi Schappie-bericht
       showToast(
-        "Bedankt voor je deelname aan de Schappie Beta! We wensen je veel bespaarplezier 🛒"
+        "Bedankt voor je deelname aan de Schappie Beta!<br>We wensen je veel bespaarplezier 🛒"
       );
     } catch (err) {
       showToast("Er ging iets mis bij het opslaan. Probeer opnieuw.");
       console.error(err);
+    }
+  });
+  // Developer hack: druk op "Z" om de modal direct te sluiten
+  document.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() === "z") {
+      const modal = document.querySelector(".user-info-modal");
+      if (modal) {
+        console.warn("🧪 [DEV] Modal gesloten via toets 'Z'");
+        modal.remove();
+        showNav(true);
+      }
     }
   });
 }

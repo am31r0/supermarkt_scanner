@@ -327,6 +327,7 @@ span.item-full-name {
 
 .list-item .list-price{
     font-size: calc(1rem * var(--font-size-factor));
+    margin-left:0.3rem;
 }
 
 .totals-bar {
@@ -396,4 +397,12 @@ span.item-full-name {
 .emoji-btn:focus {
     transform: scale(1.08);
     background: var(--muted, #f2f2f2);
+}
+
+.fav-btn{
+    background: transparent;
+    border:none;
+    font-size:1rem;
+    align-self: center;
+    cursor: pointer;
 }

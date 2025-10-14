@@ -5,7 +5,8 @@ import {
   renderHistoryModal,
   refreshItemsWithCurrentPrices,
 } from "../lib/history.js";
-import { showToast } from "../lib/utils.js";
+import { showToast, formatPrice } from "../lib/utils.js";
+import { STORE_LABEL, STORE_COLORS } from "../lib/constants.js";
 
 export function renderProPage(mount) {
   console.log("🔵 renderProPage start");
@@ -17,9 +18,20 @@ export function renderProPage(mount) {
         <h3 style="font-size: 0.8rem; opacity: 0.7;">(betaalde functies)</h3>
       </header>
 
+      <!-- FAVORIETEN -->
+      <div class="card favorites-card-block" style="margin-bottom:1rem;">
+        <div class="card-header">
+          <h2>Favorieten ❤️</h2>
+        </div>
+        <div class="card-body">
+          <div class="favorites-container"></div>
+        </div>
+      </div>
+
+      <!-- GESCHIEDENIS -->
       <div class="card history-card-block">
         <div class="card-header">
-          <h2>Geschiedenis</h2>
+          <h2>Geschiedenis ⏪</h2>
         </div>
         <div class="card-body">
           <div class="history-container"></div>
@@ -29,9 +41,187 @@ export function renderProPage(mount) {
     </section>
   `;
 
+  /* =======================
+     FAVORIETEN
+     ======================= */
+  function loadFavorites() {
+    try {
+      return JSON.parse(localStorage.getItem("sms_favorites")) ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveFavorites(list) {
+    localStorage.setItem("sms_favorites", JSON.stringify(list));
+  }
+
+  function addToList(fav) {
+    const list = JSON.parse(localStorage.getItem("sms_list") || "[]");
+    const exists = list.find(
+      (i) =>
+        i.name.toLowerCase() === fav.name.toLowerCase() && i.store === fav.store
+    );
+    if (exists) {
+      showToast("Staat al in jouw lijst 🛒");
+      return;
+    }
+    list.push({
+      id: fav.id || crypto.randomUUID(),
+      name: fav.name,
+      store: fav.store,
+      price: fav.price,
+      promoPrice: fav.promoPrice,
+      qty: 1,
+      done: false,
+    });
+    localStorage.setItem("sms_list", JSON.stringify(list));
+    window.dispatchEvent(new Event("storage"));
+    showToast(`${fav.name} toegevoegd aan jouw lijst 🛒`);
+  }
+
+  function renderFavorites(container) {
+    const favs = loadFavorites();
+    container.innerHTML = "";
+
+    if (!favs.length) {
+      container.innerHTML = `<p class="empty" style="opacity:0.7;">Nog geen favorieten.</p>`;
+      return;
+    }
+
+    let showAllFavs = false;
+    const MAX_VISIBLE = 3;
+    const MAX_SCROLL = 8;
+
+    const listWrapper = document.createElement("div");
+    listWrapper.className = "favorites-list-wrapper";
+    listWrapper.style.display = "flex";
+    listWrapper.style.flexDirection = "column";
+    listWrapper.style.gap = "0.4rem";
+
+    function renderList() {
+      listWrapper.innerHTML = "";
+
+      const visible = showAllFavs
+        ? favs.slice(0, MAX_SCROLL)
+        : favs.slice(0, MAX_VISIBLE);
+
+      visible.forEach((f) => {
+        const row = document.createElement("div");
+        row.className = "fav-row";
+        Object.assign(row.style, {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid var(--border-line-muted)",
+          padding: "0.4rem 0",
+        });
+
+        const left = document.createElement("div");
+        left.className = "fav-left";
+        left.innerHTML = `
+          <div style="font-size:0.9rem; font-weight:500; color:var(--ink); line-height:1.3;">
+            ${f.name}
+          </div>
+          <div style="font-size:0.75rem; opacity:1.75; display:flex; align-items:center; gap:0.3rem; margin-top:2px;">
+            <span class="list-store store-${f.store}" 
+                  style="
+                         color:#fff;
+                         border-radius:999px;
+                         padding:1px 8px;
+                         font-size:0.6rem;
+                         font-weight:600;">
+              ${STORE_LABEL[f.store] || f.store}
+            </span>
+            ${
+              f.promoPrice
+                ? `<span class="promo-pill" style="background:#ff3b30;color:#fff;border-radius:99px;padding:0 6px;font-size:0.5rem;">KORTING</span>
+                 <span style="text-decoration:line-through;opacity:0.6;">${formatPrice(
+                   f.price
+                 )}</span>
+                 <strong class="price new">${formatPrice(
+                   f.promoPrice
+                 )}</strong>`
+                : f.price
+                ? `<span style="font-weight:600;">${formatPrice(
+                    f.price
+                  )}</span>`
+                : ""
+            }
+          </div>
+        `;
+
+        const right = document.createElement("div");
+        right.className = "fav-right";
+        Object.assign(right.style, {
+          display: "flex",
+          alignItems: "center",
+          gap: "0.35rem",
+        });
+
+        right.innerHTML = `
+          <button class="icon-btn fav-add" title="Toevoegen aan lijst" 
+            style="background:#44aaff;border:none;border-radius:50%;color:#fff;width:28px;height:28px;display:flex;align-items:center;justify-content:center;">✚</button>
+          <button class="icon-btn fav-alert" title="Prijsalert"
+            style="background:var(--accent);border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;">🔔</button>
+          <button class="icon-btn fav-del" title="Verwijderen"
+            style="background:#f00;border:none;border-radius:50%;color:#fff;width:28px;height:28px;display:flex;align-items:center;justify-content:center;">✕</button>
+        `;
+
+        right
+          .querySelector(".fav-add")
+          .addEventListener("click", () => addToList(f));
+        right
+          .querySelector(".fav-alert")
+          .addEventListener("click", () =>
+            showToast("Meldingen zijn nog niet actief in deze beta 🔔")
+          );
+        right.querySelector(".fav-del").addEventListener("click", () => {
+          const updated = loadFavorites().filter((x) => x.id !== f.id);
+          saveFavorites(updated);
+          renderFavorites(container);
+          showToast("Verwijderd uit favorieten ❤️‍🔥");
+        });
+
+        row.appendChild(left);
+        row.appendChild(right);
+        listWrapper.appendChild(row);
+      });
+
+      container.appendChild(listWrapper);
+
+      // “Alles weergeven” knop
+      container.querySelector(".fav-more-container")?.remove();
+      const moreContainer = document.createElement("div");
+      moreContainer.className = "fav-more-container";
+      moreContainer.style.textAlign = "center";
+      if (!showAllFavs && favs.length > MAX_VISIBLE) {
+        const moreBtn = document.createElement("button");
+        moreBtn.textContent = "Alles weergeven";
+        moreBtn.className = "btn small";
+        moreBtn.style.marginTop = "0.6rem";
+        moreBtn.addEventListener("click", () => {
+          showAllFavs = true;
+          listWrapper.style.maxHeight = "260px";
+          listWrapper.style.overflowY = "auto";
+          renderList();
+        });
+        moreContainer.appendChild(moreBtn);
+        container.appendChild(moreContainer);
+      }
+    }
+
+    renderList();
+  }
+
+  const favContainer = mount.querySelector(".favorites-container");
+  renderFavorites(favContainer);
+
+  /* =======================
+     GESCHIEDENIS (ongewijzigd)
+     ======================= */
   const container = mount.querySelector(".history-container");
   const pagination = mount.querySelector(".pagination-controls");
-
   let showAll = false;
   let currentPage = 1;
   const PAGE_SIZE = 8;
@@ -50,7 +240,6 @@ export function renderProPage(mount) {
       return;
     }
 
-    // ------------- PAGINATION LOGICA -------------
     let visibleItems = [];
     if (!showAll && history.length > 3) {
       visibleItems = history.slice(0, 3);
@@ -60,7 +249,6 @@ export function renderProPage(mount) {
       const end = start + PAGE_SIZE;
       visibleItems = history.slice(start, end);
 
-      // pagination knoppen (alleen als >8)
       if (totalPages > 1) {
         const prevBtn = document.createElement("button");
         const nextBtn = document.createElement("button");
@@ -96,7 +284,6 @@ export function renderProPage(mount) {
       }
     }
 
-    // ------------- ITEM RENDERING -------------
     visibleItems.forEach((entry) => {
       const dateStr = new Date(entry.date).toLocaleDateString("nl-NL", {
         day: "2-digit",
@@ -143,7 +330,6 @@ export function renderProPage(mount) {
       container.appendChild(row);
     });
 
-    // ------------- “MEER WEERGEVEN” KNOP -------------
     if (!showAll && history.length > 3) {
       const moreBtn = document.createElement("button");
       moreBtn.textContent = "Meer weergeven";
@@ -161,13 +347,12 @@ export function renderProPage(mount) {
   renderList();
 }
 
-// -------------------------
-// Groene bevestigingsbanner
-// -------------------------
+/* =======================
+   GROENE BEVESTIGINGSBANNER
+   ======================= */
 function showTopBanner(message) {
   const banner = document.createElement("div");
   banner.textContent = message;
-  banner.className = "top-banner";
   Object.assign(banner.style, {
     position: "fixed",
     top: "0",
@@ -182,7 +367,6 @@ function showTopBanner(message) {
     boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
     transition: "transform 0.3s ease",
   });
-
   document.body.appendChild(banner);
   setTimeout(() => {
     banner.style.transform = "translateY(-100%)";

@@ -1,4 +1,7 @@
+// =============================================
 // src/pages/list.js
+// =============================================
+
 import { PRODUCTS, NAME_TO_CAT } from "../data/products.js";
 import { renderCategoryGrid } from "../lib/categoryGrid.js";
 import { showSearchModal } from "../lib/modal.js";
@@ -12,8 +15,7 @@ import { ensureDataLoaded, ensureEngineReady } from "../lib/dataLoader.js";
 
 const LS_KEY = "sms_list";
 const DEBUG = false;
-
-const STORE_ORDER = ["ah", "jumbo", "dirk", "aldi", "other"];
+const STORE_ORDER = ["ah", "jumbo", "dirk", "aldi", "hoogvliet"];
 
 /* =======================
    STORE NORMALIZATION
@@ -27,7 +29,7 @@ function normalizeStoreKey(s) {
   if (["dirk", "dirk van den broek", "dirk v d broek"].includes(v))
     return "dirk";
   if (["aldi"].includes(v)) return "aldi";
-  if (["ah", "jumbo", "dirk", "aldi", "other"].includes(v)) return v;
+  if (["ah", "jumbo", "dirk", "aldi", "hoogvliet"].includes(v)) return v;
   return "other";
 }
 
@@ -50,8 +52,65 @@ function loadList() {
     return [];
   }
 }
+
 function saveList(items) {
   localStorage.setItem(LS_KEY, JSON.stringify(items));
+}
+
+/* =======================
+   FAVORIETEN
+   ======================= */
+function loadFavorites() {
+  try {
+    return JSON.parse(localStorage.getItem("sms_favorites")) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFavorites(list) {
+  localStorage.setItem("sms_favorites", JSON.stringify(list));
+}
+
+function toggleFavorite(item) {
+  const favs = loadFavorites();
+  const exists = favs.find(
+    (f) =>
+      f.name.toLowerCase() === item.name.toLowerCase() && f.store === item.store
+  );
+
+  if (exists) {
+    favs.splice(favs.indexOf(exists), 1);
+    showToast("Verwijderd uit favorieten ❤️‍🔥");
+  } else {
+    favs.push({
+      id: uid(),
+      name: item.name,
+      store: item.store,
+      price: item.price,
+      promoPrice: item.promoPrice,
+    });
+    showToast("Toegevoegd aan favorieten ❤️");
+  }
+
+  saveFavorites(favs);
+  window.dispatchEvent(new Event("storage"));
+}
+
+function heartSvg(item) {
+  const favs = loadFavorites();
+  const isFav = favs.some(
+    (f) =>
+      f.name.toLowerCase() === item.name.toLowerCase() && f.store === item.store
+  );
+
+  return isFav
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-suit-heart-fill" viewBox="0 0 16 16">
+         <path d="M4 1c2.21 0 4 1.755 4 3.92C8 2.755 9.79 1 12 1s4 1.755 4 3.92c0 3.263-3.234 4.414-7.608 9.608a.513.513 0 0 1-.784 0C3.234 9.334 0 8.183 0 4.92 0 2.755 1.79 1 4 1"/>
+       </svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="rgba(255, 0, 0, 0.25)" class="bi bi-suit-heart-fill" viewBox="0 0 16 16">
+         <path d="M4 1c2.21 0 4 1.755 4 3.92C8 2.755 9.79 1 12 1s4 1.755 4 3.92c0 3.263-3.234 4.414-7.608 9.608a.513.513 0 0 1-.784 0C3.234 9.334 0 8.183 0 4.92 0 2.755 1.79 1 4 1"/>
+       </svg>`;
 }
 
 /* =======================
@@ -87,23 +146,19 @@ export async function renderListPage(mount) {
   await ensureEngineReady();
   const { allProducts } = await ensureDataLoaded();
 
-  function setupStoreFilterReactivity() {
-    const rerender = () => requestAnimationFrame(renderCommitted);
-    selectorMount.addEventListener("change", rerender);
-    selectorMount.addEventListener("input", rerender);
-    document.addEventListener("stores:changed", rerender);
-    window.addEventListener("storage", rerender);
-  }
-  setupStoreFilterReactivity();
+  /* ---------- STORE FILTER REACTIVITY ---------- */
+  const rerender = () => requestAnimationFrame(renderCommitted);
+  selectorMount.addEventListener("change", rerender);
+  selectorMount.addEventListener("input", rerender);
+  document.addEventListener("stores:changed", rerender);
+  window.addEventListener("storage", rerender);
 
-  /* =======================
-     STATE MUTATION
-     ======================= */
+  /* ---------- STATE MUTATIONS ---------- */
   function addItem(product) {
     const normStore = normalizeStoreKey(product?.store);
     let promo = product?.promoPrice ?? product?.offerPrice ?? null;
 
-    if (promo == null && Array.isArray(allProducts) && normStore !== "other") {
+    if (!promo && Array.isArray(allProducts)) {
       const match = allProducts.find(
         (p) =>
           normalizeStoreKey(p.store) === normStore &&
@@ -128,12 +183,10 @@ export async function renderListPage(mount) {
       promoPrice: promo,
     };
 
-    if (DEBUG) console.log("[addItem]", item);
-
     state.push(item);
     saveList(state);
     renderCommitted();
-    showToast(`Toegevoegd aan Mijn Lijst`);
+    showToast("Toegevoegd aan lijst");
   }
 
   function incItemQtyById(id, delta = 1) {
@@ -145,23 +198,6 @@ export async function renderListPage(mount) {
     renderCommitted();
   }
 
-  /* =======================
-     SORTING
-     ======================= */
-  function sortItemsForRender(items) {
-    return items.slice().sort((a, b) => {
-      const catA = a.cat || "other";
-      const catB = b.cat || "other";
-      const idxA = CATEGORY_ORDER.indexOf(catA);
-      const idxB = CATEGORY_ORDER.indexOf(catB);
-      if (idxA !== idxB) return idxA - idxB;
-      return a.name.localeCompare(b.name, "nl", { sensitivity: "base" });
-    });
-  }
-
-  /* =======================
-     HISTORY & CLEAR
-     ======================= */
   function clearListLocal() {
     state.length = 0;
     saveList(state);
@@ -188,15 +224,13 @@ export async function renderListPage(mount) {
   function renderCommitted() {
     listContainer.innerHTML = "";
 
-    const enabledRaw = getEnabledStores();
-    const enabled = normalizeEnabledMap(enabledRaw);
-
+    const enabled = normalizeEnabledMap(getEnabledStores());
     const grouped = {};
     const visibleItems = [];
 
     for (const item of state) {
       const storeKey = normalizeStoreKey(item.store);
-      if (enabled[storeKey] !== true) continue;
+      if (!enabled[storeKey]) continue;
       if (!grouped[storeKey]) grouped[storeKey] = [];
       item.store = storeKey;
       grouped[storeKey].push(item);
@@ -208,22 +242,22 @@ export async function renderListPage(mount) {
     );
 
     for (const storeKey of keys) {
-      if (enabled[storeKey] !== true) continue;
+      if (!enabled[storeKey]) continue;
 
       const wrapper = document.createElement("div");
-      wrapper.className = `store-block`;
+      wrapper.className = "store-block";
       wrapper.style.borderColor = STORE_COLORS[storeKey] || "transparent";
-      wrapper.style.marginBottom = "5px";
-      wrapper.style.borderRadius = "10px";
-      wrapper.style.overflow = "clip";
       wrapper.style.borderWidth = "1px";
       wrapper.style.borderStyle = "solid";
+      wrapper.style.borderRadius = "10px";
+      wrapper.style.marginBottom = "5px";
+      wrapper.style.overflow = "clip";
 
       const ul = document.createElement("ul");
       ul.className = "store-list";
       wrapper.appendChild(ul);
 
-      for (const item of sortItemsForRender(grouped[storeKey])) {
+      for (const item of grouped[storeKey]) {
         const li = document.createElement("li");
         li.className = "list-item";
         if (item.done) li.classList.add("done");
@@ -247,14 +281,14 @@ export async function renderListPage(mount) {
                   hasPromo
                     ? `<span class="promo-pill">KORTING</span>
                        <span class="list-price old">${formatPrice(
-                         Number(item.price)
+                         item.price
                        )}</span>
                        <span class="list-price new">${formatPrice(
                          promoPrice
                        )}</span>`
-                    : item.price != null
+                    : item.price
                     ? `<span class="list-price">${formatPrice(
-                        Number(item.price)
+                        item.price
                       )}</span>`
                     : ""
                 }
@@ -262,6 +296,7 @@ export async function renderListPage(mount) {
             </span>
             <div class="item-actions">
               <div class="qty-controls">
+                <button class="fav-btn">${heartSvg(item)}</button>
                 <button class="icon-btn minus">−</button>
                 <span class="qty-num">${item.qty}</span>
                 <button class="icon-btn plus">+</button>
@@ -271,6 +306,9 @@ export async function renderListPage(mount) {
           </label>
         `;
 
+        li.querySelector(".fav-btn").addEventListener("click", () =>
+          toggleFavorite(item)
+        );
         li.querySelector("input[type=checkbox]").addEventListener(
           "change",
           (e) => {
@@ -295,12 +333,11 @@ export async function renderListPage(mount) {
         ul.appendChild(li);
       }
 
-      if (ul.children.length) listContainer.appendChild(wrapper);
+      listContainer.appendChild(wrapper);
     }
 
     if (visibleItems.length) {
       renderTotals(listContainer, visibleItems);
-
       const actions = document.createElement("div");
       actions.className = "list-actions";
       actions.innerHTML = `
@@ -309,222 +346,35 @@ export async function renderListPage(mount) {
       `;
       listContainer.appendChild(actions);
 
-      const doneBtn = actions.querySelector(".done-btn");
-      const clearBtn = actions.querySelector(".clear-btn");
-
-      doneBtn.addEventListener("click", () => completeListFlow(visibleItems));
-      clearBtn.addEventListener("click", () => {
-        if (document.querySelector(".confirm-clear-overlay")) return;
-
-        const overlay = document.createElement("div");
-        overlay.className = "confirm-clear-overlay";
-        Object.assign(overlay.style, {
-          position: "fixed",
-          top: "0",
-          left: "0",
-          width: "100%",
-          height: "100%",
-          background: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: "998",
-          backdropFilter: "blur(5px)",
-        });
-
-        const box = document.createElement("div");
-        box.className = "confirm-clear-box card";
-        Object.assign(box.style, {
-          background: "#fff",
-          padding: "1.5rem",
-          borderRadius: "12px",
-          textAlign: "center",
-          boxShadow: "0 5px 20px rgba(0,0,0,0.3)",
-          maxWidth: "90%",
-          width: "320px",
-        });
-
-        box.innerHTML = `
-          <h3 style="margin-bottom:0.5rem;">Lijst legen</h3>
-          <p style="margin-bottom:1.5rem;font-size:0.8rem;">Weet je zeker dat je jouw lijst wil legen?</p>
-          <div style="display:flex;gap:0.5rem;justify-content:center;">
-            <button class="btn small danger yes-btn">Ja, leegmaken</button>
-            <button class="btn small cancel-btn">Annuleren</button>
-          </div>
-        `;
-
-        overlay.appendChild(box);
-        document.body.appendChild(overlay);
-        box.querySelector(".yes-btn").addEventListener("click", () => {
-          clearListLocal();
-          overlay.remove();
-        });
-        box
-          .querySelector(".cancel-btn")
-          .addEventListener("click", () => overlay.remove());
-      });
+      actions
+        .querySelector(".done-btn")
+        .addEventListener("click", () => completeListFlow(visibleItems));
+      actions
+        .querySelector(".clear-btn")
+        .addEventListener("click", clearListLocal);
     }
   }
 
   /* =======================
-     SEARCH / INPUT ROW
+     SEARCH / INPUT
      ======================= */
-  function createInputRow(allProductsLocal) {
+  function createInputRow() {
     const row = document.createElement("div");
     row.className = "input-row";
     row.innerHTML = `
       <input type="text" class="item-input" placeholder="Typ hier..." />
       <button class="btn small commit">Zoeken</button>
-      <div class="suggestions" role="listbox"></div>
     `;
 
     const input = row.querySelector(".item-input");
     const commitBtn = row.querySelector(".commit");
-    const sugBox = row.querySelector(".suggestions");
-
-    // === MOBIEL TOETSENBORD GEDRAG ===
-    // Doel: zoekbalk zichtbaar boven toetsenbord. Werkt met visualViewport;
-    // fallback: tijdelijk extra ruimte + smooth scroll.
-    let extraSpaceEl = null;
-    let keyboardActive = false;
-    const viewport = window.visualViewport || null;
-
-    // Helper: creëer/vergroot tijdelijke spacer met transition
-    function addTempSpace(targetHeight = "50dvh") {
-      if (!extraSpaceEl) {
-        extraSpaceEl = document.createElement("div");
-        extraSpaceEl.style.height = "0";
-        extraSpaceEl.style.transition = "height 0.25s ease-out";
-        extraSpaceEl.style.pointerEvents = "none";
-        document.body.appendChild(extraSpaceEl);
-      }
-      requestAnimationFrame(() => {
-        extraSpaceEl.style.height = targetHeight;
-      });
-    }
-
-    function removeTempSpace() {
-      keyboardActive = false;
-      if (extraSpaceEl) {
-        extraSpaceEl.style.height = "0";
-        extraSpaceEl.addEventListener(
-          "transitionend",
-          () => {
-            if (extraSpaceEl) extraSpaceEl.remove();
-            extraSpaceEl = null;
-          },
-          { once: true }
-        );
-      }
-    }
-
-    // Scroll de input ~30px onder top (of 40px marge bij keyboard)
-    function scrollInputIntoView(offset = 30) {
-      requestAnimationFrame(() => {
-        const rect = row.getBoundingClientRect();
-        const top = window.scrollY + rect.top - offset;
-        window.scrollTo({ top, behavior: "smooth" });
-      });
-    }
-
-    // visualViewport-based keyboard detectie (iOS/Android)
-    function ensureAboveKeyboard() {
-      if (!viewport) return false;
-      const remaining = viewport.height;
-      const full = window.innerHeight;
-
-      // Keyboard actief als viewport significant kleiner is
-      if (remaining < full - 100 && !keyboardActive) {
-        keyboardActive = true;
-        addTempSpace("50dvh");
-        scrollInputIntoView(40);
-        return true;
-      }
-      return keyboardActive;
-    }
-
-    // Fallback voor browsers zonder visualViewport:
-    // als de pagina niet genoeg hoogte heeft om te scrollen, voeg ruimte toe.
-    function fallbackEnsureScrollable() {
-      const body = document.body;
-      const html = document.documentElement;
-      const maxScroll = Math.max(body.scrollHeight, html.scrollHeight);
-      const viewHeight = window.innerHeight;
-      if (maxScroll - viewHeight < 100) {
-        addTempSpace("50dvh");
-      }
-      scrollInputIntoView(30);
-    }
-
-    // Bind aan visualViewport resize (open/close keyboard)
-    if (viewport) {
-      viewport.addEventListener("resize", () => {
-        if (viewport.height < window.innerHeight - 100) {
-          ensureAboveKeyboard();
-        } else {
-          removeTempSpace();
-        }
-      });
-    }
-
-    // --- Suggesties ---
-    const SUG_SOURCE =
-      Array.isArray(PRODUCTS) && PRODUCTS.every((x) => typeof x === "string")
-        ? PRODUCTS
-        : Object.keys(NAME_TO_CAT || {});
-
-    function openSug() {
-      if (!sugBox.classList.contains("open")) sugBox.classList.add("open");
-    }
-    function closeSug() {
-      sugBox.innerHTML = "";
-      sugBox.classList.remove("open");
-    }
-
-    function renderSuggestions(q) {
-      closeSug();
-      if (!q) return;
-      const ql = q.toLowerCase();
-      const prefix = [];
-      const contains = [];
-      for (const name of SUG_SOURCE) {
-        const nl = name.toLowerCase();
-        if (nl.startsWith(ql)) prefix.push(name);
-        else if (nl.includes(ql)) contains.push(name);
-        if (prefix.length + contains.length >= 8) break;
-      }
-      const results = [...prefix, ...contains].slice(0, 5);
-      if (!results.length) return;
-
-      for (const name of results) {
-        const opt = document.createElement("div");
-        opt.className = "suggestion";
-        opt.textContent = name;
-        opt.addEventListener("click", () => {
-          input.value = name;
-          closeSug();
-          handleSearch();
-          input.blur();
-        });
-        sugBox.appendChild(opt);
-      }
-      openSug();
-    }
 
     async function handleSearch() {
-      removeTempSpace(); // sluit eventuele extra ruimte bij zoekactie
       const q = input.value.trim();
       if (!q) return;
-
-      const enabled = normalizeEnabledMap(getEnabledStores());
-      const filtered = allProductsLocal.filter(
-        (p) => enabled[normalizeStoreKey(p.store)] === true
-      );
-
-      const results = searchProducts(filtered, q);
-
+      const results = searchProducts(allProducts, q);
       if (!results.length) {
-        alert("Geen resultaten gevonden");
+        showToast("Geen resultaten gevonden");
         return;
       }
 
@@ -539,82 +389,31 @@ export async function renderListPage(mount) {
           promoPrice: chosen.promoPrice ?? chosen.offerPrice ?? null,
         });
         input.value = "";
-        closeSug();
       });
     }
 
-    // --- Events ---
     commitBtn.addEventListener("click", handleSearch);
-
     input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleSearch();
-        input.blur();
-      } else if (e.key === "Escape") {
-        closeSug();
-        removeTempSpace();
-        input.blur();
-      }
+      if (e.key === "Enter") handleSearch();
     });
 
-    let rafId = null;
-    input.addEventListener("input", () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      const val = input.value.trim();
-      rafId = requestAnimationFrame(() => renderSuggestions(val));
-    });
+    inputRows.appendChild(row);
 
-    input.addEventListener("focus", () => {
-      const handledByViewport = ensureAboveKeyboard();
-      if (!handledByViewport) {
-        // fallback zonder visualViewport
-        fallbackEnsureScrollable();
-      }
-      if (input.value.trim()) renderSuggestions(input.value.trim());
-    });
-
-    input.addEventListener("blur", () => {
-      // kleine delay zodat modal events niet ge-cancelled worden
-      setTimeout(removeTempSpace, 250);
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!row.contains(e.target)) {
-        closeSug();
-        // Als keyboard wsl dicht is (tap buiten), haal ruimte weg
-        if (!viewport || viewport.height >= window.innerHeight - 50) {
-          removeTempSpace();
-        }
-      }
-    });
-
-    // Extern triggeren vanuit categorie-grid
+    // ✅ Register global search trigger for categoryGrid.js
     window.triggerListSearch = (nameOrProduct) => {
-      const name =
+      const q =
         typeof nameOrProduct === "string"
           ? nameOrProduct
           : nameOrProduct?.name ?? "";
-      if (!name) return;
-      input.value = name;
+      if (!q) return;
+      input.value = q;
       handleSearch();
     };
-
-    inputRows.prepend(row);
   }
 
-  /* =======================
-     INIT
-     ======================= */
-  createInputRow(allProducts);
+  createInputRow();
   renderCategoryGrid(catSection, {
-    onSelect: (product) => {
-      if (window.triggerListSearch) {
-        window.triggerListSearch(product.name);
-      } else {
-        addItem(product);
-      }
-    },
+    onSelect: (product) => window.triggerListSearch(product),
     allProducts,
   });
   renderCommitted();
@@ -626,41 +425,33 @@ export async function renderListPage(mount) {
 function calculateTotals(items) {
   let totalNormal = 0;
   let totalOffer = 0;
-
   for (const i of items) {
     const base = Number(i.price) || 0;
     const promo = Number(i.promoPrice) || 0;
     const qty = i.qty ?? 1;
-
     const usePrice = promo > 0 && promo < base ? promo : base;
     totalOffer += usePrice * qty;
     totalNormal += base * qty;
   }
-
-  const discount = totalNormal - totalOffer;
-  return { total: totalOffer, discount };
+  return { total: totalOffer, discount: totalNormal - totalOffer };
 }
 
 function renderTotals(container, items) {
   const { total, discount } = calculateTotals(items);
   const el = document.createElement("div");
   el.className = "totals-bar";
-
-  let html = `
-    <div class="totals-line">
-      <span>Totaal:</span>
-      <strong>€${total.toFixed(2)}</strong>
-    </div>
+  el.innerHTML = `
+    <div class="totals-line"><span>Totaal:</span><strong>€${total.toFixed(
+      2
+    )}</strong></div>
+    ${
+      discount > 0.001
+        ? `<div class="totals-line discount"><span>Je bespaart:</span><strong>€${discount.toFixed(
+            2
+          )}</strong></div>`
+        : ""
+    }
   `;
-  if (discount > 0.001) {
-    html += `
-      <div class="totals-line discount">
-        <span>Je bespaart:</span>
-        <strong>€${discount.toFixed(2)}</strong>
-      </div>
-    `;
-  }
-  el.innerHTML = html;
   container.appendChild(el);
 }
 
@@ -671,23 +462,12 @@ function trashSvg() {
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
       fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
-      <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1
-      a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5
-      0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5
-      a.5.5 0 0 0 0 1h.538l.853 10.66A2 2
-      0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84
-      l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958
-      1-.846 10.58a1 1 0 0 1-.997.92h-6.23
-      a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487
-      1a.5.5 0 0 1 .528.47l.5 8.5a.5.5
-      0 0 1-.998.06L5 5.03a.5.5 0 0
-      1 .47-.53Zm5.058 0a.5.5 0 0
-      1 .47.53l-.5 8.5a.5.5 0 1
-      1-.998-.06l.5-8.5a.5.5 0
-      0 1 .528-.47M8 4.5a.5.5
-      0 0 1 .5.5v8.5a.5.5
-      0 0 1-1 0V5a.5.5 0
-      1 1 .5-.5"/>
+      <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1
+      A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5
+      0 0 0 0 1h.538l.853 10.66A2 2 0 0 0
+      4.885 16h6.23a2 2 0 0 0 1.994-1.84
+      l.853-10.66h.538a.5.5 0 0 0
+      0-1z"/>
     </svg>
   `;
 }
