@@ -23,7 +23,7 @@ export function showUserInfoPrompt() {
       <input id="beta-age" type="number" placeholder="Leeftijd" required />
       <input id="beta-city" type="text" placeholder="Woonplaats" required />
 
-      <button id="beta-submit btn small">Verder</button>
+      <button id="beta-submit">Verder</button>
     </div>
   `;
   document.body.appendChild(modal);
@@ -53,9 +53,10 @@ export function showUserInfoPrompt() {
     }
     .user-info-panel h2 {
       margin-bottom: 0.5rem;
+      font-size:1.3rem;
     }
     .user-info-panel p {
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       color: #444;
       margin-bottom: 1rem;
     }
@@ -65,27 +66,25 @@ export function showUserInfoPrompt() {
       padding: 0.75rem;
       border-radius: 0.5rem;
       border: 1px solid #ddd;
-      font-size: 1rem;
+      font-size: 0.8rem;
       outline: none;
       transition: border 0.2s;
     }
     .user-info-panel input:focus {
-      border-color: #0070f3;
+      border-color: green;
     }
     .user-info-panel button {
-      background: #0070f3;
+      background: var(--accent);
       color: #fff;
       border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      border-radius: 99px;
       margin-top: 0.5rem;
       cursor: pointer;
-      font-size: 1rem;
+      font-size: 0.8rem;
       transition: background 0.2s;
     }
-    .user-info-panel button:hover {
-      background: #005ad4;
-    }
+
   `;
   document.head.appendChild(style);
 
