@@ -12,7 +12,11 @@ import {
 } from "../lib/tutorialPopup.js";
 import { registerClick } from "../lib/adSystem.js";
 import { showNav } from "../lib/utils.js";
+import { shouldAskUserInfo, showUserInfoPrompt } from "./lib/userInfoPrompt.js";
 
+if (shouldAskUserInfo()) {
+  showUserInfoPrompt();
+}
 
 
 document.addEventListener("DOMContentLoaded", () => {
