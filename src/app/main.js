@@ -12,11 +12,7 @@ import {
 } from "../lib/tutorialPopup.js";
 import { registerClick } from "../lib/adSystem.js";
 import { showNav } from "../lib/utils.js";
-import { shouldAskUserInfo, showUserInfoPrompt } from "./lib/userInfoPrompt.js";
-
-if (shouldAskUserInfo()) {
-  showUserInfoPrompt();
-}
+import { shouldAskUserInfo, showUserInfoPrompt } from "../lib/userInfoPrompt.js";
 
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -37,16 +33,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const router = createRouter({ routes, mountEl: app, defaultHash: "#/home" });
   router.start();
   registerClick();
+
+  if (shouldAskUserInfo()) {
+    showUserInfoPrompt();
+  }
+
+  //anti-hover voor mobile
+  document.addEventListener("touchend", () => {
+    document.activeElement?.blur();
+  });
+
+  // Bij opstart: toon tutorial 1x per dag
+
+  if (shouldShowTutorialOnce()) {
+    renderTutorialPage();
+    markTutorialShown();
+  }
 });
 
 
-// Bij opstart: toon tutorial 1x per dag
-
-
-if (shouldShowTutorialOnce()) {
-  renderTutorialPage();
-  markTutorialShown();
-}
 
 document.addEventListener("click", (e) => {
   // Alleen tellen als het een echte user-interactie is, niet UI
@@ -56,7 +61,6 @@ document.addEventListener("click", (e) => {
   }
 });
 
-//anti-hover voor mobile
-document.addEventListener("touchend", () => {
-  document.activeElement?.blur();
-});
+
+
+

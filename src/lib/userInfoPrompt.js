@@ -1,6 +1,7 @@
 // =============================================
 // Schappie Beta User Info Prompt
 // =============================================
+import { showNav } from "../lib/utils.js";
 
 const LS_KEY_USER_INFO = "sms_user_info";
 
@@ -22,7 +23,7 @@ export function showUserInfoPrompt() {
       <input id="beta-age" type="number" placeholder="Leeftijd" required />
       <input id="beta-city" type="text" placeholder="Woonplaats" required />
 
-      <button id="beta-submit">Verder</button>
+      <button id="beta-submit btn small">Verder</button>
     </div>
   `;
   document.body.appendChild(modal);
