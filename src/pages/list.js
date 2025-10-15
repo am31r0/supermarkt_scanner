@@ -211,6 +211,7 @@ export async function renderListPage(mount) {
       const wrapper = document.createElement("div");
       wrapper.className = "store-block";
       wrapper.style.border = `1px solid ${STORE_COLORS[storeKey]}`;
+      wrapper.style.borderRadius = `10px`;
       const ul = document.createElement("ul");
       ul.className = "store-list";
       wrapper.appendChild(ul);
