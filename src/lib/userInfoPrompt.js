@@ -182,7 +182,7 @@ export function showUserInfoPrompt() {
       showNav(true);
 
       showToast(
-        "Bedankt voor je deelname aan de Schappie Beta!<br>We wensen je veel bespaarplezier 🛒"
+        "Bedankt voor je deelname aan de Schappie Beta! We wensen je veel bespaarplezier 🛒"
       );
     } catch (err) {
       showToast("Er ging iets mis bij het opslaan. Probeer opnieuw.");

@@ -3,7 +3,7 @@
 /* === Categorie-tegels === */
 .categories-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 10px;
     margin: 12px 0 16px;
 }

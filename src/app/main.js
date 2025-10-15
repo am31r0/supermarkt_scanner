@@ -30,10 +30,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initSettings();
   loadLearnedBoosts();
 
-  // 2️⃣ Mount-element ophalen
   const app = document.getElementById("app");
 
-  // 3️⃣ Router-configuratie
+  // 2️⃣ Router-configuratie
   const routes = {
     "#/home": renderHomePage,
     "#/list": renderListPage,
@@ -43,58 +42,71 @@ document.addEventListener("DOMContentLoaded", () => {
     "#/pro": renderProPage,
   };
 
-  // 4️⃣ Router aanmaken
   const router = createRouter({
     routes,
     mountEl: app,
     defaultHash: "#/home",
   });
 
-  // 5️⃣ User info prompt vóór router tonen
+  // =============================================
+  // 👋 Flow: userprompt → router → tutorial
+  // =============================================
+  function startRouterAndMaybeTutorial() {
+    router.start();
+
+    // Tutorial pas na userprompt (en slechts 1x)
+    try {
+      if (shouldShowTutorialOnce()) {
+        // Korte vertraging zodat router eerst rendert
+        setTimeout(() => {
+          renderTutorialPage(app);
+          markTutorialShown();
+        }, 600);
+      }
+    } catch (err) {
+      console.warn("Kon tutorial niet tonen:", err);
+    }
+  }
+
   try {
     if (shouldAskUserInfo()) {
+      // Eerst user info prompt
       showUserInfoPrompt();
 
-      // ✅ Router pas starten zodra modal verdwenen is
+      // Router starten zodra prompt verdwijnt
       const observer = new MutationObserver(() => {
         if (!document.querySelector(".user-info-modal")) {
           observer.disconnect();
-          router.start();
+          startRouterAndMaybeTutorial();
         }
       });
       observer.observe(document.body, { childList: true, subtree: true });
     } else {
-      router.start();
+      // Geen prompt nodig → direct router + evt tutorial
+      startRouterAndMaybeTutorial();
     }
   } catch (err) {
-    console.warn("Kon user info prompt niet tonen:", err);
-    router.start();
+    console.warn("Kon user info prompt of tutorial niet tonen:", err);
+    startRouterAndMaybeTutorial();
   }
 
-  // 6️⃣ Advertentie-click tracking activeren
+  // =============================================
+  // Overige events
+  // =============================================
+
+  // Advertentie-click tracking activeren
   registerClick();
 
-  // 7️⃣ Tutorial pas ná router (eenmalig)
-  try {
-    if (shouldShowTutorialOnce()) {
-      renderTutorialPage(app);
-      markTutorialShown();
-    }
-  } catch (err) {
-    console.warn("Kon tutorial niet tonen:", err);
-  }
-
-  // 8️⃣ Click tracking voor interacties
+  // Click tracking voor interacties
   document.addEventListener("click", (e) => {
     const target = e.target.closest("button, .product-card, .add-btn, a");
     if (target) registerClick();
   });
 
-  // 9️⃣ Anti-hover voor mobiele apparaten
+  // Anti-hover voor mobiele apparaten
   document.addEventListener("touchend", () => {
     document.activeElement?.blur();
   });
 
-  // 10️⃣ Navigatie tonen (optioneel)
-  // showNav(true);
+  // showNav(true); // optioneel
 });
