@@ -22,7 +22,7 @@
     transition: opacity 0.3s, transform 0.3s;
     box-shadow: 0 0 10px #00000066;
     width:max-content;
-    max-width:98%;
+    max-width:min(98vw,480px);
     word-wrap: break-word;
     text-align: center;
 }
