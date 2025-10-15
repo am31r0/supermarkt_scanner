@@ -20,14 +20,15 @@ import {
 } from "../lib/userInfoPrompt.js";
 import { registerClick } from "../lib/adSystem.js";
 import { showNav } from "../lib/utils.js";
+import { loadLearnedBoosts } from "../lib/matching.js";
 
 // =============================================
 // App Init
 // =============================================
-
 document.addEventListener("DOMContentLoaded", () => {
   // 1️⃣ Thema & instellingen vóór eerste paint
   initSettings();
+  loadLearnedBoosts();
 
   // 2️⃣ Mount-element ophalen
   const app = document.getElementById("app");
@@ -42,18 +43,38 @@ document.addEventListener("DOMContentLoaded", () => {
     "#/pro": renderProPage,
   };
 
-  // 4️⃣ Router starten
+  // 4️⃣ Router aanmaken
   const router = createRouter({
     routes,
     mountEl: app,
     defaultHash: "#/home",
   });
-  router.start();
 
-  // 5️⃣ Advertentie-click tracking activeren
+  // 5️⃣ User info prompt vóór router tonen
+  try {
+    if (shouldAskUserInfo()) {
+      showUserInfoPrompt();
+
+      // ✅ Router pas starten zodra modal verdwenen is
+      const observer = new MutationObserver(() => {
+        if (!document.querySelector(".user-info-modal")) {
+          observer.disconnect();
+          router.start();
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    } else {
+      router.start();
+    }
+  } catch (err) {
+    console.warn("Kon user info prompt niet tonen:", err);
+    router.start();
+  }
+
+  // 6️⃣ Advertentie-click tracking activeren
   registerClick();
 
-  // 6️⃣ Tutorial tonen (éénmalig per dag)
+  // 7️⃣ Tutorial pas ná router (eenmalig)
   try {
     if (shouldShowTutorialOnce()) {
       renderTutorialPage(app);
@@ -61,15 +82,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   } catch (err) {
     console.warn("Kon tutorial niet tonen:", err);
-  }
-
-  // 7️⃣ Beta-prompt tonen (eenmalig per user)
-  try {
-    if (shouldAskUserInfo()) {
-      showUserInfoPrompt();
-    }
-  } catch (err) {
-    console.warn("Kon user info prompt niet tonen:", err);
   }
 
   // 8️⃣ Click tracking voor interacties
@@ -83,6 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.activeElement?.blur();
   });
 
-  // 10️⃣ Navigatie tonen
-  //showNav(true);
+  // 10️⃣ Navigatie tonen (optioneel)
+  // showNav(true);
 });

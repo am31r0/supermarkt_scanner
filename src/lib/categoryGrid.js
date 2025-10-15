@@ -40,7 +40,7 @@ export function renderCategoryGrid(mount, { onSelect }) {
   grid.innerHTML = CATEGORIES.map(
     (c) => `
       <button class="category-card" data-cat="${c.id}">
-        <span class="emoji">${c.icon}</span>
+        <img class="emoji" src="${c.icon}">
         <span class="label">${c.label}</span>
       </button>`
   ).join("");

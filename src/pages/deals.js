@@ -247,15 +247,13 @@ function showDealsModal(store, products) {
   }
   resultsBox.innerHTML = html;
 
-  // --- sticky headers (CSS handled) ---
-
   // --- smooth scroll ---
   navBox.querySelectorAll(".cat-nav-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const targetId = e.target.dataset.target;
       const targetEl = resultsBox.querySelector(`#${targetId}`);
       if (targetEl)
-        targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        targetEl.scrollIntoView({ behavior: "auto", block: "start" });
     });
   });
 

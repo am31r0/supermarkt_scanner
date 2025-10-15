@@ -292,7 +292,8 @@ span.item-full-name {
     text-overflow: ellipsis;
     font-size: 0.7rem;
     color:var(--ink);
-    border-radius: 8px;
+    border:none;
+    text-align: left;
 }
 
 .suggestion:hover {

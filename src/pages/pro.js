@@ -202,7 +202,7 @@ export function renderProPage(mount) {
         moreBtn.style.marginTop = "0.6rem";
         moreBtn.addEventListener("click", () => {
           showAllFavs = true;
-          listWrapper.style.maxHeight = "260px";
+          listWrapper.style.maxHeight = "25rem";
           listWrapper.style.overflowY = "auto";
           renderList();
         });

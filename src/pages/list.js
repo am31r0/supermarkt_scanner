@@ -279,7 +279,7 @@ export async function renderListPage(mount) {
                 </span>
                 ${
                   hasPromo
-                    ? `<span class="promo-pill">KORTING</span>
+                    ? `<span class="promo-pill" style="margin-left:0.2rem">KORTING</span>
                        <span class="list-price old">${formatPrice(
                          item.price
                        )}</span>
@@ -358,58 +358,153 @@ export async function renderListPage(mount) {
   /* =======================
      SEARCH / INPUT
      ======================= */
-  function createInputRow() {
-    const row = document.createElement("div");
-    row.className = "input-row";
-    row.innerHTML = `
-      <input type="text" class="item-input" placeholder="Typ hier..." />
-      <button class="btn small commit">Zoeken</button>
-    `;
+     function createInputRow() {
+       const row = document.createElement("div");
+       row.className = "input-row";
+       row.innerHTML = `
+        <input type="text" class="item-input" placeholder="Typ hier..." autocomplete="off" />
+        <button class="btn small commit">Zoeken</button>
+        <div class="suggestions"></div>
+      `;
 
-    const input = row.querySelector(".item-input");
-    const commitBtn = row.querySelector(".commit");
+       const input = row.querySelector(".item-input");
+       const commitBtn = row.querySelector(".commit");
+       const sugBox = row.querySelector(".suggestions");
+       let sugTimeout = null;
 
-    async function handleSearch() {
-      const q = input.value.trim();
-      if (!q) return;
-      const results = searchProducts(allProducts, q);
-      if (!results.length) {
-        showToast("Geen resultaten gevonden");
-        return;
-      }
+       // ---------- Cataloguslijst uit products.js ----------
+       const CATALOG_NAMES = (() => {
+         if (Array.isArray(PRODUCTS)) {
+           return Array.from(
+             new Set(
+               PRODUCTS.map((p) =>
+                 typeof p === "string" ? p : p?.name
+               ).filter(Boolean)
+             )
+           );
+         }
+         if (PRODUCTS && typeof PRODUCTS === "object") {
+           const names = [];
+           for (const key of Object.keys(PRODUCTS)) {
+             const val = PRODUCTS[key];
+             if (Array.isArray(val)) {
+               for (const item of val) {
+                 if (typeof item === "string") names.push(item);
+                 else if (item && typeof item === "object" && item.name)
+                   names.push(item.name);
+               }
+             }
+           }
+           return Array.from(new Set(names.filter(Boolean)));
+         }
+         return [];
+       })();
 
-      showSearchModal(results, (chosen) => {
-        addItem({
-          id: chosen.id,
-          name: chosen.name,
-          cat: chosen.unifiedCategory,
-          pack: chosen.unit,
-          store: normalizeStoreKey(chosen.store),
-          price: chosen.price,
-          promoPrice: chosen.promoPrice ?? chosen.offerPrice ?? null,
-        });
-        input.value = "";
-      });
-    }
+       // ---------- Echte zoekactie ----------
+       async function handleSearch(q) {
+         const query = q || input.value.trim();
+         if (!query) return;
 
-    commitBtn.addEventListener("click", handleSearch);
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") handleSearch();
-    });
+         const results = searchProducts(allProducts, query);
+         if (!results.length) {
+           showToast("Geen resultaten gevonden");
+           sugBox.classList.remove("open");
+           return;
+         }
 
-    inputRows.appendChild(row);
+         showSearchModal(results, (chosen) => {
+           addItem({
+             id: chosen.id,
+             name: chosen.name,
+             cat: chosen.unifiedCategory,
+             pack: chosen.unit,
+             store: normalizeStoreKey(chosen.store),
+             price: chosen.price,
+             promoPrice: chosen.promoPrice ?? chosen.offerPrice ?? null,
+           });
+           input.value = "";
+           sugBox.classList.remove("open");
+         });
+       }
 
-    // ✅ Register global search trigger for categoryGrid.js
-    window.triggerListSearch = (nameOrProduct) => {
-      const q =
-        typeof nameOrProduct === "string"
-          ? nameOrProduct
-          : nameOrProduct?.name ?? "";
-      if (!q) return;
-      input.value = q;
-      handleSearch();
-    };
-  }
+       // ---------- Suggesties vanuit products.js ----------
+       function openSug(query) {
+         const q = String(query || "")
+           .toLowerCase()
+           .trim();
+
+         if (q.length < 3) {
+           sugBox.classList.remove("open");
+           sugBox.innerHTML = "";
+           return;
+         }
+
+         const results = CATALOG_NAMES.filter((name) =>
+           name.toLowerCase().includes(q)
+         ).slice(0, 10);
+         if (!results.length) {
+           sugBox.classList.remove("open");
+           sugBox.innerHTML = "";
+           return;
+         }
+
+         // vul de HTML exact volgens jouw oude structure
+         sugBox.innerHTML = results
+           .map(
+             (name) => `
+              <button class="suggestion" data-name="${escHtml(name)}">
+                ${escHtml(name)}
+              </button>
+            `
+           )
+           .join("");
+
+         sugBox.classList.add("open");
+
+         sugBox.querySelectorAll(".suggestion").forEach((btn) => {
+           btn.addEventListener("click", () => {
+             input.value = btn.dataset.name;
+             sugBox.classList.remove("open");
+             handleSearch();
+           });
+         });
+       }
+
+       // ---------- Event listeners ----------
+       commitBtn.addEventListener("click", () => handleSearch());
+       input.addEventListener("keydown", (e) => {
+         if (e.key === "Enter") {
+           e.preventDefault();
+           handleSearch();
+         }
+       });
+
+       input.addEventListener("input", (e) => {
+         clearTimeout(sugTimeout);
+         const val = e.target.value.trim();
+         if (val.length < 3) {
+           sugBox.classList.remove("open");
+           sugBox.innerHTML = "";
+           return;
+         }
+         sugTimeout = setTimeout(() => openSug(val), 200);
+       });
+
+       // trigger vanuit categorie-grid
+       window.triggerListSearch = (nameOrProduct) => {
+         const q =
+           typeof nameOrProduct === "string"
+             ? nameOrProduct
+             : nameOrProduct?.name ?? "";
+         if (!q) return;
+         input.value = q;
+         handleSearch();
+       };
+
+       inputRows.appendChild(row);
+     }
+    
+    
 
   createInputRow();
   renderCategoryGrid(catSection, {

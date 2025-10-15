@@ -1,0 +1,5 @@
+{
+    "aardbei": { "produce": 0.9, "baby": 0.05, "snacks": 0.05 },
+    "banaan": { "produce": 0.85, "snacks": 0.15 }
+  }
+  

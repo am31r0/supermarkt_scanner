@@ -1,5 +1,5 @@
 // =============================================
-// Matching & Normalisatie Engine (Schappie)
+// Matching & Normalisatie Engine (Schappie v2)
 // =============================================
 
 const DEBUG = false;
@@ -25,7 +25,7 @@ export const UNIVERSAL_CATEGORIES = [
 ];
 
 /* =======================
-   Label detectie (Bio / Bewust / Tijdelijk)
+   Label detectie
    ======================= */
 const LABEL_PATTERNS = [
   { key: "bio", rx: /\b(bio|biologisch)\b/i },
@@ -61,7 +61,7 @@ const CORE_CATEGORY_MAP = [
 ];
 
 /* =======================
-   Composietregel "Drogisterij en baby"
+   Baby-composiet
    ======================= */
 const BABY_HINTS =
   /\b(baby|luiers?|billendoekjes|flesvoeding|papje|potjes|zwitsal|babyvoeding)\b/i;
@@ -72,7 +72,7 @@ const BABY_HINTS =
 export function normalizeCategoryAndLabels({ category = "", title = "" }) {
   const src = `${category} ${title}`.trim();
 
-  // Labels extraheren
+  // Labels
   const labels = {};
   for (const { key, rx } of LABEL_PATTERNS) labels[key] = rx.test(src);
 
@@ -82,7 +82,7 @@ export function normalizeCategoryAndLabels({ category = "", title = "" }) {
     return { category: cat, labels };
   }
 
-  // Regex matchen
+  // Regex match
   for (const rule of CORE_CATEGORY_MAP)
     if (rule.rx.test(category)) return { category: rule.to, labels };
   for (const rule of CORE_CATEGORY_MAP)
@@ -196,16 +196,18 @@ export function normalizeAH(p) {
     ppuLabel,
     image: p.image,
     link: p.link,
+    labels: normalizeCategoryAndLabels({ category: p.category, title: p.title })
+      .labels,
   };
 }
 
 export function normalizeJumbo(p) {
   const price = p.price;
   const promoPrice = typeof p.promoPrice === "number" ? p.promoPrice : null;
-  const eff = effectivePrice(price, promoPrice);
+  effectivePrice(price, promoPrice);
 
   let unit = "st";
-  let pricePerUnit = eff;
+  let pricePerUnit = promoPrice && promoPrice > 0 ? promoPrice : price;
   let ppuLabel = "€/st";
 
   if (typeof p.pricePerUnit === "string") {
@@ -213,9 +215,9 @@ export function normalizeJumbo(p) {
     if (parts.length === 2) {
       const val = toFloatEU(parts[0]);
       const u = normUnitKey(parts[1]);
-      unit = u;
-      pricePerUnit = val;
-      ppuLabel = labelForUnit(u);
+      unit = u || "st";
+      pricePerUnit = isNaN(val) ? pricePerUnit : val;
+      ppuLabel = labelForUnit(unit);
     }
   }
 
@@ -236,6 +238,8 @@ export function normalizeJumbo(p) {
     pricePerUnit,
     ppuLabel,
     image,
+    labels: normalizeCategoryAndLabels({ category: p.category, title: p.title })
+      .labels,
   };
 }
 
@@ -266,6 +270,10 @@ export function normalizeDirk(p) {
     pricePerUnit,
     ppuLabel,
     image,
+    labels: normalizeCategoryAndLabels({
+      category: p.categoryLabel,
+      title: p.name,
+    }).labels,
   };
 }
 
@@ -292,6 +300,8 @@ export function normalizeAldi(p) {
     ppuLabel,
     image: p.image,
     link: p.link,
+    labels: normalizeCategoryAndLabels({ category: p.category, title: p.title })
+      .labels,
   };
 }
 
@@ -329,6 +339,10 @@ export function normalizeHoogvliet(p) {
     ppuLabel,
     image: p.image,
     link: p.link,
+    labels: normalizeCategoryAndLabels({
+      category: p.categoryHierarchy || p.category,
+      title: p.title,
+    }).labels,
   };
 }
 
@@ -352,25 +366,20 @@ export function normalizeAll({
 }
 
 /* =======================
-   Matching Engine (identiek aan jouw oude)
+   Fuzzy helpers
    ======================= */
-
 function levenshtein(a, b) {
-  const matrix = Array.from({ length: b.length + 1 }, (_, i) => [i]);
-  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  const m = Array.from({ length: b.length + 1 }, (_, i) => [i]);
+  for (let j = 0; j <= a.length; j++) m[0][j] = j;
   for (let i = 1; i <= b.length; i++) {
     for (let j = 1; j <= a.length; j++) {
-      matrix[i][j] =
+      m[i][j] =
         b.charAt(i - 1) === a.charAt(j - 1)
-          ? matrix[i - 1][j - 1]
-          : Math.min(
-              matrix[i - 1][j - 1] + 1,
-              matrix[i][j - 1] + 1,
-              matrix[i - 1][j] + 1
-            );
+          ? m[i - 1][j - 1]
+          : Math.min(m[i - 1][j - 1] + 1, m[i][j - 1] + 1, m[i - 1][j] + 1);
     }
   }
-  return matrix[b.length][a.length];
+  return m[b.length][a.length];
 }
 
 function sim(a, b) {
@@ -380,9 +389,12 @@ function sim(a, b) {
 }
 
 function tokenize(str) {
-  return str.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  return String(str).toLowerCase().trim().split(/\s+/).filter(Boolean);
 }
 
+/* =======================
+   Varianten & Synoniemen
+   ======================= */
 const WORD_VARIANTS = {
   banaan: ["bananen"],
   appel: ["appels"],
@@ -406,40 +418,41 @@ const WORD_VARIANTS = {
   koek: ["koeken"],
   worst: ["worsten"],
   ijs: ["ijsjes"],
+  aardbei: ["aardbeien"],
 };
 
+const SYNONYMS = {
+  wc: ["toilet", "toiletpapier", "wc papier"],
+  toiletpapier: ["wc papier", "wc"],
+  pasta: ["spaghetti", "penne", "macaroni"],
+  snoep: ["chocolade", "koekjes"],
+  bier: ["pils"],
+  melk: ["halfvolle melk", "volle melk", "sojamelk", "havermelk"],
+  brood: ["bolletjes", "stokbrood"],
+  vleesvervanger: ["vega", "vegetarisch"],
+  cola: ["coke", "zero", "light"],
+};
+
+/* =======================
+   Semantische filters
+   ======================= */
 const SEMANTIC_BLOCKLIST = {
-  water: [
-    "waterdicht",
-    "waterproof",
-    "waterfles",
-    "waterkoker",
-    "waterverf",
-    "waterijsjes",
-  ],
-  melk: ["melkchocolade", "melkzeep", "melkpoeder", "melkopschuimer"],
+  water: ["waterdicht", "waterproof", "waterkoker", "waterverf", "waterijsjes"],
+  melk: ["melkchocolade", "melkzeep", "melkopschuimer"],
   kaas: ["kaasschaaf", "kaasstengel", "kaasplank", "kaasbroodje"],
   ei: ["eierwekker", "eiersnijder", "eierdop"],
   pasta: ["tandpasta", "verfpasta", "pleisterpasta"],
   chips: ["microchip", "chipkaart", "computerchip"],
   olie: ["massageolie", "etherische", "gezichtsolie", "haarolie"],
-  boter: ["bodybutter", "handboter"],
-  suiker: ["suikervrij", "suikerklontjeshouder"],
+  boter: ["bodybutter"],
+  suiker: ["suikervrij (let op intentie)"],
   zout: ["zoutlamp", "zoutsteen", "badzout"],
   koffie: ["koffiemok", "koffiezetapparaat", "koffiepad"],
   thee: ["theemok", "theepot", "theedoek"],
   wijn: ["wijnrek", "wijnkoeler", "wijnflesopener"],
   bier: ["bierglas", "bieropener", "bierkrat"],
   cola: ["chocola"],
-  banaan: [
-    "bananenboom",
-    "bananenchips",
-    "maanden",
-    "knijpfruit",
-    "milkshake",
-    "puffs",
-    "protein",
-  ],
+  banaan: ["bananenboom", "bananenchips"],
 };
 
 function semanticFilter(query, product) {
@@ -457,49 +470,180 @@ function semanticFilter(query, product) {
 }
 
 /* =======================
-   Search Products
+   Fruit-intentie & context
    ======================= */
-export function searchProducts(
-  products,
-  query = "",
-  chosenCategory = null,
-  sortBy = "ppu"
-) {
-  if (!Array.isArray(products)) return [];
-  const q = (query || "").trim().toLowerCase();
-  if (q.length < 2) return [];
+const FRUIT_KEYWORDS = [
+  "aardbei",
+  "aardbeien",
+  "banaan",
+  "bananen",
+  "appel",
+  "appels",
+  "peer",
+  "peren",
+  "druif",
+  "druiven",
+  "mango",
+  "ananas",
+  "perzik",
+  "kiwi",
+  "sinaasappel",
+  "citroen",
+  "watermeloen",
+  "mandarijn",
+  "framboos",
+  "bosbes",
+  "blauwe bes",
+  "blauwebes",
+];
 
-  const results = [];
-  const THRESHOLD = 0.6;
-  let queries = [q];
-  if (WORD_VARIANTS[q]) queries.push(...WORD_VARIANTS[q]);
+const FRUIT_CONTEXT_BLOCKERS = [
+  "yoghurt",
+  "kwark",
+  "vla",
+  "dessert",
+  "toetje",
+  "smoothie",
+  "ijs",
+  "baby",
+  "babyvoeding",
+  "snack",
+  "cake",
+  "taart",
+  "koek",
+  "reep",
+  "pudding",
+  "drink",
+  "fristi",
+];
 
-  for (const p of products) {
-    if (chosenCategory && p.unifiedCategory !== chosenCategory) continue;
+function contextualRelevanceBoost(query, product) {
+  const q = query.toLowerCase();
+  const name = product.name.toLowerCase();
+  const cat = product.unifiedCategory?.toLowerCase() || "";
 
-    let sc = 0;
-    for (const variant of queries)
-      sc = Math.max(sc, scoreMatch(variant, p.name));
+  let boost = 1;
 
-    if (sc >= THRESHOLD) {
-      const sem = semanticFilter(q, p);
-      if (sem > 0) results.push({ ...p, score: sc * sem });
-    }
+  if (FRUIT_KEYWORDS.includes(q)) {
+    if (cat === "produce") boost += 0.4; // verse fruit voorrang
+    if (FRUIT_CONTEXT_BLOCKERS.some((bad) => name.includes(bad))) boost -= 0.4;
+    if (name === q || name.startsWith(q + " ")) boost += 0.5; // exact "Banaan", "Aardbeien 250g"
   }
 
-  return results.sort((a, b) => {
-    if (sortBy === "ppu" && a.pricePerUnit !== b.pricePerUnit)
-      return a.pricePerUnit - b.pricePerUnit;
-    if (sortBy === "price" && a.price !== b.price) return a.price - b.price;
-    if (sortBy === "alpha") return a.name.localeCompare(b.name);
-    if (sortBy === "promo" && !!b.promoPrice !== !!a.promoPrice)
-      return b.promoPrice ? 1 : -1;
-    return b.score - a.score;
-  });
+  return Math.max(0.1, boost);
 }
 
 /* =======================
-   Score Matching
+   Zelflerende boosts (lookup)
+   ======================= */
+let LEARNED_BOOSTS = {}; // { query: { category: weight0..1 } }
+
+export function setLearnedBoosts(obj) {
+  if (obj && typeof obj === "object") LEARNED_BOOSTS = obj;
+}
+
+/**
+ * Optioneel automatisch laden van /data/learned_boosts.json
+ * Call dit 1x bij app start; silently ignore bij 404.
+ */
+export async function loadLearnedBoosts(url = "/data/learned_boosts.json") {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    setLearnedBoosts(data || {});
+    if (DEBUG) console.log("Loaded learned boosts:", data);
+  } catch (e) {
+    if (DEBUG) console.warn("learned_boosts.json not loaded:", e);
+  }
+}
+
+function learnedBoostFactor(query, product) {
+  const q = query.toLowerCase();
+  const cat = product.unifiedCategory || "other";
+  const qBoost = LEARNED_BOOSTS[q];
+  if (!qBoost) return 1;
+  const v = qBoost[cat];
+  if (typeof v !== "number") return 1;
+  // v is 0..1 distributie; schaal lichtjes zodat het een zachte boost is
+  // baseline 0.5 → 1.0 factor; 1.0 → 1.25; 0.0 → 0.85
+  return 0.85 + v * 0.4;
+}
+
+/* =======================
+   Query normalisatie & expand
+   ======================= */
+function normalizeQuery(q) {
+  return String(q)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function expandQuery(q) {
+  const parts = tokenize(q);
+  const extra = [];
+  for (const p of parts) {
+    if (WORD_VARIANTS[p]) extra.push(...WORD_VARIANTS[p]);
+    if (SYNONYMS[p]) extra.push(...SYNONYMS[p]);
+  }
+  return [...new Set([...parts, ...extra])];
+}
+
+/* =======================
+   Hybrid fuzzy scoring
+   ======================= */
+function hybridScore(q, name) {
+  q = q.toLowerCase();
+  name = name.toLowerCase();
+  if (name.includes(q)) return 1.0;
+  const base = sim(q, name);
+  if (name.startsWith(q)) return Math.min(1, base + 0.15);
+  if (name.split(/\s+/).some((w) => w.startsWith(q)))
+    return Math.min(1, base + 0.1);
+  return base;
+}
+
+/* =======================
+   Field-weighted matching
+   ======================= */
+function fieldWeightedScore(query, product) {
+  const fields = [
+    { text: product.name, weight: 0.6 },
+    { text: product.brand, weight: 0.3 },
+    { text: product.unifiedCategory, weight: 0.1 },
+  ];
+  let total = 0;
+  for (const f of fields) {
+    if (!f.text) continue;
+    total += hybridScore(query, f.text) * f.weight;
+  }
+  return total;
+}
+
+function multiWordScore(query, product) {
+  const words = expandQuery(normalizeQuery(query));
+  let sum = 0;
+  for (const w of words) sum += fieldWeightedScore(w, product);
+  return sum / Math.max(1, words.length);
+}
+
+/* =======================
+   Adaptive threshold
+   ======================= */
+function adaptiveThreshold(query) {
+  const q = normalizeQuery(query);
+  const len = q.length;
+  const words = q.split(" ").length;
+  if (words > 2) return 0.5;
+  if (len <= 3) return 0.75;
+  if (len <= 6) return 0.65;
+  return 0.6;
+}
+
+/* =======================
+   Score Matching (compat)
    ======================= */
 function dynThresh(len) {
   if (len <= 2) return 0.0;
@@ -508,7 +652,6 @@ function dynThresh(len) {
   if (len <= 7) return 0.77;
   return 0.8;
 }
-
 function bestWordScore(qw, nameWords) {
   for (const w of nameWords) {
     if (w.startsWith(qw))
@@ -518,7 +661,6 @@ function bestWordScore(qw, nameWords) {
   for (const w of nameWords) best = Math.max(best, sim(qw, w));
   return { score: best };
 }
-
 function scoreMatch(query, productName) {
   const q = query.toLowerCase().trim();
   const n = productName.toLowerCase().trim();
@@ -532,4 +674,85 @@ function scoreMatch(query, productName) {
   let avg = perWord.reduce((a, x) => a + x.score, 0) / qWords.length;
   if (n.includes(q)) avg = Math.min(1, avg + 0.05);
   return avg;
+}
+
+/* =======================
+   Sorting helpers
+   ======================= */
+function defaultSort(a, b) {
+  // primair op veld 'score'
+  if (b.score !== a.score) return b.score - a.score;
+  // dan promotie
+  if (!!b.promoPrice !== !!a.promoPrice) return b.promoPrice ? 1 : -1;
+  // dan ppu
+  if (a.pricePerUnit !== b.pricePerUnit) return a.pricePerUnit - b.pricePerUnit;
+  // alfabetisch
+  return a.name.localeCompare(b.name);
+}
+
+/* =======================
+   Search Products (v2)
+   ======================= */
+export function searchProducts(
+  products,
+  query = "",
+  chosenCategory = null,
+  sortBy = "score" // "score" | "ppu" | "price" | "alpha" | "promo"
+) {
+  if (!Array.isArray(products)) return [];
+  const qRaw = String(query || "");
+  const q = normalizeQuery(qRaw);
+  if (q.length < 2) return [];
+
+  const results = [];
+  const threshold = adaptiveThreshold(q);
+
+  for (const p of products) {
+    if (chosenCategory && p.unifiedCategory !== chosenCategory) continue;
+
+    // v2 score
+    let score = multiWordScore(q, p);
+
+    // semantiek + context
+    score *= semanticFilter(q, p);
+    score *= contextualRelevanceBoost(q, p);
+
+    // learned boosts
+    score *= learnedBoostFactor(q, p);
+
+    // compat: oude scoreMatch fallback (kleine extra duw)
+    const legacy = scoreMatch(q, p.name);
+    score = Math.max(score, legacy * 0.9);
+
+    if (score >= threshold) results.push({ ...p, score });
+  }
+
+  // sorteren
+  if (sortBy === "ppu")
+    return results.sort((a, b) => a.pricePerUnit - b.pricePerUnit);
+  if (sortBy === "price") return results.sort((a, b) => a.price - b.price);
+  if (sortBy === "alpha")
+    return results.sort((a, b) => a.name.localeCompare(b.name));
+  if (sortBy === "promo")
+    return results.sort(
+      (a, b) => !!b.promoPrice - !!a.promoPrice || defaultSort(a, b)
+    );
+  return results.sort(defaultSort);
+}
+
+/* =======================
+   Debug utils (optioneel)
+   ======================= */
+export function _debugExplainScore(query, product) {
+  const parts = {
+    fieldWeighted: fieldWeightedScore(query, product),
+    multiWord: multiWordScore(query, product),
+    semantic: semanticFilter(query, product),
+    context: contextualRelevanceBoost(query, product),
+    learned: learnedBoostFactor(query, product),
+    legacy: scoreMatch(query, product.name),
+  };
+  const composed =
+    parts.multiWord * parts.semantic * parts.context * parts.learned;
+  return { parts, composed, threshold: adaptiveThreshold(query) };
 }

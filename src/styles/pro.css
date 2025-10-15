@@ -202,11 +202,13 @@
     display: flex;
     flex-direction: column;
     gap: 0.8rem;
+
 }
 
 .favorites-body {
     padding: 1rem;
     border-top: 1px solid var(--border-line-muted);
+    
 }
 
 .fav-row .btn.small {
@@ -217,6 +219,7 @@
 .favorites-list-wrapper {
     max-height: none;
     overflow-y: hidden;
+    overflow-x: hidden;
     transition: max-height 0.3s ease;
 }
 
