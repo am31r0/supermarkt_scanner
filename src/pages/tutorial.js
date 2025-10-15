@@ -1,4 +1,7 @@
-// src/pages/tutorial.js
+// =============================================
+// Tutorial Page (Schappie v2 - stabiele versie)
+// =============================================
+
 import { markTutorialShown } from "../lib/tutorialPopup.js";
 import { showNav } from "../lib/utils.js"; // om nav te verbergen/tonen
 
@@ -75,7 +78,6 @@ export function renderTutorialPage(mount) {
   const dots = pagination.querySelectorAll(".dot");
 
   function showButtonDelayed(pageIndex) {
-    // Zoek de knop van de huidige pagina (next of finish)
     const btn =
       pages[pageIndex].querySelector(".tutorial-next") ||
       pages[pageIndex].querySelector(".tutorial-finish");
@@ -94,7 +96,9 @@ export function renderTutorialPage(mount) {
 
     pages[current].classList.remove("active");
     dots[current].classList.remove("active");
+
     current = Math.max(0, Math.min(pages.length - 1, n));
+
     pages[current].classList.add("active");
     dots[current].classList.add("active");
 
@@ -104,21 +108,79 @@ export function renderTutorialPage(mount) {
   // Init: start delay voor eerste pagina
   showButtonDelayed(current);
 
-  // === Navigatie ===
+  // === Navigatie voor "Volgende" knoppen ===
   nextBtns.forEach((btn) =>
     btn.addEventListener("click", () => {
       if (current < pages.length - 1) goToPage(current + 1);
     })
   );
 
-  finishBtn.addEventListener("click", () => {
-    if (finishBtn.classList.contains("hidden")) return; // prevent te vroeg klikken
-    if (!sessionStorage.getItem("tutorialFromSettings")) {
-      markTutorialShown();
-    } else {
-      sessionStorage.removeItem("tutorialFromSettings");
+  // === Veiliger Finish handler ===
+  function safeFinish() {
+    try {
+      if (!sessionStorage.getItem("tutorialFromSettings")) {
+        markTutorialShown();
+      } else {
+        sessionStorage.removeItem("tutorialFromSettings");
+      }
+    } catch (e) {
+      console.warn("⚠️ Kon tutorial status niet opslaan:", e);
     }
+
+    const overlay = document.querySelector(".tutorial-overlay");
+    if (overlay) overlay.remove();
+
     showNav(true);
-    window.location.hash = "#/home";
+
+    // kleine vertraging voor soepelheid
+    setTimeout(() => {
+      window.location.hash = "#/home";
+    }, 100);
+  }
+
+  // --- Zorg dat finishBtn altijd reageert zodra zichtbaar ---
+  function enableFinishWhenReady() {
+    const check = setInterval(() => {
+      if (!document.body.contains(finishBtn)) {
+        clearInterval(check);
+        return;
+      }
+      const isVisible = !finishBtn.classList.contains("hidden");
+      if (isVisible) {
+        finishBtn.onclick = safeFinish;
+        clearInterval(check);
+      }
+    }, 200);
+  }
+
+  // standaard fallback listener
+  finishBtn.addEventListener("click", () => {
+    if (!finishBtn.classList.contains("hidden")) {
+      safeFinish();
+    }
+  });
+
+  // --- Observeer laatste pagina ---
+  const observer = new MutationObserver(() => {
+    const isLastActive =
+      pages[current] === pages[pages.length - 1] &&
+      pages[current].classList.contains("active");
+    if (isLastActive) enableFinishWhenReady();
+  });
+  observer.observe(pages[pages.length - 1], {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+
+  // === Dev hack: sluit tutorial met 'Z' key ===
+  document.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() === "z") {
+      const overlay = document.querySelector(".tutorial-overlay");
+      if (overlay) {
+        overlay.remove();
+        showNav(true);
+        console.log("⛔ Tutorial geforceerd gesloten via 'Z' key");
+      }
+    }
   });
 }

@@ -129,7 +129,7 @@
 }
 
 .category-modal .modal-backdrop {
-    position: fixed;
+    position: absolute;
     height: 400vh;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
@@ -138,10 +138,10 @@
 }
 
 .category-modal .modal-content {
-    position: sticky;
+    position: absolute;
     top: 5vh;
     left: 50%;
-    transform: translateX(-2.5%);
+    transform: translateX(-50%);
     width: min(480px, calc(100% - 24px));
     max-width: 480px;
     max-height: calc(95dvh - 100px);

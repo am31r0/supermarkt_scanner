@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimeout(() => {
           renderTutorialPage(app);
           markTutorialShown();
-        }, 600);
+        }, 500);
       }
     } catch (err) {
       console.warn("Kon tutorial niet tonen:", err);

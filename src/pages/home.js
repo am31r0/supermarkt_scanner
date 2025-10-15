@@ -25,7 +25,7 @@ export async function renderHomePage(mount) {
   mount.innerHTML = `
     <div class="page-header header-logo">
       <h1 class="logo">Schappie</h1>
-      <h3 style="font-size:0.6rem;">Beta 0.4.251014.3</h3>
+      <h3 style="font-size:0.6rem;">Beta 0.4.251016.1 (hotfix)</h3>
     </div>
 
     <div class="hero">

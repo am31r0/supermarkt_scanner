@@ -1,13 +1,62 @@
+// =============================================
+// Modal System (Schappie v2) met loader state
+// =============================================
 
-// src/lib/modal.js
 import { escHtml, escAttr, formatPrice } from "./utils.js";
 import { registerClick } from "../lib/adSystem.js";
 import { STORE_LABEL } from "./constants.js";
 
+// ------------------ Basishandlers ------------------
 export function closeAllModals() {
   document.querySelectorAll(".search-modal").forEach((el) => el.remove());
 }
 
+// ------------------ Loader Modal ------------------
+export function showLoadingModal(queryText = "") {
+  closeAllModals();
+
+  const modal = document.createElement("div");
+  modal.className = "search-modal";
+  modal.innerHTML = `
+    <div class="search-modal-backdrop"></div>
+    <div class="search-modal-panel" role="dialog" aria-modal="true">
+      <div class="search-modal-header">
+        <h2>Zoekresultaten</h2>
+        <button class="search-modal-close" aria-label="Sluiten">✕</button>
+      </div>
+
+      <div class="search-results loading-state" style="height:400px;">
+        <div class="modal-loading">
+          <div class="spinner"></div>
+          <p>Een ogenblik... Wij zoeken in jouw winkels${
+            queryText ? ` naar<br><strong style="color:green;">${escHtml(queryText)}</strong>` : ""
+          }</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const btnClose = modal.querySelector(".search-modal-close");
+  const backdrop = modal.querySelector(".search-modal-backdrop");
+
+  function closeModal() {
+    modal.remove();
+    document.removeEventListener("keydown", onKeyDown);
+  }
+  function onKeyDown(e) {
+    if (e.key === "Escape") closeModal();
+  }
+
+  btnClose.addEventListener("click", closeModal);
+  backdrop.addEventListener("click", closeModal);
+  document.addEventListener("keydown", onKeyDown);
+
+  return modal;
+}
+
+// ------------------ Result Modal ------------------
 export function showSearchModal(results, onSelect) {
   closeAllModals();
 
@@ -68,7 +117,7 @@ export function showSearchModal(results, onSelect) {
   let promoOnly = false;
   let filterMode = "";
 
-  // ----------------- helpers: promo einddatum -----------------
+  // ------------------ Helper: promo einde ------------------
   const maandMap = {
     jan: 0,
     februari: 1,
@@ -102,34 +151,17 @@ export function showSearchModal(results, onSelect) {
     const dd = parseInt(m[1], 10);
     const maand = maandMap[m[2]] ?? null;
     if (maand === null) return null;
-
-    // jaar bepalen
     const now = new Date();
     let yyyy = now.getFullYear();
     let candidate = new Date(yyyy, maand, dd);
-    if (candidate < now) {
-      yyyy += 1; // als datum al voorbij dit jaar → volgend jaar
-      candidate = new Date(yyyy, maand, dd);
-    }
-    return candidate;
+    if (candidate < now) yyyy += 1;
+    return new Date(yyyy, maand, dd);
   }
 
   function getPromoEnd(p) {
-    console.log("Check promo date for:", p.name, {
-      promoEnd: p.promoEnd,
-      offerEnd: p.offerEnd,
-      promoUntil: p.promoUntil,
-    });
-
-    if (p.promoEnd) {
-      return new Date(p.promoEnd); // AH
-    }
-    if (p.offerEnd) {
-      return new Date(p.offerEnd); // Dirk
-    }
-    if (p.promoUntil) {
-      return parseJumboString(p.promoUntil); // Jumbo
-    }
+    if (p.promoEnd) return new Date(p.promoEnd);
+    if (p.offerEnd) return new Date(p.offerEnd);
+    if (p.promoUntil) return parseJumboString(p.promoUntil);
     return null;
   }
 
@@ -143,44 +175,33 @@ export function showSearchModal(results, onSelect) {
     const now = new Date();
     const max = new Date();
     max.setFullYear(now.getFullYear() + 2);
-    if (end > max) return false;
-    if (end.getFullYear() > 2100) return false;
+    if (end > max || end.getFullYear() > 2100) return false;
     return true;
   }
 
-  // filtering
-  function getFilteredSorted() {
-    let arr = baseResults;
-    if (promoOnly) {
-      arr = arr.filter((p) => isValidPromo(p));
-    }
-  }
-
-  // ----------------- filtering/sort -----------------
+  // ------------------ Filter + sorteer ------------------
   function getFilteredSorted() {
     let arr = baseResults;
 
-    if (currentCat) {
+    if (currentCat)
       arr = arr.filter(
         (p) => (p.unifiedCategory || p.rawCategory) === currentCat
       );
-    }
-    if (promoOnly) {
-      arr = arr.filter((p) => !!(p.promoPrice || p.offerPrice));
-    }
+
+    if (promoOnly) arr = arr.filter((p) => !!(p.promoPrice || p.offerPrice));
 
     if (filterMode === "huismerk") {
       arr = arr.filter((p) => {
         const name = (p.name || "").toLowerCase();
         return (
-          name.includes("1 de beste") || // Dirk
+          name.includes("1 de beste") ||
           name.includes("dirk") ||
-          name.includes("ah ") || // AH
+          name.includes("ah ") ||
           name.includes("basic") ||
           name.includes("jumbo") ||
-          name.includes("aldi") || // ✅ Aldi toegevoegd
-          name.includes("hoogvliet") || // ✅ Hoogvliet toegevoegd
-          name.includes("g'woon") // ✅ Veel voorkomend Hoogvliet-huismerk
+          name.includes("aldi") ||
+          name.includes("hoogvliet") ||
+          name.includes("g'woon")
         );
       });
     } else if (filterMode === "amerk") {
@@ -234,71 +255,70 @@ export function showSearchModal(results, onSelect) {
     return sorted;
   }
 
-  // ----------------- render -----------------
+  // ------------------ Render ------------------
   function renderResults() {
     const data = getFilteredSorted();
+    if (!data.length) {
+      resultsBox.innerHTML = `<div class="empty">Geen resultaten gevonden.</div>`;
+      return;
+    }
 
-    resultsBox.innerHTML = data.length
-      ? data
-          .map((p) => {
-            const hasPromo = !!(p.promoPrice || p.offerPrice);
-            const promoPrice = p.promoPrice || p.offerPrice || null;
-            const storeLabel = STORE_LABEL[p.store] || p.store;
+    resultsBox.innerHTML = data
+      .map((p) => {
+        const hasPromo = !!(p.promoPrice || p.offerPrice);
+        const promoPrice = p.promoPrice || p.offerPrice || null;
+        const storeLabel = STORE_LABEL[p.store] || p.store;
 
-            // ✅ Geldig t/m logica hersteld
-            let promoEndHtml = "";
-            if (hasPromo) {
-              const endDate = getPromoEnd(p);
-              if (endDate && !isNaN(endDate)) {
-                promoEndHtml = `<div class="promo-end">Geldig t/m ${formatNLDate(
-                  endDate
-                )}</div>`;
-              } else if (p.promoEnd || p.offerEnd || p.promoUntil) {
-                promoEndHtml = `<div class="promo-end">Geldig t/m ${
-                  p.promoEnd || p.offerEnd || p.promoUntil
-                }</div>`;
-              }
-            }
+        let promoEndHtml = "";
+        if (hasPromo) {
+          const endDate = getPromoEnd(p);
+          if (endDate && !isNaN(endDate)) {
+            promoEndHtml = `<div class="promo-end">Geldig t/m ${formatNLDate(
+              endDate
+            )}</div>`;
+          } else if (p.promoEnd || p.offerEnd || p.promoUntil) {
+            promoEndHtml = `<div class="promo-end">Geldig t/m ${
+              p.promoEnd || p.offerEnd || p.promoUntil
+            }</div>`;
+          }
+        }
 
-            return `
-              <div class="result-row ${hasPromo ? "promo" : ""}" data-id="${
-              p.id
-            }" data-store="${p.store}">
-                <div class="meta">
-                  <span class="list-store store-${p.store}">
-                    ${escHtml(storeLabel)}
-                  </span>
-                  <div class="price-group">
-                    ${
-                      hasPromo
-                        ? `<span class="price old">${formatPrice(
-                            p.price
-                          )}</span>
-                           <span class="price new">${formatPrice(
-                             promoPrice
-                           )}</span>`
-                        : `<span class="price">${formatPrice(p.price)}</span>`
-                    }
-                    <span class="ppu">${(p.pricePerUnit ?? 0).toFixed(2)} / ${
-              p.unit
-            }</span>
-                  </div>
-                </div>
-                ${hasPromo ? `<span class="promo-badge">Aanbieding</span>` : ""}
-                <img loading="lazy" src="${p.image || ""}" alt="${escAttr(
-              p.name
-            )}"/>
-                <div class="info">
-                  <div class="name">${escHtml(p.name)}</div>
-                  ${promoEndHtml} <!-- ✅ Geldig t/m toegevoegd -->
-                </div>
+        return `
+          <div class="result-row ${hasPromo ? "promo" : ""}" data-id="${
+          p.id
+        }" data-store="${p.store}">
+            <div class="meta">
+              <span class="list-store store-${p.store}">
+                ${escHtml(storeLabel)}
+              </span>
+              <div class="price-group">
+                ${
+                  hasPromo
+                    ? `<span class="price old">${formatPrice(
+                        p.price
+                      )}</span><span class="price new">${formatPrice(
+                        promoPrice
+                      )}</span>`
+                    : `<span class="price">${formatPrice(p.price)}</span>`
+                }
+                <span class="ppu">${(p.pricePerUnit ?? 0).toFixed(2)} / ${
+          p.unit
+        }</span>
               </div>
-            `;
-          })
-          .join("")
-      : `<div class="empty">Geen resultaten gevonden.</div>`;
+            </div>
+            ${hasPromo ? `<span class="promo-badge">Aanbieding</span>` : ""}
+            <img loading="lazy" src="${p.image || ""}" alt="${escAttr(
+          p.name
+        )}"/>
+            <div class="info">
+              <div class="name">${escHtml(p.name)}</div>
+              ${promoEndHtml}
+            </div>
+          </div>`;
+      })
+      .join("");
 
-    resultsBox.querySelectorAll(".result-row").forEach((row) => {
+    resultsBox.querySelectorAll(".result-row").forEach((row) =>
       row.addEventListener("click", () => {
         const id = row.dataset.id;
         const store = row.dataset.store;
@@ -308,13 +328,13 @@ export function showSearchModal(results, onSelect) {
         if (chosen) onSelect(chosen);
         closeModal();
         registerClick();
-      });
-    });
+      })
+    );
   }
-  
 
   renderResults();
 
+  // ------------------ Closing logic ------------------
   function closeModal() {
     modal.remove();
     document.removeEventListener("keydown", onKeyDown);
@@ -334,6 +354,7 @@ export function showSearchModal(results, onSelect) {
   document.addEventListener("keydown", onKeyDown);
   document.addEventListener("pointerdown", onDocPointerDown, true);
 
+  // ------------------ Filter events ------------------
   sortSelect.addEventListener("change", (e) => {
     const v = e.target.value;
     if (v === "promo") {
@@ -355,7 +376,7 @@ export function showSearchModal(results, onSelect) {
     registerClick();
   });
 
-  extraBtns.forEach((btn) => {
+  extraBtns.forEach((btn) =>
     btn.addEventListener("click", () => {
       if (filterMode === btn.dataset.filter) {
         filterMode = "";
@@ -367,6 +388,6 @@ export function showSearchModal(results, onSelect) {
       }
       renderResults();
       registerClick();
-    });
-  });
+    })
+  );
 }

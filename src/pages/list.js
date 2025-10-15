@@ -4,7 +4,7 @@
 
 import { PRODUCTS, NAME_TO_CAT } from "../data/products.js";
 import { renderCategoryGrid } from "../lib/categoryGrid.js";
-import { showSearchModal } from "../lib/modal.js";
+import { showSearchModal, showLoadingModal } from "../lib/modal.js";
 import { escHtml, uid, formatPrice, showToast } from "../lib/utils.js";
 import { renderStoreSelector } from "../lib/storeSelector.js";
 import { saveToHistory } from "../lib/history.js";
@@ -23,13 +23,11 @@ const STORE_ORDER = ["ah", "jumbo", "dirk", "aldi", "hoogvliet"];
 function normalizeStoreKey(s) {
   if (!s) return "other";
   const v = String(s).trim().toLowerCase();
-  if (["ah", "a.h.", "albert heijn", "albertheijn", "albert-heijn"].includes(v))
-    return "ah";
+  if (["ah", "a.h.", "albert heijn", "albertheijn", "albert-heijn"].includes(v)) return "ah";
   if (["jumbo"].includes(v)) return "jumbo";
-  if (["dirk", "dirk van den broek", "dirk v d broek"].includes(v))
-    return "dirk";
+  if (["dirk", "dirk van den broek", "dirk v d broek"].includes(v)) return "dirk";
   if (["aldi"].includes(v)) return "aldi";
-  if (["ah", "jumbo", "dirk", "aldi", "hoogvliet"].includes(v)) return v;
+  if (["hoogvliet"].includes(v)) return "hoogvliet";
   return "other";
 }
 
@@ -74,9 +72,8 @@ function saveFavorites(list) {
 
 function toggleFavorite(item) {
   const favs = loadFavorites();
-  const exists = favs.find(
-    (f) =>
-      f.name.toLowerCase() === item.name.toLowerCase() && f.store === item.store
+  const exists = favs.find((f) =>
+    f.name.toLowerCase() === item.name.toLowerCase() && f.store === item.store
   );
 
   if (exists) {
@@ -100,8 +97,7 @@ function toggleFavorite(item) {
 function heartSvg(item) {
   const favs = loadFavorites();
   const isFav = favs.some(
-    (f) =>
-      f.name.toLowerCase() === item.name.toLowerCase() && f.store === item.store
+    (f) => f.name.toLowerCase() === item.name.toLowerCase() && f.store === item.store
   );
 
   return isFav
@@ -124,9 +120,7 @@ export async function renderListPage(mount) {
       <header class="page-header">
         <h1>Mijn boodschappenlijst</h1>
       </header>
-
       <div class="categories-section"></div>
-
       <div class="list-container">
         <div class="input-rows"></div>
         <div class="list-items" aria-live="polite"></div>
@@ -134,55 +128,35 @@ export async function renderListPage(mount) {
     </section>
   `;
 
-  const listPage = mount.querySelector(".list-page");
   const listContainer = mount.querySelector(".list-items");
   const inputRows = mount.querySelector(".input-rows");
   const catSection = mount.querySelector(".categories-section");
 
   const selectorMount = document.createElement("div");
-  if (listPage && catSection) listPage.insertBefore(selectorMount, catSection);
+  mount.querySelector(".list-page").insertBefore(selectorMount, catSection);
   renderStoreSelector(selectorMount);
 
   await ensureEngineReady();
   const { allProducts } = await ensureDataLoaded();
 
-  /* ---------- STORE FILTER REACTIVITY ---------- */
+  // --- reactieve store filter
   const rerender = () => requestAnimationFrame(renderCommitted);
   selectorMount.addEventListener("change", rerender);
-  selectorMount.addEventListener("input", rerender);
   document.addEventListener("stores:changed", rerender);
   window.addEventListener("storage", rerender);
 
-  /* ---------- STATE MUTATIONS ---------- */
   function addItem(product) {
     const normStore = normalizeStoreKey(product?.store);
-    let promo = product?.promoPrice ?? product?.offerPrice ?? null;
-
-    if (!promo && Array.isArray(allProducts)) {
-      const match = allProducts.find(
-        (p) =>
-          normalizeStoreKey(p.store) === normStore &&
-          String(p.name).toLowerCase() === String(product.name).toLowerCase()
-      );
-      if (match) {
-        promo = match.promoPrice ?? match.offerPrice ?? null;
-        if (product.price == null && match.price != null)
-          product.price = match.price;
-      }
-    }
-
     const item = {
       id: uid(),
       name: product.name,
       cat: product.cat || NAME_TO_CAT[product.name.toLowerCase()] || "other",
-      pack: product.pack || null,
       qty: 1,
       done: false,
       store: normStore,
       price: product.price || null,
-      promoPrice: promo,
+      promoPrice: product.promoPrice ?? product.offerPrice ?? null,
     };
-
     state.push(item);
     saveList(state);
     renderCommitted();
@@ -218,12 +192,8 @@ export async function renderListPage(mount) {
     showToast(`${doneItems.length} producten opgeslagen in geschiedenis`);
   }
 
-  /* =======================
-     RENDER LIST
-     ======================= */
   function renderCommitted() {
     listContainer.innerHTML = "";
-
     const enabled = normalizeEnabledMap(getEnabledStores());
     const grouped = {};
     const visibleItems = [];
@@ -231,28 +201,16 @@ export async function renderListPage(mount) {
     for (const item of state) {
       const storeKey = normalizeStoreKey(item.store);
       if (!enabled[storeKey]) continue;
-      if (!grouped[storeKey]) grouped[storeKey] = [];
-      item.store = storeKey;
+      grouped[storeKey] ??= [];
       grouped[storeKey].push(item);
       visibleItems.push(item);
     }
 
-    const keys = STORE_ORDER.filter((k) => grouped[k]?.length).concat(
-      Object.keys(grouped).filter((k) => !STORE_ORDER.includes(k))
-    );
-
-    for (const storeKey of keys) {
-      if (!enabled[storeKey]) continue;
-
+    for (const storeKey of STORE_ORDER) {
+      if (!grouped[storeKey]) continue;
       const wrapper = document.createElement("div");
       wrapper.className = "store-block";
-      wrapper.style.borderColor = STORE_COLORS[storeKey] || "transparent";
-      wrapper.style.borderWidth = "1px";
-      wrapper.style.borderStyle = "solid";
-      wrapper.style.borderRadius = "10px";
-      wrapper.style.marginBottom = "5px";
-      wrapper.style.overflow = "clip";
-
+      wrapper.style.border = `1px solid ${STORE_COLORS[storeKey]}`;
       const ul = document.createElement("ul");
       ul.className = "store-list";
       wrapper.appendChild(ul);
@@ -261,7 +219,6 @@ export async function renderListPage(mount) {
         const li = document.createElement("li");
         li.className = "list-item";
         if (item.done) li.classList.add("done");
-
         const hasPromo =
           Number(item.promoPrice) > 0 &&
           Number(item.price) > 0 &&
@@ -279,17 +236,11 @@ export async function renderListPage(mount) {
                 </span>
                 ${
                   hasPromo
-                    ? `<span class="promo-pill" style="margin-left:0.2rem">KORTING</span>
-                       <span class="list-price old">${formatPrice(
-                         item.price
-                       )}</span>
-                       <span class="list-price new">${formatPrice(
-                         promoPrice
-                       )}</span>`
+                    ? `<span class="promo-pill">KORTING</span>
+                       <span class="list-price old">${formatPrice(item.price)}</span>
+                       <span class="list-price new">${formatPrice(promoPrice)}</span>`
                     : item.price
-                    ? `<span class="list-price">${formatPrice(
-                        item.price
-                      )}</span>`
+                    ? `<span class="list-price">${formatPrice(item.price)}</span>`
                     : ""
                 }
               </span>
@@ -306,23 +257,14 @@ export async function renderListPage(mount) {
           </label>
         `;
 
-        li.querySelector(".fav-btn").addEventListener("click", () =>
-          toggleFavorite(item)
-        );
-        li.querySelector("input[type=checkbox]").addEventListener(
-          "change",
-          (e) => {
-            item.done = e.target.checked;
-            saveList(state);
-            renderCommitted();
-          }
-        );
-        li.querySelector(".plus").addEventListener("click", () =>
-          incItemQtyById(item.id, 1)
-        );
-        li.querySelector(".minus").addEventListener("click", () =>
-          incItemQtyById(item.id, -1)
-        );
+        li.querySelector(".fav-btn").addEventListener("click", () => toggleFavorite(item));
+        li.querySelector("input[type=checkbox]").addEventListener("change", (e) => {
+          item.done = e.target.checked;
+          saveList(state);
+          renderCommitted();
+        });
+        li.querySelector(".plus").addEventListener("click", () => incItemQtyById(item.id, 1));
+        li.querySelector(".minus").addEventListener("click", () => incItemQtyById(item.id, -1));
         li.querySelector(".delete").addEventListener("click", () => {
           const idx = state.findIndex((i) => i.id === item.id);
           if (idx > -1) state.splice(idx, 1);
@@ -332,7 +274,6 @@ export async function renderListPage(mount) {
 
         ul.appendChild(li);
       }
-
       listContainer.appendChild(wrapper);
     }
 
@@ -342,175 +283,114 @@ export async function renderListPage(mount) {
       actions.className = "list-actions";
       actions.innerHTML = `
         <button class="btn small danger clear-btn">Lijst legen</button>
-        <button class="btn small success done-btn pro-gradient">Klaar ✓ (Pro-functie)</button>
+        <button class="btn small success done-btn pro-gradient">Klaar ✓ (Pro)</button>
       `;
       listContainer.appendChild(actions);
-
-      actions
-        .querySelector(".done-btn")
-        .addEventListener("click", () => completeListFlow(visibleItems));
-      actions
-        .querySelector(".clear-btn")
-        .addEventListener("click", clearListLocal);
+      actions.querySelector(".done-btn").addEventListener("click", () => completeListFlow(visibleItems));
+      actions.querySelector(".clear-btn").addEventListener("click", clearListLocal);
     }
   }
 
   /* =======================
-     SEARCH / INPUT
+     SEARCH INPUT
      ======================= */
-     function createInputRow() {
-       const row = document.createElement("div");
-       row.className = "input-row";
-       row.innerHTML = `
-        <input type="text" class="item-input" placeholder="Typ hier..." autocomplete="off" />
-        <button class="btn small commit">Zoeken</button>
-        <div class="suggestions"></div>
-      `;
+  async function handleSearch(query) {
+    const loaderModal = showLoadingModal(query);
+    await new Promise((r) => setTimeout(r, 50));
+    try {
+      const { allProducts } = await ensureDataLoaded();
+      const results = await Promise.resolve(searchProducts(allProducts, query));
+      loaderModal.remove();
+      showSearchModal(results, (chosen) => {
+        addItem({
+          id: chosen.id,
+          name: chosen.name,
+          cat: chosen.unifiedCategory,
+          pack: chosen.unit,
+          store: normalizeStoreKey(chosen.store),
+          price: chosen.price,
+          promoPrice: chosen.promoPrice ?? chosen.offerPrice ?? null,
+        });
+      });
+    } catch (err) {
+      console.error(err);
+      loaderModal.querySelector(".search-results").innerHTML =
+        "<p style='text-align:center;color:red'>Er ging iets mis bij het laden.</p>";
+    }
+  }
 
-       const input = row.querySelector(".item-input");
-       const commitBtn = row.querySelector(".commit");
-       const sugBox = row.querySelector(".suggestions");
-       let sugTimeout = null;
+  function createInputRow() {
+    const row = document.createElement("div");
+    row.className = "input-row";
+    row.innerHTML = `
+      <input type="text" class="item-input" placeholder="Typ hier..." autocomplete="off" />
+      <button class="btn small commit">Zoeken</button>
+      <div class="suggestions"></div>
+    `;
 
-       // ---------- Cataloguslijst uit products.js ----------
-       const CATALOG_NAMES = (() => {
-         if (Array.isArray(PRODUCTS)) {
-           return Array.from(
-             new Set(
-               PRODUCTS.map((p) =>
-                 typeof p === "string" ? p : p?.name
-               ).filter(Boolean)
-             )
-           );
-         }
-         if (PRODUCTS && typeof PRODUCTS === "object") {
-           const names = [];
-           for (const key of Object.keys(PRODUCTS)) {
-             const val = PRODUCTS[key];
-             if (Array.isArray(val)) {
-               for (const item of val) {
-                 if (typeof item === "string") names.push(item);
-                 else if (item && typeof item === "object" && item.name)
-                   names.push(item.name);
-               }
-             }
-           }
-           return Array.from(new Set(names.filter(Boolean)));
-         }
-         return [];
-       })();
+    const input = row.querySelector(".item-input");
+    const commitBtn = row.querySelector(".commit");
+    const sugBox = row.querySelector(".suggestions");
+    let sugTimeout = null;
 
-       // ---------- Echte zoekactie ----------
-       async function handleSearch(q) {
-         const query = q || input.value.trim();
-         if (!query) return;
+    const CATALOG_NAMES = Array.from(
+      new Set(
+        (Array.isArray(PRODUCTS) ? PRODUCTS : Object.values(PRODUCTS).flat())
+          .map((p) => (typeof p === "string" ? p : p?.name))
+          .filter(Boolean)
+      )
+    );
 
-         const results = searchProducts(allProducts, query);
-         if (!results.length) {
-           showToast("Geen resultaten gevonden");
-           sugBox.classList.remove("open");
-           return;
-         }
+    async function runSearch(q) {
+      const query = q || input.value.trim();
+      if (!query) return;
+      setTimeout(() => handleSearch(query), 0); // laat UI eerst renderen
+    }
 
-         showSearchModal(results, (chosen) => {
-           addItem({
-             id: chosen.id,
-             name: chosen.name,
-             cat: chosen.unifiedCategory,
-             pack: chosen.unit,
-             store: normalizeStoreKey(chosen.store),
-             price: chosen.price,
-             promoPrice: chosen.promoPrice ?? chosen.offerPrice ?? null,
-           });
-           input.value = "";
-           sugBox.classList.remove("open");
-         });
-       }
+    commitBtn.addEventListener("click", () => runSearch());
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        runSearch();
+      }
+    });
 
-       // ---------- Suggesties vanuit products.js ----------
-       function openSug(query) {
-         const q = String(query || "")
-           .toLowerCase()
-           .trim();
+    input.addEventListener("input", (e) => {
+      clearTimeout(sugTimeout);
+      const val = e.target.value.trim().toLowerCase();
+      if (val.length < 3) {
+        sugBox.classList.remove("open");
+        sugBox.innerHTML = "";
+        return;
+      }
+      sugTimeout = setTimeout(() => {
+        const results = CATALOG_NAMES.filter((n) => n.toLowerCase().includes(val)).slice(0, 10);
+        sugBox.innerHTML = results
+          .map((n) => `<button class="suggestion" data-name="${escHtml(n)}">${escHtml(n)}</button>`)
+          .join("");
+        sugBox.classList.add("open");
+        sugBox.querySelectorAll(".suggestion").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            input.value = btn.dataset.name;
+            sugBox.classList.remove("open");
+            runSearch();
+          });
+        });
+      }, 200);
+    });
 
-         if (q.length < 3) {
-           sugBox.classList.remove("open");
-           sugBox.innerHTML = "";
-           return;
-         }
+    window.triggerListSearch = (nameOrProduct) => {
+      const q = typeof nameOrProduct === "string" ? nameOrProduct : nameOrProduct?.name ?? "";
+      if (!q) return;
+      input.value = q;
+      runSearch();
+    };
 
-         const results = CATALOG_NAMES.filter((name) =>
-           name.toLowerCase().includes(q)
-         ).slice(0, 10);
-         if (!results.length) {
-           sugBox.classList.remove("open");
-           sugBox.innerHTML = "";
-           return;
-         }
-
-         // vul de HTML exact volgens jouw oude structure
-         sugBox.innerHTML = results
-           .map(
-             (name) => `
-              <button class="suggestion" data-name="${escHtml(name)}">
-                ${escHtml(name)}
-              </button>
-            `
-           )
-           .join("");
-
-         sugBox.classList.add("open");
-
-         sugBox.querySelectorAll(".suggestion").forEach((btn) => {
-           btn.addEventListener("click", () => {
-             input.value = btn.dataset.name;
-             sugBox.classList.remove("open");
-             handleSearch();
-           });
-         });
-       }
-
-       // ---------- Event listeners ----------
-       commitBtn.addEventListener("click", () => handleSearch());
-       input.addEventListener("keydown", (e) => {
-         if (e.key === "Enter") {
-           e.preventDefault();
-           handleSearch();
-         }
-       });
-
-       input.addEventListener("input", (e) => {
-         clearTimeout(sugTimeout);
-         const val = e.target.value.trim();
-         if (val.length < 3) {
-           sugBox.classList.remove("open");
-           sugBox.innerHTML = "";
-           return;
-         }
-         sugTimeout = setTimeout(() => openSug(val), 200);
-       });
-
-       // trigger vanuit categorie-grid
-       window.triggerListSearch = (nameOrProduct) => {
-         const q =
-           typeof nameOrProduct === "string"
-             ? nameOrProduct
-             : nameOrProduct?.name ?? "";
-         if (!q) return;
-         input.value = q;
-         handleSearch();
-       };
-
-       inputRows.appendChild(row);
-     }
-    
-    
+    inputRows.appendChild(row);
+  }
 
   createInputRow();
-  renderCategoryGrid(catSection, {
-    onSelect: (product) => window.triggerListSearch(product),
-    allProducts,
-  });
+  renderCategoryGrid(catSection, { onSelect: (p) => window.triggerListSearch(p), allProducts });
   renderCommitted();
 }
 
@@ -518,8 +398,7 @@ export async function renderListPage(mount) {
    TOTALS
    ======================= */
 function calculateTotals(items) {
-  let totalNormal = 0;
-  let totalOffer = 0;
+  let totalNormal = 0, totalOffer = 0;
   for (const i of items) {
     const base = Number(i.price) || 0;
     const promo = Number(i.promoPrice) || 0;
@@ -536,33 +415,12 @@ function renderTotals(container, items) {
   const el = document.createElement("div");
   el.className = "totals-bar";
   el.innerHTML = `
-    <div class="totals-line"><span>Totaal:</span><strong>€${total.toFixed(
-      2
-    )}</strong></div>
-    ${
-      discount > 0.001
-        ? `<div class="totals-line discount"><span>Je bespaart:</span><strong>€${discount.toFixed(
-            2
-          )}</strong></div>`
-        : ""
-    }
+    <div class="totals-line"><span>Totaal:</span><strong>€${total.toFixed(2)}</strong></div>
+    ${discount > 0.001 ? `<div class="totals-line discount"><span>Je bespaart:</span><strong>€${discount.toFixed(2)}</strong></div>` : ""}
   `;
   container.appendChild(el);
 }
 
-/* =======================
-   ICONS
-   ======================= */
 function trashSvg() {
-  return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-      fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
-      <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1
-      A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5
-      0 0 0 0 1h.538l.853 10.66A2 2 0 0 0
-      4.885 16h6.23a2 2 0 0 0 1.994-1.84
-      l.853-10.66h.538a.5.5 0 0 0
-      0-1z"/>
-    </svg>
-  `;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1z"/></svg>`;
 }

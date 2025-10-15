@@ -1,7 +1,7 @@
 // =============================================
 // Matching & Normalisatie Engine (Schappie v2)
 // =============================================
-
+import { getEnabledStores } from "./settings.js";
 const DEBUG = false;
 
 /* =======================
@@ -693,52 +693,66 @@ function defaultSort(a, b) {
 /* =======================
    Search Products (v2)
    ======================= */
-export function searchProducts(
-  products,
-  query = "",
-  chosenCategory = null,
-  sortBy = "score" // "score" | "ppu" | "price" | "alpha" | "promo"
-) {
-  if (!Array.isArray(products)) return [];
-  const qRaw = String(query || "");
-  const q = normalizeQuery(qRaw);
-  if (q.length < 2) return [];
+   export function searchProducts(
+     products,
+     query = "",
+     chosenCategory = null,
+     sortBy = "score" // "score" | "ppu" | "price" | "alpha" | "promo"
+   ) {
+     if (!Array.isArray(products)) return [];
 
-  const results = [];
-  const threshold = adaptiveThreshold(q);
+     const qRaw = String(query || "");
+     const q = normalizeQuery(qRaw);
+     if (q.length < 2) return [];
 
-  for (const p of products) {
-    if (chosenCategory && p.unifiedCategory !== chosenCategory) continue;
+     // ✅ Veilig ophalen van actieve winkels
+     const storeData = getEnabledStores();
+     let enabledStores = [];
+     if (Array.isArray(storeData)) {
+       enabledStores = storeData.map((s) => String(s).toLowerCase());
+     } else if (storeData && typeof storeData === "object") {
+       enabledStores = Object.keys(storeData)
+         .filter((key) => storeData[key])
+         .map((s) => s.toLowerCase());
+     }
 
-    // v2 score
-    let score = multiWordScore(q, p);
+     const results = [];
+     const threshold = adaptiveThreshold(q);
 
-    // semantiek + context
-    score *= semanticFilter(q, p);
-    score *= contextualRelevanceBoost(q, p);
+     for (const p of products) {
+       const storeKey = (p.store || "").toLowerCase();
 
-    // learned boosts
-    score *= learnedBoostFactor(q, p);
+       // 🚫 skip producten van uitgeschakelde winkels
+       if (!enabledStores.includes(storeKey)) continue;
 
-    // compat: oude scoreMatch fallback (kleine extra duw)
-    const legacy = scoreMatch(q, p.name);
-    score = Math.max(score, legacy * 0.9);
+       // 🚫 optioneel: filter op gekozen categorie
+       if (chosenCategory && p.unifiedCategory !== chosenCategory) continue;
 
-    if (score >= threshold) results.push({ ...p, score });
-  }
+       // 🧠 bereken score
+       let score = multiWordScore(q, p);
+       score *= semanticFilter(q, p);
+       score *= contextualRelevanceBoost(q, p);
+       score *= learnedBoostFactor(q, p);
 
-  // sorteren
-  if (sortBy === "ppu")
-    return results.sort((a, b) => a.pricePerUnit - b.pricePerUnit);
-  if (sortBy === "price") return results.sort((a, b) => a.price - b.price);
-  if (sortBy === "alpha")
-    return results.sort((a, b) => a.name.localeCompare(b.name));
-  if (sortBy === "promo")
-    return results.sort(
-      (a, b) => !!b.promoPrice - !!a.promoPrice || defaultSort(a, b)
-    );
-  return results.sort(defaultSort);
-}
+       // 🔁 fallback: legacy fuzzy-match
+       const legacy = scoreMatch(q, p.name);
+       score = Math.max(score, legacy * 0.9);
+
+       if (score >= threshold) results.push({ ...p, score });
+     }
+
+     // ✅ sortering
+     if (sortBy === "ppu")
+       return results.sort((a, b) => a.pricePerUnit - b.pricePerUnit);
+     if (sortBy === "price") return results.sort((a, b) => a.price - b.price);
+     if (sortBy === "alpha")
+       return results.sort((a, b) => a.name.localeCompare(b.name));
+     if (sortBy === "promo")
+       return results.sort(
+         (a, b) => !!b.promoPrice - !!a.promoPrice || defaultSort(a, b)
+       );
+     return results.sort(defaultSort);
+   }
 
 /* =======================
    Debug utils (optioneel)

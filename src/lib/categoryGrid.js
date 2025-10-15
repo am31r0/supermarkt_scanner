@@ -108,7 +108,7 @@ export function renderCategoryGrid(mount, { onSelect }) {
   const firstCard = grid.querySelector(".category-card");
   if (firstCard) {
     const cardHeight = firstCard.offsetHeight + 8;
-    wrapper.style.maxHeight = `${cardHeight * 2.9}px`;
+    wrapper.style.maxHeight = `${cardHeight * 2.8}px`;
   }
 
   // === Meer/minder knop ===
@@ -119,7 +119,7 @@ export function renderCategoryGrid(mount, { onSelect }) {
       moreBtn.textContent = "Minder tonen";
     } else {
       const cardHeight = firstCard.offsetHeight + 8;
-      wrapper.style.maxHeight = `${cardHeight * 2.9}px`;
+      wrapper.style.maxHeight = `${cardHeight * 2.1}px`;
       moreBtn.textContent = "Meer tonen";
     }
   });
