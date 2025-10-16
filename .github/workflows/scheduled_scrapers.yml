@@ -1,13 +1,11 @@
-name: Scrape per winkel op juiste dag 08:30
+name: Scrape per winkel op juiste dag 07:30
 
 on:
   schedule:
-    # Maandag 08:30 → AH
-    - cron: "30 8 * * 1"
-    # Dinsdag 08:30 → ALDI
-    - cron: "30 8 * * 2"
-    # Woensdag 08:30 → Dirk + Jumbo + Hoogvliet
-    - cron: "30 8 * * 3"
+    # Maandag 07:30 → AH + Aldi
+    - cron: "30 7 * * 1"
+    # Woensdag 07:30 → Dirk + Jumbo + Hoogvliet
+    - cron: "30 7 * * 3"
   workflow_dispatch:
 
 jobs:
@@ -26,7 +24,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          # als je playwright gebruikt:
           playwright install --with-deps chromium || true
 
       - name: Run scrapers op basis van dag
@@ -34,14 +31,10 @@ jobs:
           DAY=$(date +%u)
           echo "Vandaag is dag nummer: $DAY"
 
-          # maandag = 1 → AH
+          # maandag = 1 → AH + ALDI
           if [ "$DAY" -eq 1 ]; then
             echo "⏱️ Running AH scraper"
             python scrapers/ah_scraper.py
-          fi
-
-          # dinsdag = 2 → ALDI
-          if [ "$DAY" -eq 2 ]; then
             echo "⏱️ Running ALDI scraper"
             python scrapers/aldi_scraper.py
           fi

@@ -187,31 +187,47 @@ def enrich_with_intershop(items):
 
     BATCH = 40
     for start in range(0, len(skus), BATCH):
-        chunk = skus[start:start+BATCH]
+        chunk = skus[start:start + BATCH]
         url = f"{INTERSHOP_ENDPOINT}?products={','.join(chunk)}"
         data = _get(url)
         if not isinstance(data, list):
             continue
+
         for prod in data:
             sku = str(prod.get("sku") or "")
             if not sku or sku not in sku_to_idx:
                 continue
+
             list_price = safe_float(prod.get("listPrice") or prod.get("listprice"))
             discounted = safe_float(prod.get("discountedPrice") or prod.get("discountprice"))
+
+            # ✅ Promotiedata ophalen
+            promo_start = None
             promo_end = None
             promos = prod.get("promotions") or []
+            if promos:
+                promo_start = promos[0].get("validFrom") or promos[0].get("startDate")
+                promo_end = promos[0].get("validTo") or promos[0].get("endDate")
+
             for idx in sku_to_idx[sku]:
-                base = items[idx].get("price")
-                promo = items[idx].get("promoPrice")
-                if discounted is not None:
-                    items[idx]["promoPrice"] = discounted
+                # prijzen actualiseren
                 if list_price is not None:
                     items[idx]["price"] = list_price
-                if items[idx]["price"] is not None and items[idx]["promoPrice"] is not None:
-                    if abs(items[idx]["price"] - items[idx]["promoPrice"]) < 1e-6:
-                        items[idx]["promoPrice"] = None
+                if discounted is not None:
+                    items[idx]["promoPrice"] = discounted
+                if (
+                    items[idx]["price"] is not None
+                    and items[idx]["promoPrice"] is not None
+                    and abs(items[idx]["price"] - items[idx]["promoPrice"]) < 1e-6
+                ):
+                    items[idx]["promoPrice"] = None
+
+                # ✅ promoStart / promoEnd toevoegen
+                if promo_start:
+                    items[idx]["promoStart"] = promo_start
                 if promo_end:
                     items[idx]["promoEnd"] = promo_end
+
     return items
 
 # ============== MAIN ==============

@@ -174,6 +174,10 @@ def build_product(p, cat_name):
         price = now_price
         promo_price = None
 
+    discount = p.get("discount") or {}
+    promo_start = discount.get("startDate")
+    promo_end = discount.get("endDate")
+
     return {
         "id": p.get("id"),
         "title": p.get("title"),
@@ -184,9 +188,11 @@ def build_product(p, cat_name):
         "unit": (price_data.get("unitInfo") or {}).get("description"),
         "image": (p.get("images") or [{}])[0].get("url"),
         "beschikbaar": p.get("availableOnline"),
-        "promoEnd": (p.get("discount") or {}).get("endDate"),
+        "promoStart": promo_start,
+        "promoEnd": promo_end,
         "link": "https://www.ah.nl" + str(p.get("link")),
     }
+
 
 def scrape_category(cat, ci):
     global bruto_count, netto_count, voordeelshop_count, no_price_count, batch

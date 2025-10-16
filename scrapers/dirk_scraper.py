@@ -95,25 +95,37 @@ def scrape_webgroup(wgid):
     """Scrape alle producten uit een webGroupId."""
     products = []
     group_data = fetch_webgroup(wgid)
+
     for p in group_data:
         info = p.get("productInformation", {}) or {}
         offer = p.get("productOffer") or {}
+
+        normal_price = p.get("normalPrice")
+        offer_price = p.get("offerPrice")
+
+        # Alleen promoPrice tonen als er een aanbieding is
+        promo_price = offer_price if offer_price and offer_price < normal_price else None
+
         products.append({
-            "productId": p.get("productId"),
-            "name": info.get("headerText"),
-            "packaging": info.get("packaging"),
-            "brand": info.get("brand"),
-            "image": info.get("image"),
-            "department": info.get("department"),
-            "webgroupId": wgid,
-            "categoryLabel": info.get("webgroup"),  # label vanuit API
-            "normalPrice": p.get("normalPrice"),
-            "offerPrice": p.get("offerPrice"),
+            "id": p.get("productId"),
+            "title": info.get("headerText"),
+            "category": info.get("webgroup") or info.get("department"),
+            "price": normal_price,
+            "promoPrice": promo_price,
             "priceLabel": offer.get("textPriceSign"),
-            "offerStart": offer.get("startDate"),
-            "offerEnd": offer.get("endDate"),
+            "price_per_unit": None,  # Dirk geeft geen prijs per eenheid terug
+            "unit": info.get("packaging"),
+            "image": info.get("image"),
+            "beschikbaar": True,
+            "promoStart": offer.get("startDate"),   # ✅ toegevoegd
+            "promoEnd": offer.get("endDate"),       # ✅ toegevoegd
+            "link": f"https://www.dirk.nl/product/{p.get('productId')}",
+            "brand": info.get("brand"),
+            "webgroupId": wgid,
+            "categoryLabel": info.get("webgroup"),
         })
     return products
+
 
 def save_batch(products, batch_num, run_id):
     """Sla tussentijdse batch op in de juiste map."""

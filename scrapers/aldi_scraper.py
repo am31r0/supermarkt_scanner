@@ -5,7 +5,7 @@ from datetime import datetime
 APP_ID = "2HU29PF6BH"
 API_KEY = "686cf0c8ddcf740223d420d1115c94c1"
 ALGOLIA_URL = f"https://{APP_ID.lower()}-dsn.algolia.net/1/indexes/*/queries"
-OUTPUT_FILE = "aldi.json"
+OUTPUT_FILE = "aldi_all.json"
 
 HEADERS = {
     "User-Agent": (
@@ -93,7 +93,6 @@ def map_category(hit):
         for key, val in CATEGORY_MAP.items():
             if key in c_norm:
                 return val
-    # heuristische fallback op productnaam
     name = hit.get("name", "").lower()
     if any(x in name for x in ["melk", "kaas", "yoghurt", "boter"]):
         return "Zuivel, eieren"
@@ -127,16 +126,23 @@ def format_price_per_unit(hit):
 def convert_hit(hit):
     price = (hit.get("currentPrice") or {}).get("priceValue")
     promo_price = None
+    promo_start = None
     promo_until = None
 
     promo = hit.get("promotionPrices")
     if promo and isinstance(promo, list) and len(promo) > 0:
         p = promo[0]
         promo_price = p.get("priceValue")
-        ts = p.get("validUntil")
-        if ts:
+        ts_start = p.get("validFrom")
+        ts_end = p.get("validUntil")
+        if ts_start:
             try:
-                promo_until = datetime.utcfromtimestamp(int(ts)).strftime("%Y-%m-%d")
+                promo_start = datetime.utcfromtimestamp(int(ts_start)).strftime("%Y-%m-%d")
+            except Exception:
+                promo_start = None
+        if ts_end:
+            try:
+                promo_until = datetime.utcfromtimestamp(int(ts_end)).strftime("%Y-%m-%d")
             except Exception:
                 promo_until = None
 
@@ -164,6 +170,7 @@ def convert_hit(hit):
         "unit": unit_scale,
         "image": image_url,
         "beschikbaar": hit.get("isAvailable", True),
+        "promoStart": promo_start,
         "promoEnd": promo_until,
         "link": f"https://www.aldi.nl/{hit.get('productSlug')}.html" if hit.get("productSlug") else None,
     }
@@ -211,20 +218,13 @@ def fetch_all():
         time.sleep(0.5)
     return all_products
 
-import os
-
 if __name__ == "__main__":
     print("🚀 Starting Aldi full scraper...")
     products = fetch_all()
     print(f"✨ Finished. Total collected: {len(products)} products.")
     if products:
-        OUTPUT_DIR = "dev/store_database"
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
-        final_path = os.path.join(OUTPUT_DIR, "aldi.json")
-
-        with open(final_path, "w", encoding="utf-8") as f:
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             json.dump(products, f, ensure_ascii=False, indent=2)
-
-        print(f"💾 Saved to {final_path}")
+        print(f"💾 Saved to {OUTPUT_FILE}")
     else:
         print("⚠️ No products collected!")

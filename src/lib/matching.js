@@ -146,6 +146,47 @@ function labelForUnit(unit) {
   return "€/st";
 }
 
+function isPromoActiveNow(promo) {
+  if (!promo || !promo.start || !promo.end) return false;
+
+  const months = {
+    jan: 0,
+    feb: 1,
+    mrt: 2,
+    apr: 3,
+    mei: 4,
+    jun: 5,
+    jul: 6,
+    aug: 7,
+    sep: 8,
+    okt: 9,
+    nov: 10,
+    dec: 11,
+  };
+
+  const now = new Date();
+
+  try {
+    const start = new Date(
+      now.getFullYear(),
+      months[promo.start.monthShort.toLowerCase()],
+      parseInt(promo.start.date)
+    );
+    const end = new Date(
+      now.getFullYear(),
+      months[promo.end.monthShort.toLowerCase()],
+      parseInt(promo.end.date)
+    );
+
+    // promo actief als vandaag binnen range valt
+    return now >= start && now <= end;
+  } catch (e) {
+    if (DEBUG) console.warn("Invalid promo date:", promo, e);
+    return false;
+  }
+}
+
+
 function effectivePrice(normal, promo) {
   return promo && promo > 0 ? promo : normal;
 }
@@ -349,21 +390,27 @@ export function normalizeHoogvliet(p) {
 /* =======================
    Alles combineren
    ======================= */
-export function normalizeAll({
-  ah = [],
-  dirk = [],
-  jumbo = [],
-  aldi = [],
-  hoogvliet = [],
-}) {
-  return [
-    ...ah.map(normalizeAH),
-    ...dirk.map(normalizeDirk),
-    ...jumbo.map(normalizeJumbo),
-    ...aldi.map(normalizeAldi),
-    ...hoogvliet.map(normalizeHoogvliet),
-  ];
-}
+   export function normalizeAll({
+     ah = [],
+     dirk = [],
+     jumbo = [],
+     aldi = [],
+     hoogvliet = [],
+   }) {
+     const all = [
+       ...ah.map(normalizeAH),
+       ...dirk.map(normalizeDirk),
+       ...jumbo.map(normalizeJumbo),
+       ...aldi.map(normalizeAldi),
+       ...hoogvliet.map(normalizeHoogvliet),
+     ];
+
+     // ✅ FIX: altijd unieke id genereren (belangrijk voor deals & lijst)
+     return all.map((p, i) => ({
+       ...p,
+       id: p.id || p.productId || p.sku || `${p.store}_${i}`,
+     }));
+   }
 
 /* =======================
    Fuzzy helpers
@@ -727,6 +774,8 @@ function defaultSort(a, b) {
 
        // 🚫 optioneel: filter op gekozen categorie
        if (chosenCategory && p.unifiedCategory !== chosenCategory) continue;
+
+       if (p.promotions && p.prices?.promoPrice && !isPromoActiveNow(p.promotions)) continue;
 
        // 🧠 bereken score
        let score = multiWordScore(q, p);

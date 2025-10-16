@@ -257,6 +257,38 @@ function showDealsModal(store, products) {
     });
   });
 
+  // --- toevoegen aan lijst binnen modal ---
+  resultsBox.querySelectorAll(".deal-card").forEach((card) => {
+    const addBtn = card.querySelector(".add-btn");
+    if (addBtn) {
+      addBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = card.dataset.id;
+        const chosen =
+          products.find(
+            (r) =>
+              String(r.id) === id ||
+              String(r.productId) === id ||
+              String(r.sku) === id
+          ) || null;
+        if (chosen) addItem(chosen);
+      });
+    }
+
+    // Optioneel: klik op heel de kaart ook toevoegen
+    card.addEventListener("click", () => {
+      const id = card.dataset.id;
+      const chosen =
+        products.find(
+          (r) =>
+            String(r.id) === id ||
+            String(r.productId) === id ||
+            String(r.sku) === id
+        ) || null;
+      if (chosen) addItem(chosen);
+    });
+  });
+
   // --- sluitlogica ---
   function closeModal() {
     modal.remove();

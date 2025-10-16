@@ -127,16 +127,23 @@ export function renderTutorialPage(mount) {
       console.warn("⚠️ Kon tutorial status niet opslaan:", e);
     }
 
-    const overlay = document.querySelector(".tutorial-overlay");
+    // Zoek zowel in mount als in body
+    const overlay =
+      mount.querySelector(".tutorial-overlay") ||
+      document.querySelector(".tutorial-overlay");
+
     if (overlay) overlay.remove();
 
+    // wis de hele mount voor zekerheid
+    mount.innerHTML = "";
     showNav(true);
 
-    // kleine vertraging voor soepelheid
+    // kleine vertraging om race conditions te voorkomen
     setTimeout(() => {
       window.location.hash = "#/home";
-    }, 100);
+    }, 150);
   }
+  
 
   // --- Zorg dat finishBtn altijd reageert zodra zichtbaar ---
   function enableFinishWhenReady() {

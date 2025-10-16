@@ -184,7 +184,9 @@ export async function renderHomePage(mount) {
             <div class="home-deal-prices">
               ${
                 deal.oldPrice !== deal.newPrice
-                  ? `<span class="price old">${formatPrice(deal.oldPrice)}</span>`
+                  ? `<span class="price old">${formatPrice(
+                      deal.oldPrice
+                    )}</span>`
                   : ""
               }
               <span class="price new">${formatPrice(deal.newPrice)}</span>
@@ -197,16 +199,27 @@ export async function renderHomePage(mount) {
     // ✅ Klik = toevoegen aan lijst
     grid.querySelectorAll(".home-deal-card").forEach((card) => {
       card.addEventListener("click", () => {
+        const store = card.dataset.store;
+        const name = card.dataset.name;
+        const price = parseFloat(card.dataset.price || 0);
+
         const item = {
           id: uid(),
-          name: card.dataset.name,
-          cat: card.dataset.store,
+          name,
+          cat: "other", // we hebben hier geen categorie-info
           pack: null,
+          qty: 1,
+          done: false,
+          store,
+          price,
+          promoPrice: null,
         };
+
         const list = loadList();
         list.push(item);
         saveList(list);
-        showToast("Product toegevoegd aan Mijn Lijst");
+        document.dispatchEvent(new Event("list:changed"));
+        showToast("✅ Toegevoegd aan Mijn Lijst");
       });
     });
   }
