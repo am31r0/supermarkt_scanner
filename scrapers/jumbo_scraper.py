@@ -71,15 +71,18 @@ def extract_promo_dates(promotions):
     """Extraheer leesbare promoStart/promoEnd uit Jumbo's promotions[] veld."""
     if not promotions or not isinstance(promotions, list):
         return None, None
-    first = promotions[0]
-    if not first:
-        return None, None
 
+    first = promotions[0] or {}
     start = first.get("start") or {}
     end = first.get("end") or {}
 
-    promo_start = " ".join(filter(None, [start.get("dayShort"), start.get("date"), start.get("monthShort")]))
-    promo_end = " ".join(filter(None, [end.get("dayShort"), end.get("date"), end.get("monthShort")]))
+    # Converteer integers (zoals 7) naar strings voor veilige join
+    def fmt(part):
+        return str(part) if part is not None else None
+
+    promo_start = " ".join(filter(None, [fmt(start.get("dayShort")), fmt(start.get("date")), fmt(start.get("monthShort"))]))
+    promo_end = " ".join(filter(None, [fmt(end.get("dayShort")), fmt(end.get("date")), fmt(end.get("monthShort"))]))
+
     return promo_start or None, promo_end or None
 
 
